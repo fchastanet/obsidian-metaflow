@@ -1,6 +1,6 @@
 {
 	"id": "obsidian-metadata-properties-sorter",
-	"name": "Obsidian Metadata Properties Sorter",
+	"name": "Metadata Properties Sorter",
 	"version": "1.0.0",
 	"minAppVersion": "1.8.0",
 	"description": "Sorts metadata properties in Obsidian notes based on user-defined rules.",
