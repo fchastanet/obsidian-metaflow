@@ -2,35 +2,23 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
+interface MetadataPropertiesSorterPluginSettings {
 	mySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: MetadataPropertiesSorterPluginSettings = {
 	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class MetadataPropertiesSorterPlugin extends Plugin {
+	settings: MetadataPropertiesSorterPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
+			id: 'metadata-properties-sorter-simple',
 			name: 'Open sample modal (simple)',
 			callback: () => {
 				new SampleModal(this.app).open();
@@ -47,7 +35,7 @@ export default class MyPlugin extends Plugin {
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
 		this.addCommand({
-			id: 'open-sample-modal-complex',
+			id: 'metadata-properties-sorter-complex',
 			name: 'Open sample modal (complex)',
 			checkCallback: (checking: boolean) => {
 				// Conditions to check
@@ -108,9 +96,9 @@ class SampleModal extends Modal {
 }
 
 class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: MetadataPropertiesSorterPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: MetadataPropertiesSorterPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
