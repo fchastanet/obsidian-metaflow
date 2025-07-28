@@ -18,5 +18,8 @@ main.js
 # obsidian
 data.json
 
+# Sync configuration (personal settings)
+sync.config.json
+
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store

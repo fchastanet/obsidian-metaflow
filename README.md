@@ -51,6 +51,41 @@ Quick starting guide for new plugin devs:
 - `npm i` or `yarn` to install dependencies.
 - `npm run dev` to start compilation in watch mode.
 
+## Auto-sync to Obsidian Plugin Folder
+
+This plugin includes automatic syncing capabilities to copy built files directly to your Obsidian vault's plugin folder for easier development.
+
+### Setup
+
+1. Create or modify the `sync.config.json` file in the project root:
+
+```json
+{
+    "syncEnabled": true,
+    "syncPath": "/path/to/your/vault/.obsidian/plugins/your-plugin-name/",
+    "filesToSync": [
+        "main.js",
+        "manifest.json",
+        "styles.css"
+    ]
+}
+```
+
+2. Replace `/path/to/your/vault/.obsidian/plugins/your-plugin-name/` with the actual path to your plugin folder in your Obsidian vault.
+
+### Usage
+
+- **Development mode**: Run `npm run dev` - files will be automatically synced when they change
+- **Production build**: Run `npm run build` - files will be synced once after the build completes
+- **Manual sync**: Run `npm run sync` - sync files immediately without building
+
+### Benefits
+
+- No need to manually copy files after each build
+- Automatic syncing during development
+- Easy testing in your actual Obsidian vault
+- Configurable list of files to sync
+
 ## Manually installing the plugin
 
 - Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.

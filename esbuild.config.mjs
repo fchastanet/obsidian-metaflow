@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import { syncFiles, watchAndSync } from "./sync.mjs";
 
 const banner =
 `/*
@@ -43,7 +44,9 @@ const context = await esbuild.context({
 
 if (prod) {
 	await context.rebuild();
+	syncFiles(); // Sync files after production build
 	process.exit(0);
 } else {
 	await context.watch();
+	watchAndSync(); // Set up auto-sync for development
 }
