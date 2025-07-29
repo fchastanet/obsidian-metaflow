@@ -2,12 +2,13 @@
 const mockSortMetadataInContent = jest.fn((content, settings) => content);
 const mockSortProperties = jest.fn((metadata, settings) => metadata);
 
-jest.mock('../metadata-sorter', () => ({
+jest.mock('../src/metadata-sorter', () => ({
 	sortMetadataInContent: mockSortMetadataInContent,
 	sortProperties: mockSortProperties
 }));
 
-import { MetadataAutoInserter, MetadataMenuField, FileClassDefinition, MetadataMenuPluginInterface, AutoMetadataSettings } from '../metadata-auto-inserter';
+import { MetadataAutoInserter } from '../src/metadata-auto-inserter';
+import { MetadataMenuField, FileClassDefinition, MetadataMenuPluginInterface, AutoMetadataSettings } from '../src/types';
 
 // Mock Obsidian types
 interface MockVault {

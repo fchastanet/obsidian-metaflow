@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { MetadataSettings, DEFAULT_SETTINGS, sortProperties, sortMetadataInContent } from '../metadata-sorter';
+import { MetadataSettings, DEFAULT_SETTINGS, sortProperties, sortMetadataInContent } from '../src/metadata-sorter';
 
 describe('Metadata Sorting', () => {
 	describe('sortProperties', () => {

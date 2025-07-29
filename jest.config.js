@@ -10,7 +10,8 @@ module.exports = {
     '^.+\\.(ts|tsx)$': 'ts-jest'
   },
   collectCoverageFrom: [
-    'metadata-sorter.ts',
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
     '!*.d.ts',
     '!jest.config.js',
     '!esbuild.config.mjs'

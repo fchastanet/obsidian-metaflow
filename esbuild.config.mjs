@@ -1,7 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
-import { syncFiles, watchAndSync } from "./sync.mjs";
+import { syncFiles, watchAndSync } from "./scripts/sync.mjs";
 
 const banner =
 `/*
@@ -60,7 +60,7 @@ const modeConfig = debug ? debugConfig : (prod ? prodConfig : devConfig);
 
 const context = await esbuild.context({
 	...modeConfig,
-	entryPoints: ["main.ts"],
+	entryPoints: ["src/index.ts"],
 	bundle: true,
 	external: [
 		"obsidian",

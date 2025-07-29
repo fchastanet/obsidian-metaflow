@@ -1,56 +1,9 @@
 import { TFile, App, Plugin, TAbstractFile } from 'obsidian';
-import { MetadataSettings, sortMetadataInContent, sortProperties } from './metadata-sorter';
+import { MetadataSettings, AutoMetadataSettings, MetadataMenuField, FileClassDefinition, MetadataMenuPluginInterface } from './types';
+import { sortMetadataInContent, sortProperties } from './metadata-sorter';
+import { parseFrontmatter, parseFileClassFromContent } from './yaml-utils';
+import { getDefaultValueForField, validateField } from './field-utils';
 import * as yaml from 'js-yaml';
-
-export interface MetadataMenuField {
-	name: string;
-	type: 'Input' | 'Select' | 'MultiSelect' | 'Boolean' | 'Number' | 'Date' | 'DateTime' | 'File' | 'MultiFile' | 'Lookup' | 'Media' | 'Canvas' | 'CanvasGroup' | 'CanvasGroupLink' | 'JSON' | 'Object' | 'ObjectList' | 'YAML';
-	id: string;
-	path: string;
-	options?: {
-		[key: string]: string | any;
-	};
-	isRequired?: boolean;
-	defaultValue?: any;
-}
-
-export interface FileClassDefinition {
-	name: string;
-	extends?: string;
-	excludes?: string[];
-	mapWithTag?: boolean;
-	tagNames?: string | string[];
-	filePaths?: string | string[];
-	bookmarkGroups?: string | string[];
-	buttonIcon?: string;
-	maxRecordsPerPage?: number;
-	version?: number;
-	fields: MetadataMenuField[];
-}
-
-export interface MetadataMenuPluginInterface {
-	settings: {
-		fileClassAlias: string;
-		classFilesPath: string;
-		globalFileClass?: string;
-	};
-	api: {
-		getFileClass(file: TFile): Promise<FileClassDefinition | null>;
-		getFileClassByName(name: string): Promise<FileClassDefinition | null>;
-		getFieldsForFile(file: TFile): Promise<MetadataMenuField[]>;
-		insertMissingFields(fileOrFilePath: string | TFile, lineNumber: number, asList: boolean, asBlockquote: boolean, fileClassName?: string, indexedPath?: string): Promise<void>;
-	};
-	fieldIndex?: {
-		fileClassesAncestors?: Map<string, string[]> | { [key: string]: string[] };
-	};
-}
-
-export interface AutoMetadataSettings extends MetadataSettings {
-	enableAutoMetadataInsertion: boolean;
-	insertMissingFieldsOnSort: boolean;
-	useMetadataMenuDefaults: boolean;
-	metadataMenuIntegration: boolean;
-}
 
 export class MetadataAutoInserter {
 	private app: App;
@@ -309,21 +262,10 @@ export class MetadataAutoInserter {
 		// Get the fileClass alias from MetadataMenu settings
 		const fileClassAlias = this.metadataMenuPlugin?.settings?.fileClassAlias || 'fileClass';
 		
-		// Check frontmatter for fileClass using the configured alias
-		const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-		if (frontmatterMatch) {
-			try {
-				const frontmatter = yaml.load(frontmatterMatch[1]) as any;
-				if (frontmatter?.[fileClassAlias]) {
-					const fileClassValue = frontmatter[fileClassAlias];
-					if (Array.isArray(fileClassValue)) {
-						return fileClassValue[0]; // Return first fileClass
-					}
-					return fileClassValue;
-				}
-			} catch (error) {
-				console.error('Error parsing frontmatter for fileClass:', error);
-			}
+		// Use the new utility to parse fileClass from content
+		const fileClassFromFrontmatter = parseFileClassFromContent(content, fileClassAlias);
+		if (fileClassFromFrontmatter) {
+			return fileClassFromFrontmatter;
 		}
 
 		// Check for tags that might map to fileClasses
@@ -377,53 +319,28 @@ export class MetadataAutoInserter {
 	}
 
 	/**
-	 * Generate default value for a field based on its type
-	 */
-	getDefaultValueForField(field: MetadataMenuField): any {
-		if (field.defaultValue !== undefined) {
-			return field.defaultValue;
-		}
-
-		switch (field.type) {
-			case 'Input':
-				return '';
-			case 'Number':
-				return 0;
-			case 'Boolean':
-				return false;
-			case 'Date':
-			case 'DateTime':
-				return new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-			case 'Select':
-				// Return first option if available
-				if (field.options && Object.keys(field.options).length > 0) {
-					const firstKey = Object.keys(field.options)[0];
-					return field.options[firstKey];
-				}
-				return '';
-			case 'MultiSelect':
-			case 'MultiFile':
-				return [];
-			case 'File':
-				return '';
-			case 'JSON':
-			case 'Object':
-				return {};
-			case 'ObjectList':
-			case 'YAML':
-				return [];
-			default:
-				return '';
-		}
-	}
-
-	/**
 	 * Sort metadata and insert missing fields in one operation
 	 */
 	private async sortMetadataWithMissingFields(metadata: any, settings: AutoMetadataSettings): Promise<any> {
 		// This would use the existing sortProperties function from metadata-sorter
 		const { sortProperties } = await import('./metadata-sorter');
 		return sortProperties(metadata, settings);
+	}
+
+	/**
+	 * Generate default value for a field based on its type
+	 * @deprecated Use getDefaultValueForField from field-utils instead
+	 */
+	getDefaultValueForField(field: MetadataMenuField): any {
+		return getDefaultValueForField(field);
+	}
+
+	/**
+	 * Validate field configuration
+	 * @deprecated Use validateField from field-utils instead
+	 */
+	validateField(field: MetadataMenuField): boolean {
+		return validateField(field);
 	}
 
 	/**
@@ -480,13 +397,6 @@ export class MetadataAutoInserter {
 			console.error('Error parsing fileClass definition:', error);
 			return null;
 		}
-	}
-
-	/**
-	 * Validate field configuration
-	 */
-	validateField(field: MetadataMenuField): boolean {
-		return !!(field.name && field.type && field.id);
 	}
 
 	/**

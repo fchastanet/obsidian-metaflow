@@ -1,6 +1,8 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
-import { MetadataSettings, DEFAULT_SETTINGS, sortMetadataInContent, sortProperties } from './metadata-sorter';
-import { MetadataAutoInserter, AutoMetadataSettings } from './metadata-auto-inserter';
+import { MetadataSettings, AutoMetadataSettings } from './types';
+import { DEFAULT_SETTINGS } from './settings';
+import { sortMetadataInContent } from './metadata-sorter';
+import { MetadataAutoInserter } from './metadata-auto-inserter';
 
 interface MetadataPropertiesSorterPluginSettings extends MetadataSettings {}
 
