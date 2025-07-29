@@ -32,5 +32,16 @@
 	"dependencies": {
 		"@types/js-yaml": "^4.0.9",
 		"js-yaml": "^4.1.0"
+	},
+	"cspell": {
+		"version": "0.2",
+		"ignorePaths": [],
+		"dictionaryDefinitions": [],
+		"dictionaries": [],
+		"words": [
+			"frontmatter"
+		],
+		"ignoreWords": [],
+		"import": []
 	}
 }

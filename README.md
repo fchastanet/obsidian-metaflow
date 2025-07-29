@@ -1,8 +1,8 @@
-# Obsidian Sample Plugin
+# Obsidian Metadata Properties Sorter
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This plugin automatically sorts metadata properties in your Obsidian notes and integrates with the MetadataMenu plugin to insert missing fields.
 
-This project uses TypeScript to provide type checking and documentation.
+This project uses TypeScript to provide type checking and documentation with a [clean modular structure](STRUCTURE.md).
 The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
 
 This sample plugin demonstrates some of the basic functionality the plugin API can do.
@@ -20,8 +20,8 @@ Quick starting guide for new plugin devs:
 - Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
 - Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
 - Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
+- Run `npm run dev` to compile your plugin from `src/index.ts` to `main.js`.
+- Make changes to `src/index.ts` (or create new `.ts` files in the `src/` folder). Those changes should be automatically compiled into `main.js`.
 - Reload Obsidian to load the new version of your plugin.
 - Enable plugin in settings window.
 - For updates to the Obsidian API run `npm update` in the command line under your repo folder.
@@ -51,6 +51,10 @@ Quick starting guide for new plugin devs:
 - `npm i` or `yarn` to install dependencies.
 - `npm run dev` to start compilation in watch mode.
 
+## Project Structure
+
+[Project structure](STRUCTURE.md)
+
 ## Auto-sync to Obsidian Plugin Folder
 
 This plugin includes automatic syncing capabilities to copy built files directly to your Obsidian vault's plugin folder for easier development.
@@ -71,7 +75,7 @@ This plugin includes automatic syncing capabilities to copy built files directly
 }
 ```
 
-2. Replace `/path/to/your/vault/.obsidian/plugins/your-plugin-name/` with the actual path to your plugin folder in your Obsidian vault.
+1. Replace `/path/to/your/vault/.obsidian/plugins/your-plugin-name/` with the actual path to your plugin folder in your Obsidian vault.
 
 ### Usage
 
@@ -91,14 +95,15 @@ This plugin includes automatic syncing capabilities to copy built files directly
 - Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
 
 ## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
+
+- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
 - To use eslint with this project, make sure to install eslint from terminal:
   - `npm install -g eslint`
 - To use eslint to analyze this project use this command:
-  - `eslint main.ts`
+  - `eslint src/index.ts`
   - eslint will then create a report with suggestions for code improvement by file and line number.
 - If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+  - `eslint ./src/`
 
 ## Funding URL
 
@@ -126,4 +131,4 @@ If you have multiple URLs, you can also do:
 
 ## API Documentation
 
-See https://github.com/obsidianmd/obsidian-api
+See [Obsidian API Documentation](https://github.com/obsidianmd/obsidian-api)

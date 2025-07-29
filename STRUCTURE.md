@@ -6,7 +6,7 @@ The project has been refactored to follow modern TypeScript/JavaScript project c
 
 ## New Structure
 
-```
+```text
 ├── src/                          # Source code
 │   ├── index.ts                  # Main plugin entry point (formerly main.ts)
 │   ├── types.ts                  # Type definitions and interfaces
@@ -66,24 +66,31 @@ The project has been refactored to follow modern TypeScript/JavaScript project c
 ## File Descriptions
 
 ### `src/index.ts`
+
 Main plugin entry point containing the Obsidian plugin class and settings UI.
 
 ### `src/types.ts`
+
 Central location for all TypeScript interfaces and type definitions used throughout the project.
 
 ### `src/settings.ts`
+
 Default configuration values for the plugin.
 
 ### `src/metadata-sorter.ts`
+
 Core metadata sorting functionality with functions to sort properties and process frontmatter.
 
 ### `src/metadata-auto-inserter.ts`
+
 Integration with MetadataMenu plugin for automatic field insertion and management.
 
 ### `src/yaml-utils.ts`
+
 Utilities for parsing and serializing YAML frontmatter with proper error handling.
 
 ### `src/field-utils.ts`
+
 Utilities for working with MetadataMenu fields, including validation and default value generation.
 
 ## Development Workflow
