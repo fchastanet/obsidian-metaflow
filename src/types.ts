@@ -13,6 +13,7 @@ export interface PropertyDefaultValueScript {
 	script: string;
 	enabled: boolean;
 	order?: number;
+	fileClasses?: string[]; // Optional array of file classes this script applies to
 }
 
 export interface ScriptContext {

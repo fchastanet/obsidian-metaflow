@@ -3,7 +3,7 @@
 	"name": "Metadata Properties Sorter",
 	"version": "1.0.0",
 	"minAppVersion": "1.8.0",
-	"description": "Sorts metadata properties in Obsidian notes based on user-defined rules.",
+	"description": "Sorts metadata properties in Obsidian notes based on user-defined rules and inserts missing fields depending on file class with default values.",
 	"author": "Obsidian",
 	"authorUrl": "https://obsidian.md",
 	"fundingUrl": "https://obsidian.md/pricing",

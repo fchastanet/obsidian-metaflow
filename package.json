@@ -39,7 +39,8 @@
 		"dictionaryDefinitions": [],
 		"dictionaries": [],
 		"words": [
-			"frontmatter"
+			"frontmatter",
+			"Templater"
 		],
 		"ignoreWords": [],
 		"import": []

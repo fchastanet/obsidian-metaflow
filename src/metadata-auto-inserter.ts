@@ -349,15 +349,11 @@ export class MetadataAutoInserter {
 	async processContent(content: string, file: TFile, settings: AutoMetadataSettings): Promise<string> {
 		let processedContent = content;
 
-		// First, insert missing metadata if enabled
-		if (settings.enableAutoMetadataInsertion) {
-			processedContent = await this.insertMissingMetadata(processedContent, file, settings);
-		}
+		// Always insert missing metadata when called explicitly
+		processedContent = await this.insertMissingMetadata(processedContent, file, settings);
 
-		// Then, sort the metadata if auto-sort is enabled
-		if (settings.autoSortOnView) {
-			processedContent = sortMetadataInContent(processedContent, settings);
-		}
+		// Then, sort the metadata
+		processedContent = sortMetadataInContent(processedContent, settings);
 
 		return processedContent;
 	}

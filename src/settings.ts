@@ -18,11 +18,11 @@ export const DEFAULT_SETTINGS: MetadataSettings = {
 		'references',
 		'noteLanguage'
 	],
-	autoSortOnView: true,
+	autoSortOnView: false,
 	sortUnknownPropertiesLast: true,
 	enableAutoMetadataInsertion: false,
-	insertMissingFieldsOnSort: true,
-	useMetadataMenuDefaults: true,
+	insertMissingFieldsOnSort: false,
+	useMetadataMenuDefaults: false,
 	metadataMenuIntegration: false,
 	folderFileClassMappings: [
 		{

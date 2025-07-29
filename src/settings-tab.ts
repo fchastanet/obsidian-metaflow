@@ -16,17 +16,6 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', {text: 'Metadata Properties Sorter Settings'});
 
-		// Auto-sort setting
-		new Setting(containerEl)
-			.setName('Auto-sort on file open')
-			.setDesc('Automatically sort metadata properties when opening a note')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.autoSortOnView)
-				.onChange(async (value) => {
-					this.plugin.settings.autoSortOnView = value;
-					await this.plugin.saveSettings();
-				}));
-
 		// Sort unknown properties setting
 		new Setting(containerEl)
 			.setName('Sort unknown properties alphabetically')
@@ -70,28 +59,6 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		// Insert missing fields on sort
-		new Setting(containerEl)
-			.setName('Insert missing fields when sorting')
-			.setDesc('Insert missing metadata fields when sorting properties')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.insertMissingFieldsOnSort)
-				.onChange(async (value) => {
-					this.plugin.settings.insertMissingFieldsOnSort = value;
-					await this.plugin.saveSettings();
-				}));
-
-		// Use MetadataMenu defaults
-		new Setting(containerEl)
-			.setName('Use MetadataMenu default values')
-			.setDesc('Use default values defined in MetadataMenu fileClass when inserting missing fields')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.useMetadataMenuDefaults)
-				.onChange(async (value) => {
-					this.plugin.settings.useMetadataMenuDefaults = value;
-					await this.plugin.saveSettings();
-				}));
-
 		// Templater Integration
 		containerEl.createEl('h3', {text: 'Templater Integration'});
 
@@ -126,6 +93,7 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 				.setButtonText('Import from Templater')
 				.onClick(async () => {
 					await this.autoPopulateFolderMappingsFromTemplater();
+					this.displayFolderMappings(mappingsContainer);
 				}));
 
 		// Create container for mappings
@@ -162,8 +130,9 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 				.setButtonText('Import from MetadataMenu')
 				.onClick(async () => {
 					await this.autoPopulatePropertyScriptsFromMetadataMenu();
+					this.displayPropertyScripts(scriptsContainer);
 				}));
-
+		
 		// Create container for scripts
 		const scriptsContainer = containerEl.createEl('div');
 		this.displayPropertyScripts(scriptsContainer);
@@ -172,7 +141,7 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Add property script')
 			.addButton(button => button
-				.setButtonText('Add script')
+				.setButtonText('Add property script')
 				.setCta()
 				.onClick(() => {
 					this.plugin.settings.propertyDefaultValueScripts.push({
@@ -183,23 +152,6 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 					});
 					this.plugin.saveSettings();
 					this.displayPropertyScripts(scriptsContainer);
-				}));
-
-		// Property order setting
-		containerEl.createEl('h3', {text: 'Property Order'});
-		
-		new Setting(containerEl)
-			.setName('Property order')
-			.setDesc('Define the order of properties (one per line). Properties not listed will appear at the end.')
-			.addTextArea(text => text
-				.setPlaceholder('title\ndate\ncreated\nupdated\nstatus\ntype\ntags')
-				.setValue(this.plugin.settings.propertyOrder.join('\n'))
-				.onChange(async (value) => {
-					this.plugin.settings.propertyOrder = value
-						.split('\n')
-						.map(line => line.trim())
-						.filter(line => line.length > 0);
-					await this.plugin.saveSettings();
 				}));
 
 		// Add some help text
@@ -231,26 +183,23 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 			}
 
 			const templaterSettings = templaterPlugin.settings;
-			if (!templaterSettings?.folder_templates) {
-				new Notice('No folder templates found in Templater settings');
+			if (!templaterSettings?.file_templates) {
+				new Notice('No file templates found in Templater settings');
 				return;
 			}
 
 			let importedCount = 0;
-			for (const folderTemplate of templaterSettings.folder_templates) {
-				// Extract fileClass from template filename (remove .md extension)
-				const templateName = folderTemplate.template?.replace(/\.md$/, '') || 'default';
-				
+			for (const fileTemplate of templaterSettings.file_templates) {
 				// Check if mapping already exists
 				const existingMapping = this.plugin.settings.folderFileClassMappings.find(
-					mapping => mapping.folderPattern === folderTemplate.folder
+					mapping => mapping.folderPattern === fileTemplate.regex
 				);
 
 				if (!existingMapping) {
 					this.plugin.settings.folderFileClassMappings.push({
-						folderPattern: folderTemplate.folder,
-						fileClass: templateName,
-						isRegex: false
+						folderPattern: fileTemplate.regex,
+						fileClass: 'changeMe',
+						isRegex: true
 					});
 					importedCount++;
 				}
@@ -258,7 +207,6 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 
 			await this.plugin.saveSettings();
 			new Notice(`Imported ${importedCount} folder mappings from Templater`);
-			this.display(); // Refresh the settings display
 
 		} catch (error) {
 			console.error('Error importing from Templater:', error);
@@ -274,45 +222,48 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 			}
 
 			const metadataMenuPlugin = (this.app as any).plugins?.plugins?.['metadata-menu'];
-			if (!metadataMenuPlugin?.settings?.fileClassesFields) {
+			if (!metadataMenuPlugin?.fieldIndex?.fileClassesAncestors) {
 				new Notice('No fileClass definitions found in MetadataMenu');
 				return;
 			}
 
-			const fileClassesFields = metadataMenuPlugin.settings.fileClassesFields;
-			const propertyUsage: { [propertyName: string]: string[] } = {};
+			//const fileClassesAncestors = metadataMenuPlugin.fieldIndex.fileClassesAncestors;
+			const fileClassesFields = metadataMenuPlugin.fieldIndex.fileClassesFields;
+			const allFields: { [fieldName: string]: {
+				fileClasses: string[],
+			} } = {};
 
 			// Collect all properties and which fileClasses use them
-			for (const [fileClassName, fields] of Object.entries(fileClassesFields)) {
-				if (Array.isArray(fields)) {
-					for (const field of fields) {
-						if (field.name) {
-							if (!propertyUsage[field.name]) {
-								propertyUsage[field.name] = [];
-							}
-							propertyUsage[field.name].push(fileClassName);
+			fileClassesFields.forEach(
+				(fields: {name:string}[], fileClass: string) => {
+					fields.forEach((field) => {
+						if (!allFields[field.name]) {
+							allFields[field.name] = {
+								fileClasses: [],
+							};
 						}
-					}
+						allFields[field.name].fileClasses.push(fileClass);
+					});
 				}
-			}
+			);
 
 			let importedCount = 0;
-			for (const [propertyName, fileClasses] of Object.entries(propertyUsage)) {
+			for (const [propertyName, fieldData] of Object.entries(allFields)) {
+				const { fileClasses } = fieldData;
 				// Check if script already exists
 				const existingScript = this.plugin.settings.propertyDefaultValueScripts.find(
 					script => script.propertyName === propertyName
 				);
 
 				if (!existingScript) {
-					// Create a default script with a comment indicating which fileClasses use this property
-					const fileClassComment = `// Used by fileClasses: ${fileClasses.join(', ')}`;
-					const defaultScript = `${fileClassComment}\nreturn "";`;
+					const defaultScript = `return "";`;
 
 					this.plugin.settings.propertyDefaultValueScripts.push({
 						propertyName: propertyName,
 						script: defaultScript,
 						enabled: false, // Start disabled so user can configure
-						order: this.plugin.settings.propertyDefaultValueScripts.length
+						order: this.plugin.settings.propertyDefaultValueScripts.length,
+						fileClasses,
 					});
 					importedCount++;
 				}
@@ -320,7 +271,6 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 
 			await this.plugin.saveSettings();
 			new Notice(`Imported ${importedCount} property scripts from MetadataMenu`);
-			this.display(); // Refresh the settings display
 
 		} catch (error) {
 			console.error('Error importing from MetadataMenu:', error);
@@ -335,7 +285,8 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 			const mappingDiv = container.createEl('div', { cls: 'setting-item' });
 			
 			const mappingControl = mappingDiv.createEl('div', { cls: 'setting-item-control' });
-			
+			mappingControl.style.justifyContent = 'space-between';
+
 			// Order controls
 			const orderDiv = mappingControl.createEl('div', { cls: 'setting-item-order' });
 			orderDiv.style.display = 'flex';
@@ -357,6 +308,7 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 			controlRow.style.display = 'flex';
 			controlRow.style.alignItems = 'center';
 			controlRow.style.gap = '10px';
+			controlRow.style.flexGrow = '1';
 			
 			// Folder pattern input
 			const patternInput = controlRow.createEl('input', {
@@ -364,7 +316,7 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 				placeholder: 'Folder pattern (e.g., Books/*, .*)',
 				value: mapping.folderPattern
 			});
-			patternInput.style.width = '200px';
+			patternInput.style.flexGrow = '1';
 			
 			// FileClass input
 			const fileClassInput = controlRow.createEl('input', {
@@ -444,9 +396,36 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 			scriptDiv.style.marginBottom = '10px';
 			
 			const controlDiv = scriptDiv.createEl('div', { cls: 'setting-item-control' });
+			controlDiv.style.display = 'flex';
+			controlDiv.style.flexDirection = 'column';
+			controlDiv.style.width = '100%';
+			controlDiv.style.textAlign = 'left';
+			
+			// propertyDiv containing propDiv and propertyInput
+			const propertyDiv = controlDiv.createEl('div', { cls: 'setting-property' });
+			propertyDiv.style.display = 'flex';
+			propertyDiv.style.width = '100%';
+			propertyDiv.style.alignItems = 'baseline';
+			propertyDiv.style.gap = 'var(--size-4-2)';
+			
+			propertyDiv.createEl('label', { text: 'Property name:' });
+			const propertyInput = propertyDiv.createEl('input', {
+				type: 'text',
+				placeholder: 'Property name (e.g., title, author)',
+				value: script.propertyName
+			});
+			propertyInput.style.margin = '0 10px';
+			propertyInput.style.flexGrow = '1';
+			
+			// Enabled toggle
+			const enabledLabel = propertyDiv.createEl('label');
+			const enabledToggle = enabledLabel.createEl('input', { type: 'checkbox' });
+			enabledToggle.checked = script.enabled;
+			enabledToggle.style.marginRight = '5px';
+			enabledLabel.appendChild(document.createTextNode('Enabled'));
 			
 			// Order controls
-			const orderDiv = controlDiv.createEl('div', { cls: 'setting-item-order' });
+			const orderDiv = propertyDiv.createEl('div', { cls: 'setting-item-order' });
 			orderDiv.style.display = 'flex';
 			orderDiv.style.alignItems = 'center';
 			orderDiv.style.marginBottom = '10px';
@@ -460,35 +439,18 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 			downButton.disabled = index === this.plugin.settings.propertyDefaultValueScripts.length - 1;
 			
 			orderDiv.createEl('span', { text: `Order: ${index + 1}` });
-			
-			// Property name input
-			const propDiv = controlDiv.createEl('div');
-			propDiv.style.marginBottom = '10px';
-			
-			propDiv.createEl('label', { text: 'Property name:' });
-			const propertyInput = propDiv.createEl('input', {
-				type: 'text',
-				placeholder: 'Property name (e.g., title, author)',
-				value: script.propertyName
-			});
-			propertyInput.style.width = '200px';
-			propertyInput.style.marginLeft = '10px';
-			
-			// Enabled toggle
-			const enabledDiv = controlDiv.createEl('div');
-			enabledDiv.style.marginBottom = '10px';
-			
-			const enabledToggle = enabledDiv.createEl('input', { type: 'checkbox' });
-			enabledToggle.checked = script.enabled;
-			enabledToggle.style.marginRight = '5px';
-			
-			const enabledLabel = enabledDiv.createEl('label', { text: 'Enabled' });
-			
+
 			// Script textarea
 			const scriptCodeDiv = controlDiv.createEl('div');
-			scriptCodeDiv.style.marginBottom = '10px';
+			scriptCodeDiv.style.width = '100%';
+			scriptCodeDiv.style.paddingRight = '60px';
 			
-			scriptCodeDiv.createEl('label', { text: 'Script:' });
+			let scriptCodeLabel = 'Script';
+			if (script.fileClasses) {
+				scriptCodeLabel += ` (this field is used by the fileClasses: ${script.fileClasses.join(', ')})`;
+			}
+			scriptCodeLabel += ':';
+			scriptCodeDiv.createEl('label', { text: scriptCodeLabel });
 			const scriptTextarea = scriptCodeDiv.createEl('textarea', {
 				placeholder: 'return "default value";',
 			});
