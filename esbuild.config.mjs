@@ -11,11 +11,55 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+const debug = (process.argv[2] === "debug");
 
-const context = await esbuild.context({
+// Debug mode configuration
+const debugConfig = {
+	sourcemap: "inline",
+	minify: false,
+	keepNames: true,
+	define: {
+		"process.env.NODE_ENV": '"development"',
+		"DEBUG": "true"
+	},
+	banner: {
+		js: banner + `\n/* DEBUG MODE ENABLED - Source maps: inline */\n`,
+	},
+	logLevel: "debug",
+	metafile: true
+};
+
+// Development mode configuration
+const devConfig = {
+	sourcemap: "inline",
+	minify: false,
+	define: {
+		"process.env.NODE_ENV": '"development"'
+	},
 	banner: {
 		js: banner,
 	},
+	logLevel: "info"
+};
+
+// Production mode configuration
+const prodConfig = {
+	sourcemap: false,
+	minify: true,
+	define: {
+		"process.env.NODE_ENV": '"production"'
+	},
+	banner: {
+		js: banner,
+	},
+	logLevel: "info"
+};
+
+// Select configuration based on mode
+const modeConfig = debug ? debugConfig : (prod ? prodConfig : devConfig);
+
+const context = await esbuild.context({
+	...modeConfig,
 	entryPoints: ["main.ts"],
 	bundle: true,
 	external: [
@@ -35,17 +79,31 @@ const context = await esbuild.context({
 		...builtins],
 	format: "cjs",
 	target: "es2018",
-	logLevel: "info",
-	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: "main.js",
-	minify: prod,
 });
 
 if (prod) {
 	await context.rebuild();
 	syncFiles(); // Sync files after production build
 	process.exit(0);
+} else if (debug) {
+	console.log("🐛 Debug mode enabled with inline source maps");
+	const result = await context.rebuild();
+	
+	// In debug mode, output build information
+	if (result.metafile) {
+		console.log("📊 Build analysis:");
+		console.log(`  Bundle size: ${Object.values(result.metafile.outputs)[0]?.bytes || 'unknown'} bytes`);
+		console.log(`  Entry points: ${Object.keys(result.metafile.inputs).length}`);
+	}
+	
+	syncFiles(); // Sync files after debug build
+	
+	// Start watching for debug mode
+	await context.watch();
+	watchAndSync(); // Set up auto-sync for development
+	console.log("👀 Watching for changes in debug mode...");
 } else {
 	await context.watch();
 	watchAndSync(); // Set up auto-sync for development
