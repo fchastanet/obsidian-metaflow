@@ -4,6 +4,10 @@ export interface MetadataSettings {
 	propertyOrder: string[];
 	autoSortOnView: boolean;
 	sortUnknownPropertiesLast: boolean;
+	enableAutoMetadataInsertion: boolean;
+	insertMissingFieldsOnSort: boolean;
+	useMetadataMenuDefaults: boolean;
+	metadataMenuIntegration: boolean;
 }
 
 export const DEFAULT_SETTINGS: MetadataSettings = {
@@ -22,14 +26,31 @@ export const DEFAULT_SETTINGS: MetadataSettings = {
 		'noteLanguage'
 	],
 	autoSortOnView: true,
-	sortUnknownPropertiesLast: true
+	sortUnknownPropertiesLast: true,
+	enableAutoMetadataInsertion: false,
+	insertMissingFieldsOnSort: true,
+	useMetadataMenuDefaults: true,
+	metadataMenuIntegration: false
 };
 
 export function sortProperties(metadata: any, settings: MetadataSettings): any {
 	const sorted: any = {};
 	const usedKeys = new Set<string>();
 
-	// First, add properties in the specified order
+	// Get remaining properties that are not in the order
+	const remainingKeys = Object.keys(metadata).filter(key => !settings.propertyOrder.includes(key));
+	
+	// If unknown properties should come first, add them first
+	if (!settings.sortUnknownPropertiesLast) {
+		// Sort unknown properties alphabetically
+		remainingKeys.sort();
+		for (const key of remainingKeys) {
+			sorted[key] = metadata[key];
+			usedKeys.add(key);
+		}
+	}
+
+	// Then add properties in the specified order
 	for (const key of settings.propertyOrder) {
 		if (metadata.hasOwnProperty(key)) {
 			sorted[key] = metadata[key];
@@ -37,16 +58,13 @@ export function sortProperties(metadata: any, settings: MetadataSettings): any {
 		}
 	}
 
-	// Then add remaining properties
-	const remainingKeys = Object.keys(metadata).filter(key => !usedKeys.has(key));
-	
+	// If unknown properties should come last, add them last
 	if (settings.sortUnknownPropertiesLast) {
 		// Sort unknown properties alphabetically
 		remainingKeys.sort();
-	}
-
-	for (const key of remainingKeys) {
-		sorted[key] = metadata[key];
+		for (const key of remainingKeys) {
+			sorted[key] = metadata[key];
+		}
 	}
 
 	return sorted;

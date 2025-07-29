@@ -1,20 +1,28 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { MetadataSettings, DEFAULT_SETTINGS, sortMetadataInContent, sortProperties } from './metadata-sorter';
+import { MetadataAutoInserter, AutoMetadataSettings } from './metadata-auto-inserter';
 
 interface MetadataPropertiesSorterPluginSettings extends MetadataSettings {}
 
 export default class MetadataPropertiesSorterPlugin extends Plugin {
 	settings: MetadataPropertiesSorterPluginSettings;
+	autoInserter: MetadataAutoInserter;
 
 	async onload() {
 		await this.loadSettings();
+		
+		// Initialize the auto-inserter
+		this.autoInserter = new MetadataAutoInserter(this.app);
+		
+		// Try to initialize MetadataMenu integration
+		await this.autoInserter.initializeMetadataMenuIntegration();
 
 		// Add command to sort metadata of current note
 		this.addCommand({
 			id: 'sort-metadata-properties',
 			name: 'Sort metadata properties',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				this.sortMetadataInEditor(editor);
+				// this.sortMetadataInEditor(editor);
 			}
 		});
 
@@ -24,6 +32,25 @@ export default class MetadataPropertiesSorterPlugin extends Plugin {
 			name: 'Sort metadata properties in all notes',
 			callback: () => {
 				this.sortAllNotesMetadata();
+			}
+		});
+
+		// Add command to insert missing metadata fields
+		this.addCommand({
+			id: 'insert-missing-metadata',
+			name: 'Insert missing metadata fields',
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				this.insertMissingMetadataInEditor(editor, view);
+			}
+		});
+
+		// Add command to sort and insert missing metadata
+		this.addCommand({
+			id: 'sort-and-insert-metadata',
+			name: 'Sort and insert missing metadata',
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				debugger;
+				this.sortAndInsertMetadataInEditor(editor, view);
 			}
 		});
 
@@ -46,14 +73,14 @@ export default class MetadataPropertiesSorterPlugin extends Plugin {
 	async autoSortMetadata(file: TFile) {
 		try {
 			const content = await this.app.vault.read(file);
-			const sortedContent = sortMetadataInContent(content, this.settings);
+			const processedContent = await this.autoInserter.processContent(content, file, this.settings as AutoMetadataSettings);
 			
-			if (sortedContent !== content) {
+			if (processedContent !== content) {
 				// Prevent recursive calls by temporarily disabling auto-sort
 				const originalAutoSort = this.settings.autoSortOnView;
 				this.settings.autoSortOnView = false;
 				
-				await this.app.vault.modify(file, sortedContent);
+				await this.app.vault.modify(file, processedContent);
 				
 				// Re-enable auto-sort after a short delay
 				setTimeout(() => {
@@ -91,6 +118,54 @@ export default class MetadataPropertiesSorterPlugin extends Plugin {
 			new Notice('Metadata properties sorted');
 		} else {
 			new Notice('No metadata to sort or already sorted');
+		}
+	}
+
+	async insertMissingMetadataInEditor(editor: Editor, view: MarkdownView) {
+		const content = editor.getValue();
+		const file = view.file;
+		
+		if (!file) {
+			new Notice('No active file');
+			return;
+		}
+
+		try {
+			const processedContent = await this.autoInserter.insertMissingMetadata(content, file, this.settings as AutoMetadataSettings);
+			
+			if (processedContent !== content) {
+				editor.setValue(processedContent);
+				new Notice('Missing metadata fields inserted');
+			} else {
+				new Notice('No missing metadata fields to insert');
+			}
+		} catch (error) {
+			console.error('Error inserting missing metadata:', error);
+			new Notice('Error inserting missing metadata fields');
+		}
+	}
+
+	async sortAndInsertMetadataInEditor(editor: Editor, view: MarkdownView) {
+		const content = editor.getValue();
+		const file = view.file;
+		
+		if (!file) {
+			new Notice('No active file');
+			return;
+		}
+
+		try {
+			const processedContent = await this.autoInserter.processContent(content, file, this.settings as AutoMetadataSettings);
+			
+			if (processedContent !== content) {
+				editor.setValue(processedContent);
+				new Notice('Metadata sorted and missing fields inserted');
+			} else {
+				new Notice('No changes needed');
+			}
+		} catch (error) {
+			console.error('Error processing metadata:', error);
+			new Notice('Error processing metadata');
 		}
 	}
 
@@ -144,7 +219,63 @@ class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		// MetadataMenu Integration section
+		containerEl.createEl('h3', {text: 'MetadataMenu Integration'});
+
+		// Enable MetadataMenu integration
+		new Setting(containerEl)
+			.setName('Enable MetadataMenu integration')
+			.setDesc('Enable integration with the MetadataMenu plugin for fileClass-based field insertion')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.metadataMenuIntegration)
+				.onChange(async (value) => {
+					this.plugin.settings.metadataMenuIntegration = value;
+					if (value) {
+						const success = await this.plugin.autoInserter.initializeMetadataMenuIntegration();
+						if (!success) {
+							new Notice('MetadataMenu plugin not found or not enabled');
+							this.plugin.settings.metadataMenuIntegration = false;
+						}
+					}
+					await this.plugin.saveSettings();
+				}));
+
+		// Auto metadata insertion setting
+		new Setting(containerEl)
+			.setName('Auto-insert missing metadata fields')
+			.setDesc('Automatically insert missing metadata fields based on fileClass definitions')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enableAutoMetadataInsertion)
+				.onChange(async (value) => {
+					this.plugin.settings.enableAutoMetadataInsertion = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// Insert missing fields on sort
+		new Setting(containerEl)
+			.setName('Insert missing fields when sorting')
+			.setDesc('Insert missing metadata fields when sorting properties')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.insertMissingFieldsOnSort)
+				.onChange(async (value) => {
+					this.plugin.settings.insertMissingFieldsOnSort = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// Use MetadataMenu defaults
+		new Setting(containerEl)
+			.setName('Use MetadataMenu default values')
+			.setDesc('Use default values defined in MetadataMenu fileClass when inserting missing fields')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.useMetadataMenuDefaults)
+				.onChange(async (value) => {
+					this.plugin.settings.useMetadataMenuDefaults = value;
+					await this.plugin.saveSettings();
+				}));
+
 		// Property order setting
+		containerEl.createEl('h3', {text: 'Property Order'});
+		
 		new Setting(containerEl)
 			.setName('Property order')
 			.setDesc('Define the order of properties (one per line). Properties not listed will appear at the end.')
@@ -165,7 +296,16 @@ class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 		const list = containerEl.createEl('ul');
 		list.createEl('li', {text: 'Sort metadata properties - Sort current note'});
 		list.createEl('li', {text: 'Sort metadata properties in all notes - Sort entire vault'});
+		list.createEl('li', {text: 'Insert missing metadata fields - Add missing fields from fileClass'});
+		list.createEl('li', {text: 'Sort and insert missing metadata - Combined operation'});
 		
 		containerEl.createEl('p', {text: 'Properties will be sorted according to the order specified above. Unknown properties will be sorted alphabetically and placed at the end if the option is enabled.'});
+		
+		// MetadataMenu status
+		if (this.plugin.autoInserter.isMetadataMenuAvailable()) {
+			containerEl.createEl('p', {text: '✅ MetadataMenu plugin is available and ready for integration.'});
+		} else {
+			containerEl.createEl('p', {text: '❌ MetadataMenu plugin not found. Install and enable it to use fileClass-based field insertion.'});
+		}
 	}
 }
