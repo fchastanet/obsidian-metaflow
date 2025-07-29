@@ -23,5 +23,14 @@ export const DEFAULT_SETTINGS: MetadataSettings = {
 	enableAutoMetadataInsertion: false,
 	insertMissingFieldsOnSort: true,
 	useMetadataMenuDefaults: true,
-	metadataMenuIntegration: false
+	metadataMenuIntegration: false,
+	folderFileClassMappings: [
+		{
+			folderPattern: '.*',
+			fileClass: 'default',
+			isRegex: true
+		}
+	],
+	propertyDefaultValueScripts: [],
+	enableTemplaterIntegration: false
 };

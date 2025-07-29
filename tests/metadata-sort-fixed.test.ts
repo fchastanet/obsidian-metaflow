@@ -12,17 +12,24 @@ describe('Metadata Sorting', () => {
 				custom: 'value'
 			};
 
-			const settings: MetadataSettings = {
-				propertyOrder: ['title', 'status', 'tags'],
-				autoSortOnView: true,
-				sortUnknownPropertiesLast: true,
-				enableAutoMetadataInsertion: false,
-				insertMissingFieldsOnSort: false,
-				useMetadataMenuDefaults: false,
-				metadataMenuIntegration: false
-			};
-
-			const result = sortProperties(metadata, settings);
+		const settings: MetadataSettings = {
+			propertyOrder: ['title', 'status', 'tags'],
+			autoSortOnView: true,
+			sortUnknownPropertiesLast: true,
+			enableAutoMetadataInsertion: false,
+			insertMissingFieldsOnSort: false,
+			useMetadataMenuDefaults: false,
+			metadataMenuIntegration: false,
+			folderFileClassMappings: [
+				{
+					folderPattern: '.*',
+					fileClass: 'default',
+					isRegex: true
+				}
+			],
+			propertyDefaultValueScripts: [],
+			enableTemplaterIntegration: false
+		};			const result = sortProperties(metadata, settings);
 			const keys = Object.keys(result);
 
 			expect(keys).toEqual(['title', 'status', 'tags', 'custom']);
@@ -35,17 +42,24 @@ describe('Metadata Sorting', () => {
 				title: 'Test Note'
 			};
 
-			const settings: MetadataSettings = {
-				propertyOrder: ['title'],
-				autoSortOnView: true,
-				sortUnknownPropertiesLast: true,
-				enableAutoMetadataInsertion: false,
-				insertMissingFieldsOnSort: false,
-				useMetadataMenuDefaults: false,
-				metadataMenuIntegration: false
-			};
-
-			const result = sortProperties(metadata, settings);
+		const settings: MetadataSettings = {
+			propertyOrder: ['title'],
+			autoSortOnView: true,
+			sortUnknownPropertiesLast: true,
+			enableAutoMetadataInsertion: false,
+			insertMissingFieldsOnSort: false,
+			useMetadataMenuDefaults: false,
+			metadataMenuIntegration: false,
+			folderFileClassMappings: [
+				{
+					folderPattern: '.*',
+					fileClass: 'default',
+					isRegex: true
+				}
+			],
+			propertyDefaultValueScripts: [],
+			enableTemplaterIntegration: false
+		};			const result = sortProperties(metadata, settings);
 			const keys = Object.keys(result);
 
 			expect(keys).toEqual(['title', 'apple', 'zebra']);
@@ -59,17 +73,24 @@ describe('Metadata Sorting', () => {
 				status: 'draft'
 			};
 
-			const settings: MetadataSettings = {
-				propertyOrder: ['title', 'status'],
-				autoSortOnView: true,
-				sortUnknownPropertiesLast: false,
-				enableAutoMetadataInsertion: false,
-				insertMissingFieldsOnSort: false,
-				useMetadataMenuDefaults: false,
-				metadataMenuIntegration: false
-			};
-
-			const result = sortProperties(metadata, settings);
+		const settings: MetadataSettings = {
+			propertyOrder: ['title', 'status'],
+			autoSortOnView: true,
+			sortUnknownPropertiesLast: false,
+			enableAutoMetadataInsertion: false,
+			insertMissingFieldsOnSort: false,
+			useMetadataMenuDefaults: false,
+			metadataMenuIntegration: false,
+			folderFileClassMappings: [
+				{
+					folderPattern: '.*',
+					fileClass: 'default',
+					isRegex: true
+				}
+			],
+			propertyDefaultValueScripts: [],
+			enableTemplaterIntegration: false
+		};			const result = sortProperties(metadata, settings);
 			const keys = Object.keys(result);
 
 			expect(keys).toEqual(['unknown1', 'unknown2', 'title', 'status']);
@@ -81,17 +102,24 @@ describe('Metadata Sorting', () => {
 				status: 'draft'
 			};
 
-			const settings: MetadataSettings = {
-				propertyOrder: ['title', 'nonexistent', 'status'],
-				autoSortOnView: true,
-				sortUnknownPropertiesLast: true,
-				enableAutoMetadataInsertion: false,
-				insertMissingFieldsOnSort: false,
-				useMetadataMenuDefaults: false,
-				metadataMenuIntegration: false
-			};
-
-			const result = sortProperties(metadata, settings);
+		const settings: MetadataSettings = {
+			propertyOrder: ['title', 'nonexistent', 'status'],
+			autoSortOnView: true,
+			sortUnknownPropertiesLast: true,
+			enableAutoMetadataInsertion: false,
+			insertMissingFieldsOnSort: false,
+			useMetadataMenuDefaults: false,
+			metadataMenuIntegration: false,
+			folderFileClassMappings: [
+				{
+					folderPattern: '.*',
+					fileClass: 'default',
+					isRegex: true
+				}
+			],
+			propertyDefaultValueScripts: [],
+			enableTemplaterIntegration: false
+		};			const result = sortProperties(metadata, settings);
 			const keys = Object.keys(result);
 
 			expect(keys).toEqual(['title', 'status']);
@@ -104,17 +132,24 @@ describe('Metadata Sorting', () => {
 				status: 'draft'
 			};
 
-			const settings: MetadataSettings = {
-				propertyOrder: [],
-				autoSortOnView: true,
-				sortUnknownPropertiesLast: true,
-				enableAutoMetadataInsertion: false,
-				insertMissingFieldsOnSort: false,
-				useMetadataMenuDefaults: false,
-				metadataMenuIntegration: false
-			};
-
-			const result = sortProperties(metadata, settings);
+		const settings: MetadataSettings = {
+			propertyOrder: [],
+			autoSortOnView: true,
+			sortUnknownPropertiesLast: true,
+			enableAutoMetadataInsertion: false,
+			insertMissingFieldsOnSort: false,
+			useMetadataMenuDefaults: false,
+			metadataMenuIntegration: false,
+			folderFileClassMappings: [
+				{
+					folderPattern: '.*',
+					fileClass: 'default',
+					isRegex: true
+				}
+			],
+			propertyDefaultValueScripts: [],
+			enableTemplaterIntegration: false
+		};			const result = sortProperties(metadata, settings);
 			
 			expect(result).toEqual(metadata);
 		});

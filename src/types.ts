@@ -2,6 +2,29 @@
  * Core types and interfaces for the metadata properties sorter plugin
  */
 
+export interface FolderFileClassMapping {
+	folderPattern: string;
+	fileClass: string;
+	isRegex?: boolean;
+}
+
+export interface PropertyDefaultValueScript {
+	propertyName: string;
+	script: string;
+	enabled: boolean;
+	order?: number;
+}
+
+export interface ScriptContext {
+	fileClass: string;
+	file: any; // TFile
+	metadata: { [key: string]: any };
+	prompt: (message: string, defaultValue?: string) => Promise<string>;
+	date: any; // Templater date function
+	generateMarkdownLink: (file: any) => string;
+	detectLanguage: (text: string) => string;
+}
+
 export interface MetadataSettings {
 	propertyOrder: string[];
 	autoSortOnView: boolean;
@@ -10,6 +33,9 @@ export interface MetadataSettings {
 	insertMissingFieldsOnSort: boolean;
 	useMetadataMenuDefaults: boolean;
 	metadataMenuIntegration: boolean;
+	folderFileClassMappings: FolderFileClassMapping[];
+	propertyDefaultValueScripts: PropertyDefaultValueScript[];
+	enableTemplaterIntegration: boolean;
 }
 
 export interface AutoMetadataSettings extends MetadataSettings {

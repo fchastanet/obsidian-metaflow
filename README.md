@@ -5,12 +5,74 @@ This plugin automatically sorts metadata properties in your Obsidian notes and i
 This project uses TypeScript to provide type checking and documentation with a [clean modular structure](STRUCTURE.md).
 The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+## Plugin description
+
+### Features
+
+- **Metadata Sorting**: Automatically sort frontmatter properties in a customizable order
+- **MetadataMenu Integration**: Insert missing fields from MetadataMenu fileClass definitions
+- **Ancestor Chain Support**: Process fileClass inheritance hierarchies correctly
+- **Auto-sort Options**: Sort on file save, view, or manual command
+- **Flexible Configuration**: Customizable property order and sorting rules
+
+### Settings
+
+#### folder/fileClass mapping
+
+The same way the Templater plugin maps folder pattern to template.
+This setting allows to map folder pattern to a fileClass.
+A last .* match allows fallback.
+Each fileClass specified should exists in Metadata Menu plugin.
+Check that exact same rules exists in same order in Templater plugin,
+display a warning if not.
+
+#### properties default values
+
+The user can define a script to execute to populate a default value to each property.
+The setting view allows to add the following mapping:
+
+- name of the property
+- script to execute that will return the default value
+  - some variables will be passed to this script
+    - `fileClass`: in case you want to use different logic depending on the fileClass
+    - `file`: the file being edited
+    - `metadata`: the current list of metadata headers available
+  - some functions will be made available
+    - `prompt`: to ask the user some data with default value
+      - default value will be used for an existing file
+        and when this function will be used for multiple files edit
+    - `date`: the Templater plugin `date` function
+    - `generateMarkdownLink`: the `app.fileManager.generateMarkdownLink` allowing to generate a markdown link from a file
+    - `detectLanguage`: basic detection between common languages
+    - other functions could be made available afterwards
+
+### Algorithm
+
+When:
+
+- running the command "Auto Update metadata fields":
+- the first time a file is created
+
+Following tasks will be executed:
+
+- check if Metadata Menu plugin is available
+  - if not, report an error and stop processing
+- check if Templater plugin is available
+  - if not, report an error and stop processing
+- if metadata field fileClass is not present in frontMatter header
+  - try to deduce the fileClass from folder/fileClass mapping setting
+    - if no match is found, report an error and stop processing
+- if fileClass does not exists in Metadata Menu settings
+  - report error and stop processing
+- if fileClass does not match any fileClass of folder/fileClass mapping setting
+  - report error and stop processing
+- insert metadata headers using `src/metadata-auto-inserter.ts` that is using the following algorithm:
+  - deduce file class ancestor chain (Eg: bookNote -> default -> default-basics)
+  - insert missing file class properties from oldest ancestor (Eg: default-basics) to the more recent (Eg: bookNote)
+- add default values to properties
+  - using `properties default values` setting, execute the associated function to each metadata property.
+
+For detailed information about this command, see [AUTO_UPDATE_COMMAND.md](AUTO_UPDATE_COMMAND.md).
 
 ## First time developing plugins?
 
@@ -51,9 +113,6 @@ Quick starting guide for new plugin devs:
 - `npm i` or `yarn` to install dependencies.
 - `npm run dev` to start compilation in watch mode.
 
-## Project Structure
-
-[Project structure](STRUCTURE.md)
 
 ## Auto-sync to Obsidian Plugin Folder
 

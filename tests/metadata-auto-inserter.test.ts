@@ -68,17 +68,24 @@ describe('MetadataAutoInserter', () => {
 		};
 	};
 
-	const defaultSettings: AutoMetadataSettings = {
-		propertyOrder: ['title', 'date', 'status', 'type'],
-		autoSortOnView: true,
-		sortUnknownPropertiesLast: true,
-		enableAutoMetadataInsertion: true,
-		insertMissingFieldsOnSort: true,
-		useMetadataMenuDefaults: true,
-		metadataMenuIntegration: true
-	};
-
-	const sampleFields: MetadataMenuField[] = [
+  const defaultSettings: AutoMetadataSettings = {
+    propertyOrder: ['title', 'date', 'created', 'status', 'tags'],
+    autoSortOnView: true,
+    sortUnknownPropertiesLast: true,
+    enableAutoMetadataInsertion: true,
+    insertMissingFieldsOnSort: true,
+    useMetadataMenuDefaults: true,
+    metadataMenuIntegration: true,
+    folderFileClassMappings: [
+      {
+        folderPattern: '.*',
+        fileClass: 'default',
+        isRegex: true
+      }
+    ],
+    propertyDefaultValueScripts: [],
+    enableTemplaterIntegration: false,
+  };	const sampleFields: MetadataMenuField[] = [
 		{
 			name: 'title',
 			type: 'Input',
