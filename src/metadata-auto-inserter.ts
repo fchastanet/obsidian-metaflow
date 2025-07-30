@@ -1,7 +1,7 @@
-import { TFile, App, Plugin, TAbstractFile } from 'obsidian';
-import { MetadataSettings, AutoMetadataSettings, MetadataMenuField, FileClassDefinition, MetadataMenuPluginInterface } from './types';
-import { sortMetadataInContent, sortProperties } from './metadata-sorter';
-import { parseFrontmatter, parseFileClassFromContent } from './yaml-utils';
+import { TFile, App } from 'obsidian';
+import { AutoMetadataSettings, MetadataMenuField, FileClassDefinition, MetadataMenuPluginInterface } from './types';
+import { sortMetadataInContent } from './metadata-sorter';
+import { parseFileClassFromContent } from './yaml-utils';
 import { getDefaultValueForField, validateField } from './field-utils';
 import * as yaml from 'js-yaml';
 
@@ -232,30 +232,6 @@ export class MetadataAutoInserter {
 	}
 
 	/**
-	 * Fallback method to get fields by parsing fileClass definitions manually
-	 */
-	private async getFieldsThroughFileClass(file: TFile): Promise<MetadataMenuField[]> {
-		try {
-			// Read file content to determine fileClass
-			const content = await this.app.vault.read(file);
-			const fileClassName = await this.determineFileClassFromContent(content, file);
-			
-			if (fileClassName) {
-				// Try to get fileClass definition
-				const fileClassDef = await this.getFileClassByName(fileClassName);
-				if (fileClassDef?.fields) {
-					return fileClassDef.fields;
-				}
-			}
-			
-			return [];
-		} catch (error) {
-			console.error('Error getting fields through fileClass fallback:', error);
-			return [];
-		}
-	}
-
-	/**
 	 * Determine fileClass from file content and metadata
 	 */
 	async determineFileClassFromContent(content: string, file: TFile): Promise<string | null> {
@@ -317,32 +293,7 @@ export class MetadataAutoInserter {
 			return content;
 		}
 	}
-
-	/**
-	 * Sort metadata and insert missing fields in one operation
-	 */
-	private async sortMetadataWithMissingFields(metadata: any, settings: AutoMetadataSettings): Promise<any> {
-		// This would use the existing sortProperties function from metadata-sorter
-		const { sortProperties } = await import('./metadata-sorter');
-		return sortProperties(metadata, settings);
-	}
-
-	/**
-	 * Generate default value for a field based on its type
-	 * @deprecated Use getDefaultValueForField from field-utils instead
-	 */
-	getDefaultValueForField(field: MetadataMenuField): any {
-		return getDefaultValueForField(field);
-	}
-
-	/**
-	 * Validate field configuration
-	 * @deprecated Use validateField from field-utils instead
-	 */
-	validateField(field: MetadataMenuField): boolean {
-		return validateField(field);
-	}
-
+	
 	/**
 	 * Process content with both sorting and missing field insertion
 	 */
@@ -423,5 +374,19 @@ export class MetadataAutoInserter {
 		}
 
 		return fileClasses;
+	}
+
+	/**
+	 * @deprecated Use getDefaultValueForField from field-utils instead
+	 */
+	getDefaultValueForField(field: MetadataMenuField): any {
+		return getDefaultValueForField(field);
+	}
+
+	/**
+	 * @deprecated Use validateField from field-utils instead
+	 */
+	validateField(field: MetadataMenuField): boolean {
+		return validateField(field);
 	}
 }

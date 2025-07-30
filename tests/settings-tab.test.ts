@@ -153,19 +153,20 @@ describe('MetadataPropertiesSorterSettingTab', () => {
 		test('should import property scripts from MetadataMenu settings', async () => {
 			// Setup MetadataMenu plugin mock
 			mockApp.plugins.plugins['metadata-menu'] = {
-				settings: {
-					fileClassesFields: {
-						'book': [
+				fieldIndex: {
+					fileClassesAncestors: {},
+					fileClassesFields: new Map([
+						['book', [
 							{ name: 'title' },
 							{ name: 'author' },
 							{ name: 'isbn' }
-						],
-						'article': [
+						]],
+						['article', [
 							{ name: 'title' },
 							{ name: 'publication' },
 							{ name: 'date' }
-						]
-					}
+						]]
+					])
 				}
 			};
 

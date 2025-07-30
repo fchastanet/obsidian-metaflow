@@ -93,11 +93,18 @@ export class ScriptUtilities {
 	 * Basic language detection
 	 */
 	detectLanguage(text: string): string {
-		if (!text) return 'unknown';
+		if (!text) return 'English';
 
 		// Simple heuristic-based language detection
 		const lowercaseText = text.toLowerCase();
-		
+
+		// Check for non-Latin scripts
+		if (/[\u4e00-\u9fff]/.test(text)) return "Chinese";
+		if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return "Japanese";
+		if (/[\u0400-\u04ff]/.test(text)) return "Russian";
+		if (/[\u0590-\u05ff]/.test(text)) return "Hebrew";
+		if (/[\u0600-\u06ff]/.test(text)) return "Arabic";
+
 		// Common English words
 		const englishWords = ['the', 'and', 'is', 'in', 'to', 'of', 'a', 'that', 'it', 'with', 'for', 'as', 'are', 'was', 'but', 'or'];
 		// Common French words
@@ -115,7 +122,7 @@ export class ScriptUtilities {
 		let germanCount = 0;
 		let italianCount = 0;
 
-		const words = lowercaseText.split(/\s+/).slice(0, 100); // Check first 100 words
+		const words = lowercaseText.split(/\s+/).slice(0, 150); // Check first 100 words
 
 		for (const word of words) {
 			if (englishWords.includes(word)) englishCount++;
@@ -127,11 +134,11 @@ export class ScriptUtilities {
 
 		// Find the language with the highest count
 		const counts = [
-			{ lang: 'en', count: englishCount },
-			{ lang: 'fr', count: frenchCount },
-			{ lang: 'es', count: spanishCount },
-			{ lang: 'de', count: germanCount },
-			{ lang: 'it', count: italianCount }
+			{ lang: 'English', count: englishCount },
+			{ lang: 'French', count: frenchCount },
+			{ lang: 'Spanish', count: spanishCount },
+			{ lang: 'German', count: germanCount },
+			{ lang: 'Italian', count: italianCount }
 		];
 
 		counts.sort((a, b) => b.count - a.count);
@@ -141,7 +148,7 @@ export class ScriptUtilities {
 			return counts[0].lang;
 		}
 
-		return 'unknown';
+		return 'English';
 	}
 
 	/**
@@ -160,7 +167,7 @@ export class ScriptUtilities {
 	/**
 	 * Get Templater plugin instance
 	 */
-	private getTemplaterPlugin(): any {
+	getTemplaterPlugin(): any {
 		return (this.app as any).plugins?.plugins?.['templater-obsidian'];
 	}
 

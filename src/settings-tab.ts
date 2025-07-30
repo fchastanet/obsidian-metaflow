@@ -183,23 +183,26 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 			}
 
 			const templaterSettings = templaterPlugin.settings;
-			if (!templaterSettings?.file_templates) {
-				new Notice('No file templates found in Templater settings');
+			if (!templaterSettings?.folder_templates) {
+				new Notice('No folder templates found in Templater settings');
 				return;
 			}
 
 			let importedCount = 0;
-			for (const fileTemplate of templaterSettings.file_templates) {
+			for (const folderTemplate of templaterSettings.folder_templates) {
+				// Extract file class name from template filename (remove .md extension)
+				const templateName = folderTemplate.template.replace('.md', '');
+				
 				// Check if mapping already exists
 				const existingMapping = this.plugin.settings.folderFileClassMappings.find(
-					mapping => mapping.folderPattern === fileTemplate.regex
+					mapping => mapping.folderPattern === folderTemplate.folder
 				);
 
 				if (!existingMapping) {
 					this.plugin.settings.folderFileClassMappings.push({
-						folderPattern: fileTemplate.regex,
-						fileClass: 'changeMe',
-						isRegex: true
+						folderPattern: folderTemplate.folder,
+						fileClass: templateName,
+						isRegex: false
 					});
 					importedCount++;
 				}
@@ -256,7 +259,8 @@ export class MetadataPropertiesSorterSettingTab extends PluginSettingTab {
 				);
 
 				if (!existingScript) {
-					const defaultScript = `return "";`;
+					const fileClassesComment = `// Used by fileClasses: ${fileClasses.join(', ')}`;
+					const defaultScript = `${fileClassesComment}\nreturn "";`;
 
 					this.plugin.settings.propertyDefaultValueScripts.push({
 						propertyName: propertyName,

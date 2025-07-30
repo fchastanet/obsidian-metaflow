@@ -1,5 +1,5 @@
 import { App, TFile, Notice } from 'obsidian';
-import { MetadataSettings, FolderFileClassMapping, PropertyDefaultValueScript, ScriptContext } from './types';
+import { MetadataSettings, PropertyDefaultValueScript, ScriptContext } from './types';
 import { MetadataAutoInserter } from './metadata-auto-inserter';
 import { parseFrontmatter, serializeFrontmatter } from './yaml-utils';
 import { ScriptUtilities } from './script-utilities';
@@ -29,7 +29,7 @@ export class AutoUpdateCommand {
 			}
 
 			// Step 2: Check if Templater plugin is available (if integration is enabled)
-			if (this.settings.enableTemplaterIntegration && !this.isTemplaterAvailable()) {
+			if (this.settings.enableTemplaterIntegration && !this.scriptUtilities.isTemplaterAvailable()) {
 				new Notice('Error: Templater plugin is not available. Please install and enable it or disable Templater integration.');
 				throw new Error('Templater plugin not available');
 			}
@@ -87,6 +87,8 @@ export class AutoUpdateCommand {
 				updatedFrontmatter = updatedParseResult.metadata || {};
 				updatedBodyContent = updatedParseResult.restOfContent;
 			}
+
+			/** @todo missing sort */
 
 			// Step 9: Add default values to properties
 			const enrichedFrontmatter = await this.addDefaultValuesToProperties(
@@ -148,20 +150,6 @@ export class AutoUpdateCommand {
 	private validateFileClassAgainstMapping(filePath: string, fileClass: string): boolean {
 		const deducedFileClass = this.deduceFileClassFromPath(filePath);
 		return deducedFileClass === fileClass;
-	}
-
-	/**
-	 * Check if Templater plugin is available
-	 */
-	private isTemplaterAvailable(): boolean {
-		return this.scriptUtilities.isTemplaterAvailable();
-	}
-
-	/**
-	 * Get Templater plugin instance
-	 */
-	private getTemplaterPlugin(): any {
-		return (this.app as any).plugins?.plugins?.['templater-obsidian'];
 	}
 
 	/**
@@ -263,7 +251,7 @@ export class AutoUpdateCommand {
 			return { isConsistent: true, warnings: [] };
 		}
 
-		const templater = this.getTemplaterPlugin();
+		const templater = this.scriptUtilities.getTemplaterPlugin();
 		if (!templater) {
 			warnings.push('Templater plugin not found but integration is enabled');
 			return { isConsistent: false, warnings };

@@ -1,5 +1,4 @@
 import { MetadataSettings } from './types';
-import { DEFAULT_SETTINGS } from './settings';
 import { parseFrontmatter, serializeFrontmatter } from './yaml-utils';
 
 // Re-export for backward compatibility

@@ -99,15 +99,15 @@ describe('AutoUpdateCommand', () => {
                         const scriptUtilities = (autoUpdateCommand as any).scriptUtilities;
                         const detectLanguage = scriptUtilities.detectLanguage.bind(scriptUtilities);
 
-                        expect(detectLanguage('The quick brown fox jumps over the lazy dog')).toBe('en');
-                        expect(detectLanguage('Le renard brun et rapide saute par-dessus le chien paresseux')).toBe('fr');
-                        expect(detectLanguage('El zorro marrón y rápido salta sobre el perro perezoso')).toBe('es');
-                        expect(detectLanguage('Der schnelle braune Fuchs springt über den faulen Hund')).toBe('de');
+                        expect(detectLanguage('The quick brown fox jumps over the lazy dog')).toBe('English');
+                        expect(detectLanguage('Le renard brun et rapide saute par-dessus le chien paresseux')).toBe('French');
+                        expect(detectLanguage('El zorro marrón y rápido salta sobre el perro perezoso')).toBe('Spanish');
+                        expect(detectLanguage('Der schnelle braune Fuchs springt über den faulen Hund')).toBe('German');
                         // Note: Italian detection may not be as reliable with simple text
                         const italianResult = detectLanguage('La volpe marrone veloce salta sopra il cane pigro');
-                        expect(['it', 'unknown']).toContain(italianResult); // Accept either result
-                        expect(detectLanguage('text')).toBe('unknown');
-                        expect(detectLanguage('')).toBe('unknown');
+                        expect(['Italian', 'English']).toContain(italianResult); // Accept either result
+                        expect(detectLanguage('text')).toBe('English');
+                        expect(detectLanguage('')).toBe('English');
                 });
         });	describe('Command Execution', () => {
 		beforeEach(() => {

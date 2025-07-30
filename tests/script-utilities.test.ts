@@ -28,42 +28,42 @@ describe('ScriptUtilities', () => {
 		test('should detect English text', () => {
 			const englishText = "The quick brown fox jumps over the lazy dog and runs away";
 			const result = scriptUtilities.detectLanguage(englishText);
-			expect(result).toBe('en');
+			expect(result).toBe('English');
 		});
 
 		test('should detect French text', () => {
 			const frenchText = "Le chat qui mange le poisson dans la maison avec les enfants et nous avons";
 			const result = scriptUtilities.detectLanguage(frenchText);
-			expect(result).toBe('fr');
+			expect(result).toBe('French');
 		});
 
 		test('should detect Spanish text', () => {
 			const spanishText = "El gato que come el pescado en la casa con los niños";
 			const result = scriptUtilities.detectLanguage(spanishText);
-			expect(result).toBe('es');
+			expect(result).toBe('Spanish');
 		});
 
 		test('should detect German text', () => {
 			const germanText = "Der Hund läuft durch den Park und spielt mit den Kindern";
 			const result = scriptUtilities.detectLanguage(germanText);
-			expect(result).toBe('de');
+			expect(result).toBe('German');
 		});
 
 		test('should detect Italian text', () => {
 			const italianText = "Il cane che corre nel parco e gioca con i bambini";
 			const result = scriptUtilities.detectLanguage(italianText);
-			expect(result).toBe('it');
+			expect(result).toBe('Italian');
 		});
 
-		test('should return unknown for empty text', () => {
+		test('should return English for empty text', () => {
 			const result = scriptUtilities.detectLanguage('');
-			expect(result).toBe('unknown');
+			expect(result).toBe('English');
 		});
 
-		test('should return unknown for ambiguous text', () => {
+		test('should return English for ambiguous text', () => {
 			const ambiguousText = "xyz abc def ghi jkl mno";
 			const result = scriptUtilities.detectLanguage(ambiguousText);
-			expect(result).toBe('unknown');
+			expect(result).toBe('English');
 		});
 	});
 
