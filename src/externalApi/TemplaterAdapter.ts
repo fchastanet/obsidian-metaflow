@@ -7,8 +7,14 @@ export interface FolderTemplate {
   isRegex: boolean;
 }
 
+export interface FileTemplate {
+  regex: string;
+  template: string;
+}
+
 export interface TemplaterSettingsInterface {
   folder_templates: FolderTemplate[];
+  file_templates: FileTemplate[];
 }
 
 export class TemplaterAdapter {
@@ -29,7 +35,8 @@ export class TemplaterAdapter {
   getTemplaterSettings(): TemplaterSettingsInterface {
     if (!this.templater) {
       return {
-        folder_templates: []
+        folder_templates: [],
+        file_templates: [],
       };
     }
     return this.templater.settings;
@@ -65,8 +72,8 @@ export class TemplaterAdapter {
 
       // Compare with our mappings
       for (const mapping of this.settings.folderFileClassMappings) {
-        const matchingTemplaterMapping = templaterSettings.folder_templates.find((tm: any) =>
-          tm.folder === mapping.folderPattern
+        const matchingTemplaterMapping = templaterSettings.file_templates.find((ft: FileTemplate) =>
+          ft.regex === mapping.folderPattern
         );
 
         if (!matchingTemplaterMapping) {

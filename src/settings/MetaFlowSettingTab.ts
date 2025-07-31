@@ -1,7 +1,7 @@
 import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import MetaFlowPlugin from "..";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
+import {TemplaterAdapter, TemplaterSettingsInterface} from "../externalApi/TemplaterAdapter";
 
 /**
  * Settings tab for MetaFlow plugin
@@ -11,6 +11,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   plugin: MetaFlowPlugin;
   metadataMenuAdapter: MetadataMenuAdapter;
   templaterAdapter: TemplaterAdapter;
+  EXPAND_BUTTON: string = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-chevrons-up-down"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>';
 
   constructor(app: App, plugin: MetaFlowPlugin) {
     super(app, plugin);
@@ -30,8 +31,30 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       text: 'Configure automated metadata workflow management including folder mappings, property scripts, and plugin integrations.'
     });
 
+    // General Settings - Collapsible
+    const generalDetails = containerEl.createEl('details', {cls: 'setting-details'});
+    generalDetails.open = false; // Collapsed by default
+    const generalSummary = generalDetails.createEl('summary', {cls: 'setting-summary'});
+    generalSummary.style.display = 'flex';
+    generalSummary.style.alignItems = 'center';
+    generalSummary.style.justifyContent = 'space-between';
+    generalSummary.style.cursor = 'pointer';
+
+    generalSummary.createEl('h3', {text: 'General Settings'});
+
+    const generalToggleDiv = generalSummary.createEl('div', {cls: 'setting-item-control'});
+    const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta'});
+    generalToggleButton.innerHTML = this.EXPAND_BUTTON;
+
+    // Prevent button click from triggering summary toggle
+    generalToggleButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      generalDetails.open = !generalDetails.open;
+    });
+
     // Sort unknown properties setting
-    new Setting(containerEl)
+    new Setting(generalDetails)
       .setName('Sort unknown properties alphabetically')
       .setDesc('Sort properties not in the custom order alphabetically at the end')
       .addToggle(toggle => toggle
@@ -42,10 +65,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }));
 
     // MetadataMenu Integration section
-    containerEl.createEl('h3', {text: 'MetadataMenu Integration'});
+    generalDetails.createEl('h4', {text: 'MetadataMenu Integration'});
 
     // Enable MetadataMenu integration
-    new Setting(containerEl)
+    new Setting(generalDetails)
       .setName('Enable MetadataMenu integration')
       .setDesc('Enable integration with the MetadataMenu plugin for fileClass-based field insertion')
       .addToggle(toggle => toggle
@@ -62,7 +85,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }));
 
     // Auto metadata insertion setting
-    new Setting(containerEl)
+    new Setting(generalDetails)
       .setName('Auto-insert missing metadata fields')
       .setDesc('Automatically insert missing metadata fields based on fileClass definitions')
       .addToggle(toggle => toggle
@@ -73,9 +96,9 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }));
 
     // Templater Integration
-    containerEl.createEl('h3', {text: 'Templater Integration'});
+    generalDetails.createEl('h4', {text: 'Templater Integration'});
 
-    new Setting(containerEl)
+    new Setting(generalDetails)
       .setName('Enable Templater integration')
       .setDesc('Enable integration with Templater plugin for advanced scripting features')
       .addToggle(toggle => toggle
@@ -92,32 +115,51 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           }
         }));
 
-    // Folder/FileClass Mappings
-    containerEl.createEl('h3', {text: 'Folder/FileClass Mappings'});
+    // Folder/FileClass Mappings - Collapsible
+    const mappingsDetails = containerEl.createEl('details', {cls: 'setting-details'});
+    mappingsDetails.open = false; // Collapsed by default
+    const mappingsSummary = mappingsDetails.createEl('summary', {cls: 'setting-summary'});
+    mappingsSummary.style.display = 'flex';
+    mappingsSummary.style.alignItems = 'center';
+    mappingsSummary.style.justifyContent = 'space-between';
+    mappingsSummary.style.cursor = 'pointer';
 
-    const mappingsDesc = containerEl.createEl('p');
+    mappingsSummary.createEl('h3', {text: 'Folder/FileClass Mappings'});
+
+    const mappingsToggleDiv = mappingsSummary.createEl('div', {cls: 'setting-item-control'});
+    const mappingsToggleButton = mappingsToggleDiv.createEl('button', {cls: 'mod-cta'});
+    mappingsToggleButton.innerHTML = this.EXPAND_BUTTON;
+
+    // Prevent button click from triggering summary toggle
+    mappingsToggleButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      mappingsDetails.open = !mappingsDetails.open;
+    });
+
+    const mappingsDesc = mappingsDetails.createEl('p');
     mappingsDesc.innerHTML = 'Map folder patterns to MetadataMenu fileClasses. Uses the same pattern matching as Templater plugin. Patterns are evaluated in order, with the first match being used.';
 
     // Auto-populate from Templater button
-    new Setting(containerEl)
+    new Setting(mappingsDetails)
       .setName('Auto-populate from Templater')
       .setDesc('Automatically populate folder mappings from Templater plugin configuration')
       .addButton(button => button
-        .setButtonText('Import from Templater')
+        .setButtonText('🔃 Sync with Templater')
         .onClick(async () => {
-          await this.autoPopulateFolderMappingsFromTemplater();
+          await this.syncFolderMappingsWithTemplater();
           this.displayFolderMappings(mappingsContainer);
         }));
 
     // Create container for mappings
-    const mappingsContainer = containerEl.createEl('div');
+    const mappingsContainer = mappingsDetails.createEl('div');
     this.displayFolderMappings(mappingsContainer);
 
     // Add new mapping button
-    new Setting(containerEl)
+    new Setting(mappingsDetails)
       .setName('Add folder mapping')
       .addButton(button => button
-        .setButtonText('Add mapping')
+        .setButtonText('➕ Add mapping')
         .setCta()
         .onClick(() => {
           this.plugin.settings.folderFileClassMappings.push({
@@ -129,32 +171,51 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.displayFolderMappings(mappingsContainer);
         }));
 
-    // Property Default Value Scripts
-    containerEl.createEl('h3', {text: 'Property Default Value Scripts'});
+    // Property Default Value Scripts - Collapsible
+    const scriptsDetails = containerEl.createEl('details', {cls: 'setting-details'});
+    scriptsDetails.open = false; // Collapsed by default
+    const scriptsSummary = scriptsDetails.createEl('summary', {cls: 'setting-summary'});
+    scriptsSummary.style.display = 'flex';
+    scriptsSummary.style.alignItems = 'center';
+    scriptsSummary.style.justifyContent = 'space-between';
+    scriptsSummary.style.cursor = 'pointer';
 
-    const scriptsDesc = containerEl.createEl('p');
+    scriptsSummary.createEl('h3', {text: 'Property Default Value Scripts'});
+
+    const scriptsToggleDiv = scriptsSummary.createEl('div', {cls: 'setting-item-control'});
+    const scriptsToggleButton = scriptsToggleDiv.createEl('button', {cls: 'mod-cta'});
+    scriptsToggleButton.innerHTML = this.EXPAND_BUTTON;
+
+    // Prevent button click from triggering summary toggle
+    scriptsToggleButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scriptsDetails.open = !scriptsDetails.open;
+    });
+
+    const scriptsDesc = scriptsDetails.createEl('p');
     scriptsDesc.innerHTML = 'Define JavaScript scripts to generate default values for properties. Scripts have access to: <code>fileClass</code>, <code>file</code>, <code>metadata</code>, <code>prompt</code>, <code>date</code>, <code>generateMarkdownLink</code>, <code>detectLanguage</code>.';
 
     // Auto-populate from MetadataMenu button
-    new Setting(containerEl)
+    new Setting(scriptsDetails)
       .setName('Auto-populate from MetadataMenu')
       .setDesc('Automatically populate property scripts from MetadataMenu plugin fileClass definitions')
       .addButton(button => button
-        .setButtonText('Import from MetadataMenu')
+        .setButtonText('📥 Import from MetadataMenu')
         .onClick(async () => {
           await this.autoPopulatePropertyScriptsFromMetadataMenu();
           this.displayPropertyScripts(scriptsContainer);
         }));
 
     // Create container for scripts
-    const scriptsContainer = containerEl.createEl('div');
+    const scriptsContainer = scriptsDetails.createEl('div');
     this.displayPropertyScripts(scriptsContainer);
 
     // Add new script button
-    new Setting(containerEl)
+    new Setting(scriptsDetails)
       .setName('Add property script')
       .addButton(button => button
-        .setButtonText('Add property script')
+        .setButtonText('➕ Add property script')
         .setCta()
         .onClick(() => {
           this.plugin.settings.propertyDefaultValueScripts.push({
@@ -187,7 +248,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     }
   }
 
-  private async autoPopulateFolderMappingsFromTemplater(): Promise<void> {
+  private async syncFolderMappingsWithTemplater(): Promise<void> {
     try {
       const templaterPlugin = (this.app as any).plugins?.plugins?.['templater-obsidian'];
       if (!templaterPlugin) {
@@ -195,31 +256,52 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         return;
       }
 
-      const templaterSettings = templaterPlugin.settings;
-      if (!templaterSettings?.folder_templates) {
-        new Notice('No folder templates found in Templater settings');
+      const templaterSettings = templaterPlugin.settings as TemplaterSettingsInterface;
+      if (!templaterSettings?.file_templates) {
+        new Notice('No file templates found in Templater settings');
         return;
       }
 
       let importedCount = 0;
-      for (const folderTemplate of templaterSettings.folder_templates) {
-        // Extract file class name from template filename (remove .md extension)
-        const templateName = folderTemplate.template.replace('.md', '');
-
+      for (const fileTemplate of templaterSettings.file_templates) {
         // Check if mapping already exists
         const existingMapping = this.plugin.settings.folderFileClassMappings.find(
-          mapping => mapping.folderPattern === folderTemplate.folder
+          mapping => mapping.folderPattern === fileTemplate.regex
         );
 
         if (!existingMapping) {
           this.plugin.settings.folderFileClassMappings.push({
-            folderPattern: folderTemplate.folder,
-            fileClass: templateName,
+            folderPattern: fileTemplate.regex,
+            fileClass: '',
             isRegex: false
           });
           importedCount++;
         }
       }
+
+      // Create a map of regex patterns to their index in templaterSettings.file_templates
+      const templaterOrder = new Map();
+      templaterSettings.file_templates.forEach((template, index) => {
+        templaterOrder.set(template.regex, index);
+      });
+
+      // make order of folderFileClassMappings elements, the same as templaterSettings.file_templates
+      this.plugin.settings.folderFileClassMappings.sort((a, b) => {
+        const aIndex = templaterOrder.get(a.folderPattern);
+        const bIndex = templaterOrder.get(b.folderPattern);
+
+        // If both patterns exist in templater settings, sort by their order
+        if (aIndex !== undefined && bIndex !== undefined) {
+          return aIndex - bIndex;
+        }
+
+        // If only one exists in templater settings, prioritize it
+        if (aIndex !== undefined) return -1;
+        if (bIndex !== undefined) return 1;
+
+        // If neither exists in templater settings, maintain current order
+        return 0;
+      });
 
       await this.plugin.saveSettings();
       new Notice(`Imported ${importedCount} folder mappings from Templater`);
@@ -274,8 +356,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         );
 
         if (!existingScript) {
-          const fileClassesComment = `// Used by fileClasses: ${fileClasses.join(', ')}`;
-          const defaultScript = `${fileClassesComment}\nreturn "";`;
+          const defaultScript = `return "";`;
 
           this.plugin.settings.propertyDefaultValueScripts.push({
             propertyName: propertyName,
@@ -398,7 +479,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       const regexLabel = controlRow.createEl('label', {text: 'Regex'});
 
       // Delete button
-      const deleteButton = controlRow.createEl('button', {text: 'Delete'});
+      const deleteButton = controlRow.createEl('button', {text: '🗑️ Delete'});
       deleteButton.style.backgroundColor = '#e74c3c';
       deleteButton.style.color = 'white';
       deleteButton.style.border = 'none';
@@ -502,63 +583,113 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }
       });
 
-      const controlDiv = scriptDiv.createEl('div', {cls: 'setting-item-control'});
-      controlDiv.style.display = 'flex';
-      controlDiv.style.flexDirection = 'column';
-      controlDiv.style.width = '100%';
-      controlDiv.style.textAlign = 'left';
+      // Create read-only view
+      const readOnlyDiv = scriptDiv.createEl('div', {cls: 'property-script-readonly'});
+      readOnlyDiv.style.display = 'flex';
+      readOnlyDiv.style.alignItems = 'center';
+      readOnlyDiv.style.gap = '10px';
+      readOnlyDiv.style.padding = '5px';
+      readOnlyDiv.style.borderRadius = '3px';
+      readOnlyDiv.style.width = '100%';
 
-      // propertyDiv containing propDiv and propertyInput
-      const propertyDiv = controlDiv.createEl('div', {cls: 'setting-property'});
-      propertyDiv.style.display = 'flex';
-      propertyDiv.style.width = '100%';
-      propertyDiv.style.alignItems = 'baseline';
-      propertyDiv.style.gap = 'var(--size-4-2)';
+      // Order display (moved to left)
+      const orderSpan = readOnlyDiv.createEl('span');
+      orderSpan.textContent = `#${index + 1}`;
+      orderSpan.style.color = 'var(--text-muted)';
+      orderSpan.style.fontSize = '12px';
+      orderSpan.style.minWidth = '30px';
 
-      propertyDiv.createEl('label', {text: 'Property name:'});
-      const propertyInput = propertyDiv.createEl('input', {
+      // Status indicator with tooltip
+      const statusSpan = readOnlyDiv.createEl('span');
+      statusSpan.textContent = script.enabled ? '✅' : '❌';
+      statusSpan.style.fontSize = '14px';
+      statusSpan.style.cursor = 'help';
+      statusSpan.title = script.enabled ? 'Enabled' : 'Disabled';
+
+      // Property name
+      const propertySpan = readOnlyDiv.createEl('span');
+      propertySpan.textContent = script.propertyName || 'Unnamed Property';
+      propertySpan.style.fontWeight = 'bold';
+      propertySpan.style.minWidth = '150px';
+
+      // Script preview (extended to 100 characters)
+      const scriptPreview = readOnlyDiv.createEl('span');
+      const scriptPreviewText = script.script.replace(/\n/g, ' ').substring(0, 100);
+      scriptPreview.textContent = scriptPreviewText + (script.script.length > 100 ? '...' : '');
+      scriptPreview.style.color = 'var(--text-muted)';
+      scriptPreview.style.fontFamily = 'monospace';
+      scriptPreview.style.fontSize = '12px';
+      scriptPreview.style.flexGrow = '1';
+
+      // Enable/Disable button
+      const toggleButton = readOnlyDiv.createEl('button', {
+        text: script.enabled ? '⏸️ Disable' : '▶️ Enable'
+      });
+      toggleButton.style.backgroundColor = script.enabled ? '#f39c12' : '#27ae60';
+      toggleButton.style.color = 'white';
+      toggleButton.style.border = 'none';
+      toggleButton.style.padding = '3px 8px';
+      toggleButton.style.cursor = 'pointer';
+      toggleButton.style.borderRadius = '3px';
+      toggleButton.style.fontSize = '11px';
+      toggleButton.style.marginRight = '5px';
+
+      // Edit button (aligned to right)
+      const editButton = readOnlyDiv.createEl('button', {text: '✏️ Edit'});
+      editButton.style.backgroundColor = 'var(--interactive-accent)';
+      editButton.style.color = 'white';
+      editButton.style.border = 'none';
+      editButton.style.padding = '3px 8px';
+      editButton.style.cursor = 'pointer';
+      editButton.style.borderRadius = '3px';
+      editButton.style.fontSize = '11px';
+
+      // Create edit view (hidden by default)
+      const editDiv = scriptDiv.createEl('div', {cls: 'property-script-edit'});
+      editDiv.style.display = 'none';
+      editDiv.style.flexDirection = 'column';
+      editDiv.style.gap = '10px';
+      editDiv.style.width = '100%';
+
+      // Store original values for cancel functionality
+      let originalPropertyName = script.propertyName;
+      let originalScript = script.script;
+      let originalEnabled = script.enabled;
+
+      // Property name input
+      const propertyRow = editDiv.createEl('div');
+      propertyRow.style.display = 'flex';
+      propertyRow.style.alignItems = 'center';
+      propertyRow.style.gap = '10px';
+
+      propertyRow.createEl('label', {text: 'Property:'});
+      const propertyInput = propertyRow.createEl('input', {
         type: 'text',
         placeholder: 'Property name (e.g., title, author)',
         value: script.propertyName
       });
-      propertyInput.style.margin = '0 10px';
       propertyInput.style.flexGrow = '1';
 
       // Enabled toggle
-      const enabledLabel = propertyDiv.createEl('label');
+      const enabledLabel = propertyRow.createEl('label');
       const enabledToggle = enabledLabel.createEl('input', {type: 'checkbox'});
       enabledToggle.checked = script.enabled;
       enabledToggle.style.marginRight = '5px';
       enabledLabel.appendChild(document.createTextNode('Enabled'));
 
       // Order controls
-      const orderDiv = propertyDiv.createEl('div', {cls: 'setting-item-order'});
-      orderDiv.style.display = 'flex';
-      orderDiv.style.alignItems = 'center';
-      orderDiv.style.marginBottom = '10px';
-
-      const upButton = orderDiv.createEl('button', {text: '↑'});
-      upButton.style.marginRight = '5px';
-      upButton.disabled = index === 0;
-
-      const downButton = orderDiv.createEl('button', {text: '↓'});
-      downButton.style.marginRight = '10px';
-      downButton.disabled = index === this.plugin.settings.propertyDefaultValueScripts.length - 1;
-
+      const orderDiv = propertyRow.createEl('div', {cls: 'setting-item-order'});
       orderDiv.createEl('span', {text: `Order: ${index + 1}`});
 
       // Script textarea
-      const scriptCodeDiv = controlDiv.createEl('div');
-      scriptCodeDiv.style.width = '100%';
-      scriptCodeDiv.style.paddingRight = '60px';
-
-      let scriptCodeLabel = 'Script';
+      const scriptRow = editDiv.createEl('div');
+      let scriptLabel = 'Script';
       if (script.fileClasses) {
-        scriptCodeLabel += ` (this field is used by the fileClasses: ${script.fileClasses.join(', ')})`;
+        scriptLabel += ` (used by fileClasses: ${script.fileClasses.join(', ')})`;
       }
-      scriptCodeLabel += ':';
-      scriptCodeDiv.createEl('label', {text: scriptCodeLabel});
-      const scriptTextarea = scriptCodeDiv.createEl('textarea', {
+      scriptLabel += ':';
+      scriptRow.createEl('label', {text: scriptLabel});
+      const scriptTextarea = scriptRow.createEl('textarea', {
         placeholder: 'return "default value";',
       });
       scriptTextarea.value = script.script;
@@ -568,52 +699,90 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       scriptTextarea.style.fontFamily = 'monospace';
 
       // Button row
-      const buttonRow = controlDiv.createEl('div');
+      const buttonRow = editDiv.createEl('div');
       buttonRow.style.display = 'flex';
       buttonRow.style.gap = '10px';
+      buttonRow.style.justifyContent = 'flex-end';
 
       // Delete button
-      const deleteButton = buttonRow.createEl('button', {text: 'Delete Script'});
+      const deleteButton = buttonRow.createEl('button', {text: '🗑️ Delete'});
       deleteButton.style.backgroundColor = '#e74c3c';
       deleteButton.style.color = 'white';
       deleteButton.style.border = 'none';
-      deleteButton.style.padding = '5px 10px';
+      deleteButton.style.padding = '5px 15px';
       deleteButton.style.cursor = 'pointer';
+      deleteButton.style.borderRadius = '3px';
+
+      // Add a spacer
+      const spacer = buttonRow.createDiv();
+      spacer.style.flexGrow = '1';
+
+      // OK button
+      const okButton = buttonRow.createEl('button', {text: '✅ OK'});
+      okButton.style.backgroundColor = 'var(--interactive-accent)';
+      okButton.style.color = 'white';
+      okButton.style.border = 'none';
+      okButton.style.padding = '5px 15px';
+      okButton.style.cursor = 'pointer';
+      okButton.style.borderRadius = '3px';
+
+      // Cancel button
+      const cancelButton = buttonRow.createEl('button', {text: '❌ Cancel'});
+      cancelButton.style.backgroundColor = 'var(--background-modifier-border)';
+      cancelButton.style.color = 'var(--text-normal)';
+      cancelButton.style.border = 'none';
+      cancelButton.style.padding = '5px 15px';
+      cancelButton.style.cursor = 'pointer';
+      cancelButton.style.borderRadius = '3px';
+
+      // Toggle between read-only and edit mode
+      const toggleEditMode = (editMode: boolean) => {
+        if (editMode) {
+          readOnlyDiv.style.display = 'none';
+          editDiv.style.display = 'flex';
+          scriptDiv.draggable = false;
+          scriptDiv.style.cursor = 'default';
+          // Store current values as originals when entering edit mode
+          originalPropertyName = script.propertyName;
+          originalScript = script.script;
+          originalEnabled = script.enabled;
+        } else {
+          readOnlyDiv.style.display = 'flex';
+          editDiv.style.display = 'none';
+          scriptDiv.draggable = true;
+          scriptDiv.style.cursor = 'grab';
+        }
+      };
 
       // Event listeners
-      upButton.addEventListener('click', async () => {
-        if (index > 0) {
-          const temp = this.plugin.settings.propertyDefaultValueScripts[index];
-          this.plugin.settings.propertyDefaultValueScripts[index] = this.plugin.settings.propertyDefaultValueScripts[index - 1];
-          this.plugin.settings.propertyDefaultValueScripts[index - 1] = temp;
-          await this.plugin.saveSettings();
-          this.displayPropertyScripts(container);
-        }
-      });
-
-      downButton.addEventListener('click', async () => {
-        if (index < this.plugin.settings.propertyDefaultValueScripts.length - 1) {
-          const temp = this.plugin.settings.propertyDefaultValueScripts[index];
-          this.plugin.settings.propertyDefaultValueScripts[index] = this.plugin.settings.propertyDefaultValueScripts[index + 1];
-          this.plugin.settings.propertyDefaultValueScripts[index + 1] = temp;
-          await this.plugin.saveSettings();
-          this.displayPropertyScripts(container);
-        }
-      });
-
-      propertyInput.addEventListener('input', async () => {
-        script.propertyName = propertyInput.value;
+      toggleButton.addEventListener('click', async () => {
+        script.enabled = !script.enabled;
         await this.plugin.saveSettings();
+        this.displayPropertyScripts(container);
       });
 
-      enabledToggle.addEventListener('change', async () => {
+      editButton.addEventListener('click', () => {
+        toggleEditMode(true);
+      });
+
+      okButton.addEventListener('click', async () => {
+        // Apply changes
+        script.propertyName = propertyInput.value;
+        script.script = scriptTextarea.value;
         script.enabled = enabledToggle.checked;
         await this.plugin.saveSettings();
+        this.displayPropertyScripts(container);
       });
 
-      scriptTextarea.addEventListener('input', async () => {
-        script.script = scriptTextarea.value;
-        await this.plugin.saveSettings();
+      cancelButton.addEventListener('click', () => {
+        // Revert changes
+        script.propertyName = originalPropertyName;
+        script.script = originalScript;
+        script.enabled = originalEnabled;
+        propertyInput.value = originalPropertyName;
+        scriptTextarea.value = originalScript;
+        enabledToggle.checked = originalEnabled;
+        toggleEditMode(false);
       });
 
       deleteButton.addEventListener('click', async () => {

@@ -103,28 +103,29 @@ describe('MetaFlowSettingTab', () => {
       // Setup Templater plugin mock
       mockApp.plugins.plugins['templater-obsidian'] = {
         settings: {
-          folder_templates: [
-            {folder: 'Books/*', template: 'book-template.md'},
-            {folder: 'Articles/*', template: 'article-template.md'},
-            {folder: 'Notes/*', template: 'note-template.md'}
-          ]
+          file_templates: [
+            {regex: 'Books/*', template: 'book-template.md'},
+            {regex: 'Articles/*', template: 'article-template.md'},
+            {regex: 'Notes/*', template: 'note-template.md'}
+          ],
+          folder_templates: []
         }
       };
 
       // Clear existing mappings
       mockPlugin.settings.folderFileClassMappings = [];
 
-      await settingTab['autoPopulateFolderMappingsFromTemplater']();
+      await settingTab['syncFolderMappingsWithTemplater']();
 
       expect(mockPlugin.settings.folderFileClassMappings).toHaveLength(3);
       expect(mockPlugin.settings.folderFileClassMappings[0]).toEqual({
         folderPattern: 'Books/*',
-        fileClass: 'book-template',
+        fileClass: '',
         isRegex: false
       });
       expect(mockPlugin.settings.folderFileClassMappings[1]).toEqual({
         folderPattern: 'Articles/*',
-        fileClass: 'article-template',
+        fileClass: '',
         isRegex: false
       });
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
@@ -145,7 +146,7 @@ describe('MetaFlowSettingTab', () => {
         {folderPattern: 'Books/*', fileClass: 'existing-book', isRegex: false}
       ];
 
-      await settingTab['autoPopulateFolderMappingsFromTemplater']();
+      await settingTab['syncFolderMappingsWithTemplater']();
 
       // Should still have only one mapping (the existing one)
       expect(mockPlugin.settings.folderFileClassMappings).toHaveLength(1);
@@ -155,7 +156,7 @@ describe('MetaFlowSettingTab', () => {
     test('should handle missing Templater plugin gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await settingTab['autoPopulateFolderMappingsFromTemplater']();
+      await settingTab['syncFolderMappingsWithTemplater']();
 
       // Should not throw error
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
@@ -198,7 +199,7 @@ describe('MetaFlowSettingTab', () => {
         (script: any) => script.propertyName === 'title'
       );
       expect(titleScript).toBeDefined();
-      expect(titleScript?.script).toContain('// Used by fileClasses: book, article');
+      expect(titleScript?.script).toContain('return "";');
       expect(titleScript?.enabled).toBe(false);
 
       // Check that author script exists (used by book only)
@@ -206,7 +207,7 @@ describe('MetaFlowSettingTab', () => {
         (script: any) => script.propertyName === 'author'
       );
       expect(authorScript).toBeDefined();
-      expect(authorScript?.script).toContain('// Used by fileClasses: book');
+      expect(authorScript?.script).toContain('return "";');
 
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });

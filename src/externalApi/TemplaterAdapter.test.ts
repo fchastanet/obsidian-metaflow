@@ -53,7 +53,7 @@ describe('TemplaterAdapter', () => {
       delete mockApp.plugins.plugins['templater-obsidian'];
       const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS);
       const result = adapter.getTemplaterSettings();
-      expect(result).toEqual({folder_templates: []});
+      expect(result).toEqual({folder_templates: [], file_templates: [], });
     });
   });
 
