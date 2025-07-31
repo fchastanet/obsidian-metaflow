@@ -22,6 +22,9 @@ export default class MetaFlowPlugin extends Plugin {
     this.settings = await this.loadSettings();
     this.metaFlowService = new MetaFlowService(this.app, this.settings);
 
+    // Apply properties visibility setting on load
+    this.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
+
     // Register the main command for single file processing
     this.addCommand({
       id: 'metaflow-update-metadata',
@@ -37,6 +40,15 @@ export default class MetaFlowPlugin extends Plugin {
       name: 'Mass-update metadata properties',
       callback: () => {
         this.massUpdateMetadataProperties();
+      }
+    });
+
+    // Register toggle properties panel command
+    this.addCommand({
+      id: 'metaflow-toggle-properties-panel',
+      name: 'Toggle properties panel visibility',
+      callback: () => {
+        this.togglePropertiesPanelSetting();
       }
     });
 
@@ -113,7 +125,39 @@ export default class MetaFlowPlugin extends Plugin {
   }
 
   onunload() {
-    // Cleanup when plugin is disabled
+    // Remove CSS when plugin is disabled
+    this.togglePropertiesVisibility(false);
+  }
+
+  private togglePropertiesPanelSetting() {
+    this.settings.hidePropertiesInEditor = !this.settings.hidePropertiesInEditor;
+    this.saveSettings();
+    this.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
+
+    const status = this.settings.hidePropertiesInEditor ? 'hidden' : 'visible';
+    new Notice(`Properties panel is now ${status}`);
+  }
+
+  private togglePropertiesVisibility(hide: boolean): void {
+    const styleId = 'metaflow-hide-properties';
+    let styleEl = document.getElementById(styleId);
+
+    if (hide) {
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        styleEl.textContent = `
+          .cm-editor .metadata-container {
+            display: none !important;
+          }
+        `;
+        document.head.appendChild(styleEl);
+      }
+    } else {
+      if (styleEl) {
+        styleEl.remove();
+      }
+    }
   }
 
   async loadSettings(): Promise<MetaFlowSettings> {

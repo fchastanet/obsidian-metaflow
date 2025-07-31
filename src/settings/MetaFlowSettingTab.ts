@@ -64,6 +64,19 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
+    // Hide properties section setting
+    new Setting(generalDetails)
+      .setName('Hide properties section in editor')
+      .setDesc('Hide the properties section from the file editor view for a cleaner writing experience')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.hidePropertiesInEditor || false)
+        .onChange(async (value) => {
+          this.plugin.settings.hidePropertiesInEditor = value;
+          await this.plugin.saveSettings();
+          // Apply CSS to hide/show properties section immediately
+          this.togglePropertiesVisibility(value);
+        }));
+
     // MetadataMenu Integration section
     generalDetails.createEl('h4', {text: 'MetadataMenu Integration'});
 
@@ -791,5 +804,32 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         this.displayPropertyScripts(container);
       });
     });
+  }
+
+  private togglePropertiesVisibility(hide: boolean): void {
+    const styleId = 'metaflow-hide-properties';
+    let styleEl = document.getElementById(styleId);
+
+    if (hide) {
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        styleEl.textContent = `
+          .metadata-container,
+          .frontmatter-container,
+          .metadata-properties-heading,
+          .metadata-property,
+          .metadata-add-button,
+          .frontmatter-container-header {
+            display: none !important;
+          }
+        `;
+        document.head.appendChild(styleEl);
+      }
+    } else {
+      if (styleEl) {
+        styleEl.remove();
+      }
+    }
   }
 }
