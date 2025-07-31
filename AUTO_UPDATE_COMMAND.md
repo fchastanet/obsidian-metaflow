@@ -1,8 +1,15 @@
-# Auto Update Metadata Fields Command
+# MetaFlow Auto Update Command
+
+The MetaFlow plugin provides a comprehensive "Update metadata properties" command that automates your entire metadata workflow.
 
 ## Overview
 
-The "Auto Update metadata fields" command is a comprehensive solution for automatically managing metadata in Obsidian notes. It integrates with MetadataMenu and optionally with Templater to provide intelligent field insertion and default value generation.
+The auto-update command intelligently processes your notes to:
+
+- Determine the appropriate fileClass based on folder location or existing metadata
+- Insert missing metadata fields from MetadataMenu definitions  
+- Execute custom JavaScript scripts to populate default values
+- Sort frontmatter properties according to your preferences
 
 ## Features
 

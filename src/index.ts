@@ -1,115 +1,136 @@
-import { App, Editor, MarkdownView, Notice, Plugin, TFile } from 'obsidian';
-import { MetadataSettings, AutoMetadataSettings } from './types';
-import { DEFAULT_SETTINGS } from './settings';
-import { MetadataAutoInserter } from './metadata-auto-inserter';
-import { AutoUpdateCommand } from './auto-update-command';
-import { MetadataPropertiesSorterSettingTab } from './settings-tab';
+import {Plugin, Editor, MarkdownView, TFolder, Notice} from 'obsidian';
+import {MetaFlowSettings} from './settings/types';
+import {DEFAULT_SETTINGS} from './settings/defaultSettings';
+import {MetaFlowSettingTab} from './settings/MetaFlowSettingTab';
+import {MetaFlowService} from './services/MetaFlowService';
+import {MetaFlowException} from './MetaFlowException';
 
-interface MetadataPropertiesSorterPluginSettings extends MetadataSettings {}
+/**
+ * MetaFlow Plugin - Automated metadata workflow management for Obsidian
+ *
+ * Provides intelligent frontmatter management through:
+ * - Automatic field insertion from MetadataMenu definitions
+ * - Custom JavaScript scripts for default value generation
+ * - Smart property sorting and organization
+ * - Seamless Templater integration
+ */
+export default class MetaFlowPlugin extends Plugin {
+  settings: MetaFlowSettings;
+  metaFlowService: MetaFlowService;
 
-export default class MetadataPropertiesSorterPlugin extends Plugin {
-	settings: MetadataPropertiesSorterPluginSettings;
-	autoInserter: MetadataAutoInserter;
-	autoUpdateCommand: AutoUpdateCommand;
+  async onload() {
+    this.settings = await this.loadSettings();
+    this.metaFlowService = new MetaFlowService(this.app, this.settings);
 
-	async onload() {
-		await this.loadSettings();
-		
-		// Initialize the auto-inserter
-		this.autoInserter = new MetadataAutoInserter(this.app);
-		
-		// Initialize the auto-update command
-		this.autoUpdateCommand = new AutoUpdateCommand(this.app, this.settings, this.autoInserter);
-		
-		// Try to initialize MetadataMenu integration
-		await this.autoInserter.initializeMetadataMenuIntegration();
+    // Register the main command for single file processing
+    this.addCommand({
+      id: 'metaflow-update-metadata',
+      name: 'Update metadata properties',
+      editorCallback: (editor: Editor, view: MarkdownView) => {
+        this.updateMetadataPropertiesInEditor(editor, view);
+      }
+    });
 
-		// Add command to update metadata properties of current note
-		this.addCommand({
-			id: 'update-metadata-properties',
-			name: 'Update metadata properties',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				this.updateMetadataPropertiesInEditor(editor, view);
-			}
-		});
+    // Register the mass update command for vault-wide processing
+    this.addCommand({
+      id: 'metaflow-mass-update-metadata',
+      name: 'Mass-update metadata properties',
+      callback: () => {
+        this.massUpdateMetadataProperties();
+      }
+    });
 
-		// Add command to mass-update metadata properties in all notes or folder
-		this.addCommand({
-			id: 'mass-update-metadata-properties',
-			name: 'Mass-update metadata properties',
-			callback: () => {
-				this.massUpdateMetadataProperties();
-			}
-		});
+    // Add context menu for folder-based mass updates
+    this.registerEvent(
+      this.app.workspace.on('file-menu', (menu, file) => {
+        if (file instanceof TFolder) {
+          menu.addItem((item) => {
+            item
+              .setTitle('Metaflow - Update metadata in folder')
+              .setIcon('folder-edit')
+              .onClick(async () => {
+                await this.massUpdateMetadataProperties();
+              });
+          });
+        }
+      })
+    );
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new MetadataPropertiesSorterSettingTab(this.app, this));
-	}
+    // Add settings tab
+    this.addSettingTab(new MetaFlowSettingTab(this.app, this));
+  }
 
-	async updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
-		const content = editor.getValue();
-		const file = view.file;
-		
-		if (!file) {
-			new Notice('No active file');
-			return;
-		}
+  async updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
+    const content = editor.getValue();
+    const file = view.file;
 
-		try {
-			const processedContent = await this.autoInserter.processContent(content, file, this.settings as AutoMetadataSettings);
-			
-			if (processedContent !== content) {
-				editor.setValue(processedContent);
-				new Notice('Metadata properties updated');
-			} else {
-				new Notice('No changes needed');
-			}
-		} catch (error) {
-			console.error('Error updating metadata properties:', error);
-			new Notice('Error updating metadata properties');
-		}
-	}
+    if (!file) {
+      new Notice('No active file');
+      return;
+    }
 
-	async massUpdateMetadataProperties() {
-		const files = this.app.vault.getMarkdownFiles();
-		let updatedCount = 0;
-		let totalFiles = files.length;
+    try {
+      const processedContent = await this.metaFlowService.processContent(content, file);
 
-		new Notice(`Starting mass update of ${totalFiles} files...`);
+      if (processedContent !== content) {
+        editor.setValue(processedContent);
+        new Notice(`Successfully updated metadata fields for "${file.name}"`);
+      } else {
+        new Notice('No changes needed');
+      }
+    } catch (error) {
+      console.error('Error updating metadata properties:', error);
+      if (error instanceof MetaFlowException) {
+        new Notice(`Error: ${error.message}`);
+      } else {
+        new Notice('Error updating metadata properties');
+      }
+    }
+  }
 
-		for (const file of files) {
-			try {
-				const content = await this.app.vault.read(file);
-				const processedContent = await this.autoInserter.processContent(content, file, this.settings as AutoMetadataSettings);
-				
-				if (processedContent !== content) {
-					await this.app.vault.modify(file, processedContent);
-					updatedCount++;
-				}
-			} catch (error) {
-				console.error(`Error updating metadata in file ${file.path}:`, error);
-			}
-		}
+  async massUpdateMetadataProperties() {
+    const files = this.app.vault.getMarkdownFiles();
+    let updatedCount = 0;
+    let totalFiles = files.length;
 
-		new Notice(`Mass update completed: ${updatedCount} files updated out of ${totalFiles} total files`);
-	}
+    new Notice(`Starting mass update of ${totalFiles} files...`);
 
-	onunload() {
+    for (const file of files) {
+      try {
+        const content = await this.app.vault.read(file);
+        const processedContent = await this.metaFlowService.processContent(content, file);
 
-	}
+        if (processedContent !== content) {
+          await this.app.vault.modify(file, processedContent);
+          updatedCount++;
+        }
+      } catch (error) {
+        console.error(`Error updating metadata in file ${file.path}:`, error);
+      }
+    }
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		
-		// Ensure property scripts have order values for backwards compatibility
-		this.settings.propertyDefaultValueScripts.forEach((script, index) => {
-			if (script.order === undefined) {
-				script.order = index;
-			}
-		});
-	}
+    new Notice(`Mass update completed: ${updatedCount} files updated out of ${totalFiles} total files`);
+  }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+  onunload() {
+    // Cleanup when plugin is disabled
+  }
+
+  async loadSettings(): Promise<MetaFlowSettings> {
+    const settings: MetaFlowSettings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+    // Ensure order property exists for existing scripts
+    if (settings.propertyDefaultValueScripts) {
+      settings.propertyDefaultValueScripts.forEach((script, index) => {
+        if (script.order === undefined) {
+          script.order = index;
+        }
+      });
+    }
+    return settings
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
 }
