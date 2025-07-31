@@ -303,6 +303,50 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     this.plugin.settings.folderFileClassMappings.forEach((mapping, index) => {
       const mappingDiv = container.createEl('div', {cls: 'setting-item'});
 
+      // Add drag and drop functionality
+      mappingDiv.draggable = true;
+      mappingDiv.style.cursor = 'grab';
+      mappingDiv.setAttribute('data-index', index.toString());
+
+      // Add visual feedback for drag operations
+      mappingDiv.addEventListener('dragstart', (e) => {
+        mappingDiv.style.opacity = '0.5';
+        mappingDiv.style.cursor = 'grabbing';
+        e.dataTransfer?.setData('text/plain', index.toString());
+      });
+
+      mappingDiv.addEventListener('dragend', () => {
+        mappingDiv.style.opacity = '1';
+        mappingDiv.style.cursor = 'grab';
+      });
+
+      mappingDiv.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        mappingDiv.style.borderTop = '2px solid var(--interactive-accent)';
+      });
+
+      mappingDiv.addEventListener('dragleave', () => {
+        mappingDiv.style.borderTop = '';
+      });
+
+      mappingDiv.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        mappingDiv.style.borderTop = '';
+
+        const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
+        const targetIndex = index;
+
+        if (draggedIndex !== targetIndex && !isNaN(draggedIndex)) {
+          // Reorder the array
+          const draggedItem = this.plugin.settings.folderFileClassMappings[draggedIndex];
+          this.plugin.settings.folderFileClassMappings.splice(draggedIndex, 1);
+          this.plugin.settings.folderFileClassMappings.splice(targetIndex, 0, draggedItem);
+
+          await this.plugin.saveSettings();
+          this.displayFolderMappings(container);
+        }
+      });
+
       const mappingControl = mappingDiv.createEl('div', {cls: 'setting-item-control'});
       mappingControl.style.justifyContent = 'space-between';
 
@@ -413,6 +457,50 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       scriptDiv.style.border = '1px solid #ccc';
       scriptDiv.style.padding = '10px';
       scriptDiv.style.marginBottom = '10px';
+
+      // Add drag and drop functionality
+      scriptDiv.draggable = true;
+      scriptDiv.style.cursor = 'grab';
+      scriptDiv.setAttribute('data-index', index.toString());
+
+      // Add visual feedback for drag operations
+      scriptDiv.addEventListener('dragstart', (e) => {
+        scriptDiv.style.opacity = '0.5';
+        scriptDiv.style.cursor = 'grabbing';
+        e.dataTransfer?.setData('text/plain', index.toString());
+      });
+
+      scriptDiv.addEventListener('dragend', () => {
+        scriptDiv.style.opacity = '1';
+        scriptDiv.style.cursor = 'grab';
+      });
+
+      scriptDiv.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        scriptDiv.style.borderTop = '3px solid var(--interactive-accent)';
+      });
+
+      scriptDiv.addEventListener('dragleave', () => {
+        scriptDiv.style.borderTop = '1px solid #ccc';
+      });
+
+      scriptDiv.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        scriptDiv.style.borderTop = '1px solid #ccc';
+
+        const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
+        const targetIndex = index;
+
+        if (draggedIndex !== targetIndex && !isNaN(draggedIndex)) {
+          // Reorder the array
+          const draggedItem = this.plugin.settings.propertyDefaultValueScripts[draggedIndex];
+          this.plugin.settings.propertyDefaultValueScripts.splice(draggedIndex, 1);
+          this.plugin.settings.propertyDefaultValueScripts.splice(targetIndex, 0, draggedItem);
+
+          await this.plugin.saveSettings();
+          this.displayPropertyScripts(container);
+        }
+      });
 
       const controlDiv = scriptDiv.createEl('div', {cls: 'setting-item-control'});
       controlDiv.style.display = 'flex';
