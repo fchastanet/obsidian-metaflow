@@ -348,4 +348,219 @@ Content here`;
       expect(executionOrder).toEqual(['title', 'date', 'author']);
     });
   });
+
+  describe('sortProperties', () => {
+    test('should sort properties based on propertyDefaultValueScripts order', () => {
+      const settingsWithOrder: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        propertyDefaultValueScripts: [
+          {propertyName: 'title', script: '', enabled: true, order: 1},
+          {propertyName: 'author', script: '', enabled: true, order: 2},
+          {propertyName: 'date', script: '', enabled: true, order: 3},
+          {propertyName: 'tags', script: '', enabled: true, order: 4}
+        ]
+      };
+
+      const serviceWithOrder = new MetaFlowService(mockApp, settingsWithOrder);
+      const sortProperties = (serviceWithOrder as any).sortProperties.bind(serviceWithOrder);
+
+      const frontmatter = {
+        tags: ['tag1'],
+        author: 'John Doe',
+        title: 'Test Title',
+        date: '2023-01-01',
+        unknown: 'value'
+      };
+
+      const result = sortProperties(frontmatter, false);
+      const keys = Object.keys(result);
+
+      expect(keys).toEqual(['unknown', 'title', 'author', 'date', 'tags']);
+      expect(result.title).toBe('Test Title');
+      expect(result.author).toBe('John Doe');
+      expect(result.date).toBe('2023-01-01');
+      expect(result.tags).toEqual(['tag1']);
+      expect(result.unknown).toBe('value');
+    });
+
+    test('should handle scripts without order', () => {
+      const settings: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        propertyDefaultValueScripts: [
+          {propertyName: 'title', script: '', enabled: true, order: 1},
+          {propertyName: 'author', script: '', enabled: true, order: 2}
+        ]
+      };
+
+      const service = new MetaFlowService(mockApp, settings);
+      const sortProperties = (service as any).sortProperties.bind(service);
+
+      const frontmatter = {
+        category: 'work',
+        author: 'John Doe',
+        title: 'Test Title',
+        status: 'active',
+        priority: 'high'
+      };
+
+      const result = sortProperties(frontmatter, false);
+      const keys = Object.keys(result);
+
+      // With sortUnknownPropertiesLast=false, unknown properties come first (alphabetically), then ordered properties
+      expect(keys).toEqual(['category', 'priority', 'status', 'title', 'author']);
+    });
+
+    test('should sort unknown properties last when sortUnknownPropertiesLast is true', () => {
+      const settingsWithOrder: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        propertyDefaultValueScripts: [
+          {propertyName: 'title', script: '', enabled: true, order: 1},
+          {propertyName: 'author', script: '', enabled: true, order: 2}
+        ]
+      };
+
+      const serviceWithOrder = new MetaFlowService(mockApp, settingsWithOrder);
+      const sortProperties = (serviceWithOrder as any).sortProperties.bind(serviceWithOrder);
+
+      const frontmatter = {
+        unknown2: 'value2',
+        author: 'John Doe',
+        title: 'Test Title',
+        unknown1: 'value1'
+      };
+
+      const result = sortProperties(frontmatter, true);
+      const keys = Object.keys(result);
+
+      expect(keys).toEqual(['title', 'author', 'unknown1', 'unknown2']);
+    });
+
+    test('should sort unknown properties first when sortUnknownPropertiesLast is false', () => {
+      const settingsWithOrder: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        propertyDefaultValueScripts: [
+          {propertyName: 'title', script: '', enabled: true, order: 1},
+          {propertyName: 'author', script: '', enabled: true, order: 2}
+        ]
+      };
+
+      const serviceWithOrder = new MetaFlowService(mockApp, settingsWithOrder);
+      const sortProperties = (serviceWithOrder as any).sortProperties.bind(serviceWithOrder);
+
+      const frontmatter = {
+        unknown2: 'value2',
+        author: 'John Doe',
+        title: 'Test Title',
+        unknown1: 'value1'
+      };
+
+      const result = sortProperties(frontmatter, false);
+      const keys = Object.keys(result);
+
+      expect(keys).toEqual(['unknown1', 'unknown2', 'title', 'author']);
+    });
+
+    test('should sort unknown properties alphabetically', () => {
+      const settingsWithOrder: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        propertyDefaultValueScripts: [
+          {propertyName: 'title', script: '', enabled: true, order: 1}
+        ]
+      };
+
+      const serviceWithOrder = new MetaFlowService(mockApp, settingsWithOrder);
+      const sortProperties = (serviceWithOrder as any).sortProperties.bind(serviceWithOrder);
+
+      const frontmatter = {
+        zebra: 'z',
+        apple: 'a',
+        title: 'Test Title',
+        banana: 'b'
+      };
+
+      const result = sortProperties(frontmatter, true);
+      const keys = Object.keys(result);
+
+      expect(keys).toEqual(['title', 'apple', 'banana', 'zebra']);
+    });
+
+    test('should handle scripts with mixed order values', () => {
+      const settingsWithMixedOrder: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        propertyDefaultValueScripts: [
+          {propertyName: 'date', script: '', enabled: true, order: 3},
+          {propertyName: 'title', script: '', enabled: true, order: 1},
+          {propertyName: 'tags', script: '', enabled: true}, // No order
+          {propertyName: 'author', script: '', enabled: true, order: 2}
+        ]
+      };
+
+      const serviceWithMixedOrder = new MetaFlowService(mockApp, settingsWithMixedOrder);
+      const sortProperties = (serviceWithMixedOrder as any).sortProperties.bind(serviceWithMixedOrder);
+
+      const frontmatter = {
+        tags: ['tag1'],
+        author: 'John Doe',
+        title: 'Test Title',
+        date: '2023-01-01'
+      };
+
+      const result = sortProperties(frontmatter, false);
+      const keys = Object.keys(result);
+
+      // Should be: title (1), author (2), date (3), tags (no order - comes after ordered)
+      expect(keys).toEqual(['title', 'author', 'date', 'tags']);
+    });
+
+    test('should handle null or undefined frontmatter', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      const sortProperties = (service as any).sortProperties.bind(service);
+
+      expect(sortProperties(null, false)).toBe(null);
+      expect(sortProperties(undefined, false)).toBe(undefined);
+      expect(sortProperties({}, false)).toEqual({});
+    });
+
+    test('should handle non-object frontmatter', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      const sortProperties = (service as any).sortProperties.bind(service);
+
+      expect(sortProperties('string', false)).toBe('string');
+      expect(sortProperties(123, false)).toBe(123);
+      expect(sortProperties([], false)).toEqual([]);
+    });
+
+    test('should preserve property values during sorting', () => {
+      const settingsWithOrder: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        propertyDefaultValueScripts: [
+          {propertyName: 'title', script: '', enabled: true, order: 1},
+          {propertyName: 'data', script: '', enabled: true, order: 2}
+        ]
+      };
+
+      const serviceWithOrder = new MetaFlowService(mockApp, settingsWithOrder);
+      const sortProperties = (serviceWithOrder as any).sortProperties.bind(serviceWithOrder);
+
+      const complexData = {
+        nested: {key: 'value'},
+        array: [1, 2, 3],
+        boolean: true,
+        number: 42,
+        string: 'test'
+      };
+
+      const frontmatter = {
+        data: complexData,
+        title: 'Test Title'
+      };
+
+      const result = sortProperties(frontmatter, false);
+
+      expect(result.title).toBe('Test Title');
+      expect(result.data).toEqual(complexData);
+      expect(result.data.nested).toEqual({key: 'value'});
+      expect(result.data.array).toEqual([1, 2, 3]);
+    });
+  });
 });

@@ -63,10 +63,10 @@ export class MetaFlowService {
       // Step 5: Validate fileClass exists in MetadataMenu, throw error if not found
       this.metadataMenuAdapter.getFileClassByName(fileClass);
 
-      // Step 7: Insert missing metadata headers using MetadataAutoInserter
+      // Step 6: Insert missing metadata headers using MetadataAutoInserter
       await this.metadataMenuAdapter.insertMissingFields(file, fileClass);
 
-      // Step 8: Re-read the file content after MetadataMenu has inserted fields
+      // Step 7: Re-read the file content after MetadataMenu has inserted fields
       const updatedContent = await this.app.vault.read(file);
       const updatedParseResult = this.frontMatterService.parseFrontmatter(updatedContent);
 
@@ -78,7 +78,11 @@ export class MetaFlowService {
         updatedBodyContent = updatedParseResult.restOfContent;
       }
 
-      /** @todo missing sort */
+      // Step 8: sort properties if autoSortOnView is enabled
+      if (this.metaFlowSettings.autoSortOnView) {
+        updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
+      }
+
 
       // Step 9: Add default values to properties
       const enrichedFrontmatter = await this.addDefaultValuesToProperties(
@@ -189,6 +193,62 @@ export class MetaFlowService {
       const regex = new RegExp(`^${regexPattern}$`);
       return regex.test(filePath);
     }
+  }
+
+  /**
+   * Sort properties based on the order defined in propertyDefaultValueScripts
+   */
+  private sortProperties(frontmatter: {[key: string]: any}, sortUnknownPropertiesLast: boolean): {[key: string]: any} {
+    if (!frontmatter || typeof frontmatter !== 'object' || Array.isArray(frontmatter)) {
+      return frontmatter;
+    }
+
+    // Create a map of property names to their order from propertyDefaultValueScripts
+    const propertyOrderMap = new Map<string, number>();
+
+    // Sort scripts by order (if specified) to get the correct sequence
+    const orderedScripts = [...this.metaFlowSettings.propertyDefaultValueScripts].sort((a, b) => {
+      const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+      return orderA - orderB;
+    });
+
+    // Build the property order map
+    orderedScripts.forEach((script, index) => {
+      propertyOrderMap.set(script.propertyName, script?.order || Number.MAX_SAFE_INTEGER);
+    });
+
+    // Get all property keys and sort them
+    const sortedKeys = Object.keys(frontmatter).sort((a, b) => {
+      const orderA = propertyOrderMap.get(a);
+      const orderB = propertyOrderMap.get(b);
+
+      // Both properties have defined order
+      if (orderA !== undefined && orderB !== undefined) {
+        return orderA - orderB;
+      }
+
+      // Only property A has defined order
+      if (orderA !== undefined && orderB === undefined) {
+        return sortUnknownPropertiesLast ? -1 : 1;
+      }
+
+      // Only property B has defined order
+      if (orderA === undefined && orderB !== undefined) {
+        return sortUnknownPropertiesLast ? 1 : -1;
+      }
+
+      // Neither property has defined order - sort alphabetically
+      return a.localeCompare(b);
+    });
+
+    // Build the sorted frontmatter object
+    const sortedFrontmatter: {[key: string]: any} = {};
+    sortedKeys.forEach(key => {
+      sortedFrontmatter[key] = frontmatter[key];
+    });
+
+    return sortedFrontmatter;
   }
 
   /**
