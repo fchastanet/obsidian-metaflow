@@ -64,25 +64,12 @@ export class MetaFlowService {
       this.metadataMenuAdapter.getFileClassByName(fileClass);
 
       // Step 6: Insert missing metadata headers using MetadataAutoInserter
-      await this.metadataMenuAdapter.insertMissingFields(file, fileClass);
-
-      // Step 7: Re-read the file content after MetadataMenu has inserted fields
-      const updatedContent = await this.app.vault.read(file);
-      const updatedParseResult = this.frontMatterService.parseFrontmatter(updatedContent);
-
-      let updatedFrontmatter: any = {};
-      let updatedBodyContent = updatedContent;
-
-      if (updatedParseResult) {
-        updatedFrontmatter = updatedParseResult.metadata || {};
-        updatedBodyContent = updatedParseResult.restOfContent;
-      }
+      let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass);
 
       // Step 8: sort properties if autoSortOnView is enabled
       if (this.metaFlowSettings.autoSortOnView) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
       }
-
 
       // Step 9: Add default values to properties
       const enrichedFrontmatter = await this.addDefaultValuesToProperties(
@@ -92,8 +79,7 @@ export class MetaFlowService {
       );
 
       // Step 10: Write the updated content back to the file
-      return this.frontMatterService.serializeFrontmatter(enrichedFrontmatter, updatedBodyContent);
-
+      return this.frontMatterService.serializeFrontmatter(enrichedFrontmatter, bodyContent);
     } catch (error) {
       console.error('Error in auto update metadata fields:', error);
       throw new MetaFlowException(`Error updating metadata fields: ${error.message}`);
@@ -123,12 +109,12 @@ export class MetaFlowService {
 
     // Process each property default value script in order
     for (const script of orderedScripts) {
-      // Skip if property already has a value
-      if (enrichedFrontmatter[script.propertyName] !== undefined) {
+      // Skip if property not defined or has already has a value
+      if (
+        typeof enrichedFrontmatter[script.propertyName] === 'undefined' ||
+        enrichedFrontmatter[script.propertyName] !== null
+      ) {
         continue;
-      } else {
-        // Ensure the property exists in frontmatter
-        enrichedFrontmatter[script.propertyName] = null;
       }
       if (!script.enabled) continue;
 
@@ -271,10 +257,10 @@ export class MetaFlowService {
     const executeScript = new Function(
       'context',
       `
-			const { fileClass, file, metadata, prompt, date, generateMarkdownLink, detectLanguage } = context;
-			return (async () => {
+			return (async (context) => {
+				const { ${Object.keys(context).join(', ')} } = context;
 				${script.script}
-			})();
+			})(context);
 			`
     );
 

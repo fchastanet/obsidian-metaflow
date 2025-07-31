@@ -2,6 +2,8 @@ import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import MetaFlowPlugin from "..";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter, TemplaterSettingsInterface} from "../externalApi/TemplaterAdapter";
+import {MetaFlowService} from "src/services/MetaFlowService";
+import {FrontmatterParseResult, FrontMatterService} from "src/services/FrontMatterService";
 
 /**
  * Settings tab for MetaFlow plugin
@@ -11,6 +13,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   plugin: MetaFlowPlugin;
   metadataMenuAdapter: MetadataMenuAdapter;
   templaterAdapter: TemplaterAdapter;
+  simulationDetails: HTMLDetailsElement;
+  simulationContainer: HTMLElement;
+  metadataMenuImportButton: HTMLButtonElement;
+  templaterImportButton: HTMLButtonElement;
   EXPAND_BUTTON: string = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-chevrons-up-down"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>';
 
   constructor(app: App, plugin: MetaFlowPlugin) {
@@ -95,6 +101,9 @@ export class MetaFlowSettingTab extends PluginSettingTab {
             }
           }
           await this.plugin.saveSettings();
+          this.displaySimulationSection();
+          // Update button states when integration setting changes
+          this.updateMetadataMenuButtonState();
         }));
 
     // Auto metadata insertion setting
@@ -126,6 +135,9 @@ export class MetaFlowSettingTab extends PluginSettingTab {
               new Notice(`Templater consistency warnings: ${consistency.warnings.join(', ')}`);
             }
           }
+          this.displaySimulationSection();
+          // Update button states when integration setting changes
+          this.updateTemplaterButtonState();
         }));
 
     // Folder/FileClass Mappings - Collapsible
@@ -154,15 +166,21 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     mappingsDesc.innerHTML = 'Map folder patterns to MetadataMenu fileClasses. Uses the same pattern matching as Templater plugin. Patterns are evaluated in order, with the first match being used.';
 
     // Auto-populate from Templater button
-    new Setting(mappingsDetails)
+    const templaterImportSetting = new Setting(mappingsDetails)
       .setName('Auto-populate from Templater')
-      .setDesc('Automatically populate folder mappings from Templater plugin configuration')
-      .addButton(button => button
+      .setDesc('Automatically populate folder mappings from Templater plugin configuration');
+
+    templaterImportSetting.addButton(button => {
+      this.templaterImportButton = button.buttonEl;
+      button
         .setButtonText('🔃 Sync with Templater')
         .onClick(async () => {
           await this.syncFolderMappingsWithTemplater();
           this.displayFolderMappings(mappingsContainer);
-        }));
+        });
+    });
+
+    this.updateTemplaterButtonState();
 
     // Create container for mappings
     const mappingsContainer = mappingsDetails.createEl('div');
@@ -210,15 +228,21 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     scriptsDesc.innerHTML = 'Define JavaScript scripts to generate default values for properties. Scripts have access to: <code>fileClass</code>, <code>file</code>, <code>metadata</code>, <code>prompt</code>, <code>date</code>, <code>generateMarkdownLink</code>, <code>detectLanguage</code>.';
 
     // Auto-populate from MetadataMenu button
-    new Setting(scriptsDetails)
+    const metadataMenuImportSetting = new Setting(scriptsDetails)
       .setName('Auto-populate from MetadataMenu')
-      .setDesc('Automatically populate property scripts from MetadataMenu plugin fileClass definitions')
-      .addButton(button => button
+      .setDesc('Automatically populate property scripts from MetadataMenu plugin fileClass definitions');
+
+    metadataMenuImportSetting.addButton(button => {
+      this.metadataMenuImportButton = button.buttonEl;
+      button
         .setButtonText('📥 Import from MetadataMenu')
         .onClick(async () => {
           await this.autoPopulatePropertyScriptsFromMetadataMenu();
           this.displayPropertyScripts(scriptsContainer);
-        }));
+        });
+    });
+
+    this.updateMetadataMenuButtonState();
 
     // Create container for scripts
     const scriptsContainer = scriptsDetails.createEl('div');
@@ -240,6 +264,35 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.saveSettings();
           this.displayPropertyScripts(scriptsContainer);
         }));
+
+    // Simulation Testing Section - Collapsible
+    this.simulationDetails = containerEl.createEl('details', {cls: 'setting-details'});
+    this.simulationDetails.open = false; // Collapsed by default
+    const simulationSummary = this.simulationDetails.createEl('summary', {cls: 'setting-summary'});
+    simulationSummary.style.display = 'flex';
+    simulationSummary.style.alignItems = 'center';
+    simulationSummary.style.justifyContent = 'space-between';
+    simulationSummary.style.cursor = 'pointer';
+
+    simulationSummary.createEl('h3', {text: '🧪 Simulation & Testing'});
+
+    const simulationToggleDiv = simulationSummary.createEl('div', {cls: 'setting-item-control'});
+    const simulationToggleButton = simulationToggleDiv.createEl('button', {cls: 'mod-cta'});
+    simulationToggleButton.innerHTML = this.EXPAND_BUTTON;
+
+    // Prevent button click from triggering summary toggle
+    simulationToggleButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.simulationDetails.open = !this.simulationDetails.open;
+    });
+
+    const simulationDesc = this.simulationDetails.createEl('p');
+    simulationDesc.innerHTML = 'Test your MetaFlow configuration by simulating the <code>processContent</code> method with sample frontmatter and different fileClasses.';
+
+    // Create container for simulation
+    this.simulationContainer = this.simulationDetails.createEl('div');
+    this.displaySimulationSection();
 
     // Add some help text
     containerEl.createEl('h3', {text: 'Usage'});
@@ -332,33 +385,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         return;
       }
 
-      const metadataMenuPlugin = (this.app as any).plugins?.plugins?.['metadata-menu'];
-      if (!metadataMenuPlugin?.fieldIndex?.fileClassesAncestors) {
-        new Notice('No fileClass definitions found in MetadataMenu');
-        return;
-      }
-
-      //const fileClassesAncestors = metadataMenuPlugin.fieldIndex.fileClassesAncestors;
-      const fileClassesFields = metadataMenuPlugin.fieldIndex.fileClassesFields;
-      const allFields: {
-        [fieldName: string]: {
-          fileClasses: string[],
-        }
-      } = {};
-
-      // Collect all properties and which fileClasses use them
-      fileClassesFields.forEach(
-        (fields: {name: string}[], fileClass: string) => {
-          fields.forEach((field) => {
-            if (!allFields[field.name]) {
-              allFields[field.name] = {
-                fileClasses: [],
-              };
-            }
-            allFields[field.name].fileClasses.push(fileClass);
-          });
-        }
-      );
+      const allFields = this.metadataMenuAdapter.getAllFieldsFileClassesAssociation();
 
       let importedCount = 0;
       for (const [propertyName, fieldData] of Object.entries(allFields)) {
@@ -830,6 +857,249 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       if (styleEl) {
         styleEl.remove();
       }
+    }
+  }
+
+  private displaySimulationSection(): void {
+    if (!this.metadataMenuAdapter.isMetadataMenuAvailable() || !this.templaterAdapter.isTemplaterAvailable()) {
+      this.simulationDetails.style.display = 'none';
+      return;
+    }
+    this.simulationDetails.style.display = 'block';
+    this.simulationContainer.empty();
+
+    // FileClass selection
+    const fileClassSetting = new Setting(this.simulationContainer)
+      .setName('FileClass for simulation')
+      .setDesc('Select the fileClass to use for testing');
+
+    let fileClassSelect: HTMLSelectElement;
+    fileClassSetting.addDropdown(dropdown => {
+      fileClassSelect = dropdown.selectEl;
+      dropdown.addOption('', 'Select a fileClass...');
+
+      // Get available fileClasses from MetadataMenu
+      if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
+        try {
+          const metadataMenuPlugin = (this.app as any).plugins?.plugins?.['metadata-menu'];
+          if (metadataMenuPlugin?.fieldIndex?.fileClassesFields) {
+            const fileClasses = Array.from(metadataMenuPlugin.fieldIndex.fileClassesFields.keys());
+            fileClasses.forEach(fileClass => {
+              const fileClassName = String(fileClass);
+              dropdown.addOption(fileClassName, fileClassName);
+            });
+          }
+        } catch (error) {
+          console.error('Error getting fileClasses:', error);
+        }
+      }
+
+      // Also add fileClasses from folder mappings
+      this.plugin.settings.folderFileClassMappings.forEach(mapping => {
+        if (mapping.fileClass && !dropdown.selectEl.querySelector(`option[value="${mapping.fileClass}"]`)) {
+          dropdown.addOption(mapping.fileClass, mapping.fileClass);
+        }
+      });
+    });
+
+    // Input frontmatter
+    const inputContainer = this.simulationContainer.createEl('div', {cls: 'setting-item'});
+    inputContainer.createEl('h4', {text: 'Input Frontmatter'});
+    inputContainer.createEl('p', {text: 'Enter sample frontmatter content to test with your configuration:'});
+
+    const inputTextarea = inputContainer.createEl('textarea', {
+      placeholder: `---
+title: Sample Title
+author:
+date:
+tags: []
+---
+
+This is sample content for testing.`
+    });
+    inputTextarea.style.width = '100%';
+    inputTextarea.style.height = '150px';
+    inputTextarea.style.fontFamily = 'monospace';
+    inputTextarea.style.fontSize = '12px';
+
+    // Run simulation button
+    const simulationButtonContainer = this.simulationContainer.createEl('div', {cls: 'setting-item'});
+    const simulateButton = simulationButtonContainer.createEl('button', {text: '🚀 Run Simulation'});
+    simulateButton.style.backgroundColor = 'var(--interactive-accent)';
+    simulateButton.style.color = 'white';
+    simulateButton.style.border = 'none';
+    simulateButton.style.padding = '10px 20px';
+    simulateButton.style.cursor = 'pointer';
+    simulateButton.style.borderRadius = '5px';
+    simulateButton.style.marginTop = '10px';
+    simulateButton.style.marginBottom = '10px';
+
+    // Status message
+    const statusDiv = simulationButtonContainer.createEl('div');
+    statusDiv.style.marginTop = '10px';
+    statusDiv.style.padding = '10px';
+    statusDiv.style.borderRadius = '5px';
+    statusDiv.style.flexGrow = '1';
+    statusDiv.style.display = 'none';
+
+    // Output container
+    const outputContainer = this.simulationContainer.createEl('div', {cls: 'setting-item'});
+    outputContainer.createEl('h4', {text: 'Simulation Output'});
+
+    const outputTextarea = outputContainer.createEl('textarea', {
+      placeholder: 'Simulation results will appear here...'
+    });
+    outputTextarea.style.width = '100%';
+    outputTextarea.style.height = '200px';
+    outputTextarea.style.fontFamily = 'monospace';
+    outputTextarea.style.fontSize = '12px';
+    outputTextarea.style.backgroundColor = 'var(--background-secondary)';
+    outputTextarea.readOnly = true;
+
+    // Event listener for simulation
+    simulateButton.addEventListener('click', async () => {
+      const selectedFileClass = fileClassSelect.value;
+      let inputContent = inputTextarea.value.trim();
+
+      // Validation
+      if (!selectedFileClass) {
+        this.showStatus(statusDiv, 'Please select a fileClass for simulation.', 'error');
+        return;
+      }
+
+      if (!inputContent) {
+        this.showStatus(statusDiv, 'Please enter some input frontmatter content.', 'error');
+        return;
+      }
+
+      // inject fileClass inside inputContent metadata
+      const frontMatterService = new FrontMatterService();
+      const fileClassAlias = this.metadataMenuAdapter.getFileClassAlias();
+      const parseResult: FrontmatterParseResult | null = frontMatterService.parseFrontmatter(inputContent);
+      if (parseResult === null) {
+        this.showStatus(statusDiv, `❌ Invalid input sample`, 'error');
+        return;
+      }
+      parseResult.metadata[fileClassAlias] = selectedFileClass;
+      inputContent = frontMatterService.serializeFrontmatter(parseResult.metadata, parseResult.restOfContent);
+
+      const originalGetFileClassFromMetadata = this.metadataMenuAdapter.getFileClassFromMetadata;
+      try {
+        simulateButton.disabled = true;
+        simulateButton.textContent = '⏳ Running...';
+        this.showStatus(statusDiv, 'Running simulation...', 'info');
+
+        // Create a mock file object for simulation
+        const mockFile = {
+          name: 'simulation-test.md',
+          path: 'simulation-test.md',
+          extension: 'md'
+        } as any;
+
+        // Create a MetaFlowService instance with current settings
+        const metaFlowService = new MetaFlowService(this.app, this.plugin.settings);
+
+        // Override the fileClass detection to use the selected one
+        this.metadataMenuAdapter.getFileClassFromMetadata = () => selectedFileClass;
+
+        // Run the simulation
+        const result = await metaFlowService.processContent(inputContent, mockFile);
+
+        // Display results
+        outputTextarea.value = result;
+        this.showStatus(statusDiv, `✅ Simulation completed successfully with fileClass: ${selectedFileClass}`, 'success');
+
+      } catch (error) {
+        console.error('Simulation error:', error);
+        outputTextarea.value = `Error during simulation:\n${error.message}\n\nStack trace:\n${error.stack}`;
+        this.showStatus(statusDiv, `❌ Simulation failed: ${error.message}`, 'error');
+      } finally {
+        // Restore original method
+        this.metadataMenuAdapter.getFileClassFromMetadata = originalGetFileClassFromMetadata;
+
+        simulateButton.disabled = false;
+        simulateButton.textContent = '🚀 Run Simulation';
+      }
+    });
+
+    // Pre-fill with example content
+    inputTextarea.value = `---
+title:
+author:
+date:
+tags: []
+status:
+---
+
+This is sample content for testing MetaFlow configuration.
+
+The simulation will:
+1. Parse this frontmatter
+2. Apply the selected fileClass
+3. Insert missing fields from MetadataMenu
+4. Execute property default value scripts
+5. Sort properties according to your settings`;
+  }
+
+  private showStatus(statusDiv: HTMLElement, message: string, type: 'success' | 'error' | 'info'): void {
+    statusDiv.style.display = 'block';
+    statusDiv.textContent = message;
+
+    // Reset classes
+    statusDiv.className = '';
+
+    switch (type) {
+      case 'success':
+        statusDiv.style.backgroundColor = '#d4edda';
+        statusDiv.style.color = '#155724';
+        statusDiv.style.border = '1px solid #c3e6cb';
+        break;
+      case 'error':
+        statusDiv.style.backgroundColor = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.style.border = '1px solid #f5c6cb';
+        break;
+      case 'info':
+        statusDiv.style.backgroundColor = '#d1ecf1';
+        statusDiv.style.color = '#0c5460';
+        statusDiv.style.border = '1px solid #bee5eb';
+        break;
+    }
+  }
+
+  private updateMetadataMenuButtonState(): void {
+    if (!this.metadataMenuImportButton) return;
+
+    const isMetadataMenuAvailable = this.metadataMenuAdapter.isMetadataMenuAvailable();
+    const isMetadataMenuEnabled = this.plugin.settings.metadataMenuIntegration;
+    const shouldEnable = isMetadataMenuAvailable && isMetadataMenuEnabled;
+
+    this.metadataMenuImportButton.disabled = !shouldEnable;
+
+    if (!isMetadataMenuAvailable) {
+      this.metadataMenuImportButton.title = 'MetadataMenu plugin is not available or not enabled';
+    } else if (!isMetadataMenuEnabled) {
+      this.metadataMenuImportButton.title = 'Enable MetadataMenu integration first';
+    } else {
+      this.metadataMenuImportButton.title = 'Import property scripts from MetadataMenu plugin';
+    }
+  }
+
+  private updateTemplaterButtonState(): void {
+    if (!this.templaterImportButton) return;
+
+    const isTemplaterAvailable = this.templaterAdapter.isTemplaterAvailable();
+    const isTemplaterEnabled = this.plugin.settings.enableTemplaterIntegration;
+    const shouldEnable = isTemplaterAvailable && isTemplaterEnabled;
+
+    this.templaterImportButton.disabled = !shouldEnable;
+
+    if (!isTemplaterAvailable) {
+      this.templaterImportButton.title = 'Templater plugin is not available or not enabled';
+    } else if (!isTemplaterEnabled) {
+      this.templaterImportButton.title = 'Enable Templater integration first';
+    } else {
+      this.templaterImportButton.title = 'Import folder mappings from Templater plugin';
     }
   }
 }
