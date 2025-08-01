@@ -312,6 +312,12 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     } else {
       containerEl.createEl('p', {text: '❌ MetadataMenu plugin not found. Install and enable it to use fileClass-based field insertion.'});
     }
+    // Templater status
+    if (this.templaterAdapter.isTemplaterAvailable()) {
+      containerEl.createEl('p', {text: '✅ Templater plugin is available and ready for integration.'});
+    } else {
+      containerEl.createEl('p', {text: '❌ Templater plugin not found. Install and enable it to use advanced scripting features.'});
+    }
   }
 
   private async syncFolderMappingsWithTemplater(): Promise<void> {
@@ -639,13 +645,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       orderSpan.style.fontSize = '12px';
       orderSpan.style.minWidth = '30px';
 
-      // Status indicator with tooltip
-      const statusSpan = readOnlyDiv.createEl('span');
-      statusSpan.textContent = script.enabled ? '✅' : '❌';
-      statusSpan.style.fontSize = '14px';
-      statusSpan.style.cursor = 'help';
-      statusSpan.title = script.enabled ? 'Enabled' : 'Disabled';
-
       // Property name
       const propertySpan = readOnlyDiv.createEl('span');
       propertySpan.textContent = script.propertyName || 'Unnamed Property';
@@ -661,18 +660,13 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       scriptPreview.style.fontSize = '12px';
       scriptPreview.style.flexGrow = '1';
 
-      // Enable/Disable button
-      const toggleButton = readOnlyDiv.createEl('button', {
-        text: script.enabled ? '⏸️ Disable' : '▶️ Enable'
-      });
-      toggleButton.style.backgroundColor = script.enabled ? '#f39c12' : '#27ae60';
-      toggleButton.style.color = 'white';
-      toggleButton.style.border = 'none';
-      toggleButton.style.padding = '3px 8px';
-      toggleButton.style.cursor = 'pointer';
-      toggleButton.style.borderRadius = '3px';
-      toggleButton.style.fontSize = '11px';
-      toggleButton.style.marginRight = '5px';
+      // Enabled toggle
+      const enabledLabelPreview = readOnlyDiv.createEl('label');
+      enabledLabelPreview.style.minWidth = '77px';
+      const enabledTogglePreview = enabledLabelPreview.createEl('input', {type: 'checkbox'});
+      enabledTogglePreview.checked = script.enabled;
+      enabledTogglePreview.style.marginRight = '5px';
+      enabledLabelPreview.appendChild(document.createTextNode('Enabled'));
 
       // Edit button (aligned to right)
       const editButton = readOnlyDiv.createEl('button', {text: '✏️ Edit'});
@@ -795,7 +789,8 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       };
 
       // Event listeners
-      toggleButton.addEventListener('click', async () => {
+      enabledLabelPreview.addEventListener('click', async (event) => {
+        event.preventDefault();
         script.enabled = !script.enabled;
         await this.plugin.saveSettings();
         this.displayPropertyScripts(container);
