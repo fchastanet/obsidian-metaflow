@@ -52,7 +52,7 @@ export class TemplaterAdapter {
   /**
    * Check Templater configuration consistency
    */
-  async checkTemplaterConsistency(): Promise<{isConsistent: boolean; warnings: string[]}> {
+  checkTemplaterConsistency(): {isConsistent: boolean; warnings: string[]} {
     const warnings: string[] = [];
     let isConsistent = true;
 

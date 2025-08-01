@@ -1,9 +1,10 @@
-import {Plugin, Editor, MarkdownView, TFolder, Notice} from 'obsidian';
+import {Plugin, Editor, MarkdownView, TFolder, Notice, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal} from 'obsidian';
 import {MetaFlowSettings} from './settings/types';
 import {DEFAULT_SETTINGS} from './settings/defaultSettings';
 import {MetaFlowSettingTab} from './settings/MetaFlowSettingTab';
 import {MetaFlowService} from './services/MetaFlowService';
 import {MetaFlowException} from './MetaFlowException';
+import {ProgressModal} from './ui/ProgressModal';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -48,7 +49,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-mass-update-metadata',
       name: 'Mass-update metadata properties',
       callback: () => {
-        this.massUpdateMetadataProperties();
+        const files = this.app.vault.getMarkdownFiles();
+        this.massUpdateMetadataProperties(files);
       }
     });
 
@@ -69,8 +71,15 @@ export default class MetaFlowPlugin extends Plugin {
             item
               .setTitle('Metaflow - Update metadata in folder')
               .setIcon('folder-edit')
-              .onClick(async () => {
-                await this.massUpdateMetadataProperties();
+              .onClick(() => {
+                const files: TFile[] = [];
+                Vault.recurseChildren(file, (f: TAbstractFile) => {
+                  if (f instanceof TFile) {
+                    files.push(f);
+                  }
+                });
+
+                this.massUpdateMetadataProperties(files);
               });
           });
         }
@@ -81,7 +90,7 @@ export default class MetaFlowPlugin extends Plugin {
     this.addSettingTab(new MetaFlowSettingTab(this.app, this));
   }
 
-  async updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
+  updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
     const content = editor.getValue();
     const file = view.file;
 
@@ -91,7 +100,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
 
     try {
-      const processedContent = await this.metaFlowService.processContent(content, file);
+      const processedContent = this.metaFlowService.processContent(content, file);
 
       if (processedContent !== content) {
         editor.setValue(processedContent);
@@ -109,7 +118,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  async sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
+  sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
     const content = editor.getValue();
     const file = view.file;
 
@@ -119,7 +128,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
 
     try {
-      const processedContent = await this.metaFlowService.processSortContent(content, file);
+      const processedContent = this.metaFlowService.processSortContent(content, file);
 
       if (processedContent !== content) {
         editor.setValue(processedContent);
@@ -137,28 +146,63 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  async massUpdateMetadataProperties() {
-    const files = this.app.vault.getMarkdownFiles();
+  massUpdateMetadataProperties(files: TFile[]) {
     let updatedCount = 0;
+    let processedCount = 0;
     let totalFiles = files.length;
-
+    if (totalFiles === 0) {
+      new Notice('No files to update');
+      return;
+    }
+    let abort = false;
+    const modal = new ProgressModal(
+      this.app,
+      totalFiles,
+      `Mass Updating ${totalFiles} files`,
+      () => {
+        abort = true;
+      }
+    );
+    modal.open();
     new Notice(`Starting mass update of ${totalFiles} files...`);
 
-    for (const file of files) {
-      try {
-        const content = await this.app.vault.read(file);
-        const processedContent = await this.metaFlowService.processContent(content, file);
-
-        if (processedContent !== content) {
-          await this.app.vault.modify(file, processedContent);
-          updatedCount++;
+    try {
+      for (const file of files) {
+        try {
+          if (abort) {
+            break;
+          }
+          this.app.vault.process(file, (function (content: string) {
+            try {
+              processedCount++;
+              modal.setCurrentItem(file.path);
+              const processedContent = this.metaFlowService.processContent(content, file);
+              if (processedContent !== content) {
+                updatedCount++;
+              }
+              return processedContent;
+            } catch (error) {
+              modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
+              console.error(`Error processing content for file ${file.path}:`, error);
+              return content;
+            } finally {
+              if (processedCount == totalFiles) {
+                const msg = `Mass update completed: ${updatedCount} files updated out of ${totalFiles} total files`;
+                modal.addInfo(msg);
+                modal.finish();
+                new Notice(msg);
+              }
+            }
+          }).bind(this));
+        } catch (error) {
+          modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
+          console.error(`Error updating metadata in file ${file.path}:`, error);
         }
-      } catch (error) {
-        console.error(`Error updating metadata in file ${file.path}:`, error);
       }
+    } catch (error) {
+      console.error('Error during mass update:', error);
+      new Notice('Error during mass update');
     }
-
-    new Notice(`Mass update completed: ${updatedCount} files updated out of ${totalFiles} total files`);
   }
 
   onunload() {

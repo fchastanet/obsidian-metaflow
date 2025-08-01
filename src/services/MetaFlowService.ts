@@ -23,7 +23,7 @@ export class MetaFlowService {
     this.templaterAdapter = new TemplaterAdapter(app, this.metaFlowSettings);
   }
 
-  async processContent(content: string, file: TFile): Promise<string> {
+  processContent(content: string, file: TFile): string {
     try {
       // Step 1: Check if MetadataMenu plugin is available
       if (!this.metadataMenuAdapter.isMetadataMenuAvailable()) {
@@ -65,14 +65,13 @@ export class MetaFlowService {
 
       // Step 6: Insert missing metadata headers using MetadataAutoInserter
       let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass);
-      console.log(updatedFrontmatter);
       // Step 8: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
       }
 
       // Step 9: Add default values to properties
-      const enrichedFrontmatter = await this.addDefaultValuesToProperties(
+      const enrichedFrontmatter = this.addDefaultValuesToProperties(
         updatedFrontmatter || {},
         file,
         fileClass
@@ -86,7 +85,7 @@ export class MetaFlowService {
     }
   }
 
-  async processSortContent(content: string, file: TFile): Promise<string> {
+  processSortContent(content: string, file: TFile): string {
     try {
       // Step 1: parse frontmatter
       const parseResult = this.frontMatterService.parseFrontmatter(content);
@@ -112,11 +111,11 @@ export class MetaFlowService {
   /**
      * Add default values to properties using the configured scripts
      */
-  private async addDefaultValuesToProperties(
+  private addDefaultValuesToProperties(
     frontmatter: {[key: string]: any},
     file: TFile,
     fileClass: string
-  ): Promise<{[key: string]: any}> {
+  ): {[key: string]: any} {
     const enrichedFrontmatter = {...frontmatter};
 
     // Ensure fileClass is set
@@ -143,7 +142,7 @@ export class MetaFlowService {
       if (!script.enabled) continue;
 
       try {
-        const defaultValue = await this.executePropertyScript(
+        const defaultValue = this.executePropertyScript(
           script,
           file,
           fileClass,
@@ -264,12 +263,12 @@ export class MetaFlowService {
   /**
    * Execute a property default value script
    */
-  private async executePropertyScript(
+  private executePropertyScript(
     script: PropertyDefaultValueScript,
     file: TFile,
     fileClass: string,
     metadata: {[key: string]: any}
-  ): Promise<any> {
+  ): any {
     // Get utilities from ScriptContextService
     const context = this.scriptContextService.getScriptContext(
       file,
@@ -281,14 +280,14 @@ export class MetaFlowService {
     const executeScript = new Function(
       'context',
       `
-			return (async (context) => {
+			return ((context) => {
 				const { ${Object.keys(context).join(', ')} } = context;
 				${script.script}
 			})(context);
 			`
     );
 
-    return await executeScript(context);
+    return executeScript(context);
   }
 
   togglePropertiesVisibility(hide: boolean): void {

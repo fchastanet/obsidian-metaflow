@@ -248,7 +248,7 @@ Content here`;
   });
 
   describe('Script Ordering', () => {
-    test('should execute scripts in order when order is specified', async () => {
+    test('should execute scripts in order when order is specified', () => {
       const settingsWithOrderedScripts: MetaFlowSettings = {
         ...DEFAULT_SETTINGS,
         propertyDefaultValueScripts: [
@@ -277,12 +277,12 @@ Content here`;
       // Mock the method to track execution order
       const executionOrder: string[] = [];
       const originalExecuteScript = (commandWithOrderedScripts as any).executePropertyScript.bind(commandWithOrderedScripts);
-      (commandWithOrderedScripts as any).executePropertyScript = jest.fn().mockImplementation(async (script) => {
+      (commandWithOrderedScripts as any).executePropertyScript = jest.fn().mockImplementation((script) => {
         executionOrder.push(script.propertyName);
         return originalExecuteScript(script, mockFile, 'book', {});
       });
 
-      const result = await (commandWithOrderedScripts as any).addDefaultValuesToProperties({}, mockFile, 'book');
+      const result = (commandWithOrderedScripts as any).addDefaultValuesToProperties({}, mockFile, 'book');
 
       // Scripts should be executed in order: author (1), title (2), date (3)
       expect(executionOrder).toEqual(['author', 'title', 'date']);
