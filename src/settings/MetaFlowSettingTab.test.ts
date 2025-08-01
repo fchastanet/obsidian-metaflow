@@ -125,12 +125,12 @@ describe('MetaFlowSettingTab', () => {
       expect(mockPlugin.settings.folderFileClassMappings[0]).toEqual({
         folderPattern: 'Books/*',
         fileClass: '',
-        isRegex: false
+        isRegex: true
       });
       expect(mockPlugin.settings.folderFileClassMappings[1]).toEqual({
         folderPattern: 'Articles/*',
         fileClass: '',
-        isRegex: false
+        isRegex: true
       });
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });

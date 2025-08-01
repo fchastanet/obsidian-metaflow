@@ -369,7 +369,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.folderFileClassMappings.push({
             folderPattern: fileTemplate.regex,
             fileClass: '',
-            isRegex: false
+            isRegex: true
           });
           importedCount++;
         }
@@ -648,14 +648,14 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           // Get the actual script objects from the sorted array
           const draggedScript = orderedProperties[draggedDisplayIndex];
           const targetScript = orderedProperties[targetDisplayIndex];
-          
+
           // Remove dragged item from the ordered array
           orderedProperties.splice(draggedDisplayIndex, 1);
-          
+
           // Insert at the new position
           const insertIndex = draggedDisplayIndex < targetDisplayIndex ? targetDisplayIndex : targetDisplayIndex;
           orderedProperties.splice(insertIndex, 0, draggedScript);
-          
+
           // Recompute all order values based on new positions
           orderedProperties.forEach((script, newIndex) => {
             script.order = newIndex + 1;
