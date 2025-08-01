@@ -15,6 +15,8 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   templaterAdapter: TemplaterAdapter;
   simulationDetails: HTMLDetailsElement;
   simulationContainer: HTMLElement;
+  metadataMenuStatus: HTMLElement;
+  templaterStatus: HTMLElement;
   metadataMenuImportButton: HTMLButtonElement;
   templaterImportButton: HTMLButtonElement;
   EXPAND_BUTTON: string = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-chevrons-up-down"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>';
@@ -104,6 +106,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.displaySimulationSection();
           // Update button states when integration setting changes
           this.updateMetadataMenuButtonState();
+          this.updatePluginsStatus();
         }));
 
     // Auto metadata insertion setting
@@ -138,6 +141,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.displaySimulationSection();
           // Update button states when integration setting changes
           this.updateTemplaterButtonState();
+          this.updatePluginsStatus();
         }));
 
     // Folder/FileClass Mappings - Collapsible
@@ -306,17 +310,26 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
     containerEl.createEl('p', {text: 'Properties will be sorted according to the order specified above. Unknown properties will be sorted alphabetically and placed at the end if the option is enabled.'});
 
-    // MetadataMenu status
-    if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-      containerEl.createEl('p', {text: '✅ MetadataMenu plugin is available and ready for integration.'});
+    // plugins status
+    this.metadataMenuStatus = containerEl.createEl('p', {text: ''});
+    this.templaterStatus = containerEl.createEl('p', {text: ''});
+    this.updatePluginsStatus();
+  }
+
+  private updatePluginsStatus(): void {
+    if (!this.plugin.settings.metadataMenuIntegration) {
+      this.metadataMenuStatus.setText('❌ MetadataMenu integration is disabled. Enable it to use fileClass-based field insertion.');
+    } else if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
+      this.metadataMenuStatus.setText('✅ MetadataMenu plugin is available and ready for integration.');
     } else {
-      containerEl.createEl('p', {text: '❌ MetadataMenu plugin not found. Install and enable it to use fileClass-based field insertion.'});
+      this.metadataMenuStatus.setText('❌ MetadataMenu plugin not found. Install and enable it to use fileClass-based field insertion.');
     }
-    // Templater status
-    if (this.templaterAdapter.isTemplaterAvailable()) {
-      containerEl.createEl('p', {text: '✅ Templater plugin is available and ready for integration.'});
+    if (!this.plugin.settings.enableTemplaterIntegration) {
+      this.templaterStatus.setText('❌ Templater integration is disabled. Enable it to use advanced scripting features.');
+    } else if (this.templaterAdapter.isTemplaterAvailable()) {
+      this.templaterStatus.setText('✅ Templater plugin is available and ready for integration.');
     } else {
-      containerEl.createEl('p', {text: '❌ Templater plugin not found. Install and enable it to use advanced scripting features.'});
+      this.templaterStatus.setText('❌ Templater plugin not found. Install and enable it to use advanced scripting features.');
     }
   }
 
