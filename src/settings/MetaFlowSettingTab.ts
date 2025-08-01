@@ -61,6 +61,17 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       generalDetails.open = !generalDetails.open;
     });
 
+    // Auto-sort on view setting
+    new Setting(generalDetails)
+      .setName('Sort metadata properties on insert')
+      .setDesc('Automatically sort metadata properties when updating metadata')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoSort)
+        .onChange(async (value) => {
+          this.plugin.settings.autoSort = value;
+          await this.plugin.saveSettings();
+        }));
+
     // Sort unknown properties setting
     new Setting(generalDetails)
       .setName('Sort unknown properties alphabetically')
@@ -591,8 +602,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
   private displayPropertyScripts(container: HTMLElement): void {
     container.empty();
-
-    this.plugin.settings.propertyDefaultValueScripts.forEach((script, index) => {
+    const orderedProperties = this.plugin.settings.propertyDefaultValueScripts
+      .slice()
+      .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+    orderedProperties.forEach((script, index) => {
       const scriptDiv = container.createEl('div', {cls: 'setting-item'});
       scriptDiv.style.border = '1px solid #ccc';
       scriptDiv.style.padding = '10px';
@@ -628,14 +641,25 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         e.preventDefault();
         scriptDiv.style.borderTop = '1px solid #ccc';
 
-        const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
-        const targetIndex = index;
+        const draggedDisplayIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
+        const targetDisplayIndex = index;
 
-        if (draggedIndex !== targetIndex && !isNaN(draggedIndex)) {
-          // Reorder the array
-          const draggedItem = this.plugin.settings.propertyDefaultValueScripts[draggedIndex];
-          this.plugin.settings.propertyDefaultValueScripts.splice(draggedIndex, 1);
-          this.plugin.settings.propertyDefaultValueScripts.splice(targetIndex, 0, draggedItem);
+        if (draggedDisplayIndex !== targetDisplayIndex && !isNaN(draggedDisplayIndex)) {
+          // Get the actual script objects from the sorted array
+          const draggedScript = orderedProperties[draggedDisplayIndex];
+          const targetScript = orderedProperties[targetDisplayIndex];
+          
+          // Remove dragged item from the ordered array
+          orderedProperties.splice(draggedDisplayIndex, 1);
+          
+          // Insert at the new position
+          const insertIndex = draggedDisplayIndex < targetDisplayIndex ? targetDisplayIndex : targetDisplayIndex;
+          orderedProperties.splice(insertIndex, 0, draggedScript);
+          
+          // Recompute all order values based on new positions
+          orderedProperties.forEach((script, newIndex) => {
+            script.order = newIndex + 1;
+          });
 
           await this.plugin.saveSettings();
           this.displayPropertyScripts(container);

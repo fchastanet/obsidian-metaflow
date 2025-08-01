@@ -34,6 +34,15 @@ export default class MetaFlowPlugin extends Plugin {
       }
     });
 
+    // Register the command for single file processing to sort metadata
+    this.addCommand({
+      id: 'metaflow-sort-metadata',
+      name: 'Sort metadata properties',
+      editorCallback: (editor: Editor, view: MarkdownView) => {
+        this.sortMetadataPropertiesInEditor(editor, view);
+      }
+    });
+
     // Register the mass update command for vault-wide processing
     this.addCommand({
       id: 'metaflow-mass-update-metadata',
@@ -83,6 +92,34 @@ export default class MetaFlowPlugin extends Plugin {
 
     try {
       const processedContent = await this.metaFlowService.processContent(content, file);
+
+      if (processedContent !== content) {
+        editor.setValue(processedContent);
+        new Notice(`Successfully updated metadata fields for "${file.name}"`);
+      } else {
+        new Notice('No changes needed');
+      }
+    } catch (error) {
+      console.error('Error updating metadata properties:', error);
+      if (error instanceof MetaFlowException) {
+        new Notice(`Error: ${error.message}`);
+      } else {
+        new Notice('Error updating metadata properties');
+      }
+    }
+  }
+
+  async sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
+    const content = editor.getValue();
+    const file = view.file;
+
+    if (!file) {
+      new Notice('No active file');
+      return;
+    }
+
+    try {
+      const processedContent = await this.metaFlowService.processSortContent(content, file);
 
       if (processedContent !== content) {
         editor.setValue(processedContent);

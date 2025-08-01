@@ -352,13 +352,14 @@ Content here`;
         author: 'John Doe',
         title: 'Test Title',
         date: '2023-01-01',
-        unknown: 'value'
+        unknown: 'value',
+        fieldUnknown: 'value',
       };
 
       const result = sortProperties(frontmatter, false);
       const keys = Object.keys(result);
 
-      expect(keys).toEqual(['unknown', 'title', 'author', 'date', 'tags']);
+      expect(keys).toEqual(['fieldUnknown', 'unknown', 'title', 'author', 'date', 'tags']);
       expect(result.title).toBe('Test Title');
       expect(result.author).toBe('John Doe');
       expect(result.date).toBe('2023-01-01');
@@ -409,13 +410,14 @@ Content here`;
         unknown2: 'value2',
         author: 'John Doe',
         title: 'Test Title',
-        unknown1: 'value1'
+        unknown1: 'value1',
+        fieldUnknown: 'value',
       };
 
       const result = sortProperties(frontmatter, true);
       const keys = Object.keys(result);
 
-      expect(keys).toEqual(['title', 'author', 'unknown1', 'unknown2']);
+      expect(keys).toEqual(['title', 'author', 'fieldUnknown', 'unknown1', 'unknown2']);
     });
 
     test('should sort unknown properties first when sortUnknownPropertiesLast is false', () => {

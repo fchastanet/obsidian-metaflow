@@ -14,7 +14,7 @@ export interface PropertyDefaultValueScript {
 
 export interface MetaFlowSettings {
   hidePropertiesInEditor: boolean;
-  autoSortOnView: boolean;
+  autoSort: boolean;
   sortUnknownPropertiesLast: boolean;
   enableAutoMetadataInsertion: boolean;
   insertMissingFieldsOnSort: boolean;

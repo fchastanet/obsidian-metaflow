@@ -66,8 +66,8 @@ export class MetaFlowService {
       // Step 6: Insert missing metadata headers using MetadataAutoInserter
       let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass);
       console.log(updatedFrontmatter);
-      // Step 8: sort properties if autoSortOnView is enabled
-      if (this.metaFlowSettings.autoSortOnView) {
+      // Step 8: sort properties if autoSort is enabled
+      if (this.metaFlowSettings.autoSort) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
       }
 
@@ -85,6 +85,29 @@ export class MetaFlowService {
       throw new MetaFlowException(`Error updating metadata fields: ${error.message}`);
     }
   }
+
+  async processSortContent(content: string, file: TFile): Promise<string> {
+    try {
+      // Step 1: parse frontmatter
+      const parseResult = this.frontMatterService.parseFrontmatter(content);
+
+      let frontmatter: any = {};
+      let bodyContent = content;
+
+      if (parseResult) {
+        frontmatter = parseResult.metadata || {};
+        bodyContent = parseResult.restOfContent;
+      }
+      frontmatter = this.sortProperties(frontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
+
+      // Step 10: Write the updated content back to the file
+      return this.frontMatterService.serializeFrontmatter(frontmatter, bodyContent);
+    } catch (error) {
+      console.error('Error in auto update metadata fields:', error);
+      throw new MetaFlowException(`Error updating metadata fields: ${error.message}`);
+    }
+  }
+
 
   /**
      * Add default values to properties using the configured scripts
@@ -185,7 +208,7 @@ export class MetaFlowService {
   /**
    * Sort properties based on the order defined in propertyDefaultValueScripts
    */
-  private sortProperties(frontmatter: {[key: string]: any}, sortUnknownPropertiesLast: boolean): {[key: string]: any} {
+  sortProperties(frontmatter: {[key: string]: any}, sortUnknownPropertiesLast: boolean): {[key: string]: any} {
     if (!frontmatter || typeof frontmatter !== 'object' || Array.isArray(frontmatter)) {
       return frontmatter;
     }
