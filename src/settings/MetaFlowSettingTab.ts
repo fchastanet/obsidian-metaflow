@@ -2,8 +2,8 @@ import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import MetaFlowPlugin from "..";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter, TemplaterSettingsInterface} from "../externalApi/TemplaterAdapter";
-import {MetaFlowService} from "src/services/MetaFlowService";
-import {FrontmatterParseResult, FrontMatterService} from "src/services/FrontMatterService";
+import {MetaFlowService} from "../services/MetaFlowService";
+import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatterService";
 
 /**
  * Settings tab for MetaFlow plugin

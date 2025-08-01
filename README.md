@@ -167,6 +167,10 @@ npm run test:watch
 npm run test:coverage
 ```
 
+### Debugging Tests
+
+<https://jestjs.io/docs/troubleshooting#debugging-in-vs-code>
+
 ## 📄 License
 
 MIT License - see LICENSE file for details

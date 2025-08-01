@@ -24,6 +24,8 @@
       "# %%"
     ]
   },
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "jest.shell": "/bin/bash",
   "markdown.extension.toc.levels": "2..6",
   "typescript.updateImportsOnPaste.enabled": false,
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
@@ -39,6 +41,7 @@
       "file": ".github/instructions/commit-message.instructions.md"
     }
   ],
+  "github.copilot.chat.summarizeAgentConversationHistory.enabled": false,
   "github.copilot.chat.agent.runTasks": true,
   "github.copilot.enable": {
     "*": true,
@@ -70,5 +73,5 @@
   "github.copilot.chat.languageContext.fix.typescript.enabled": true,
   "github.copilot.chat.languageContext.inline.typescript.enabled": true,
   "github.copilot.chat.languageContext.typescript.enabled": false,
-  "chat.commandCenter.enabled": false
+  "chat.commandCenter.enabled": true
 }

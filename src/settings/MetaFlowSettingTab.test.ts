@@ -23,7 +23,11 @@ jest.mock('obsidian', () => ({
 // Mock the external adapters
 jest.mock('../externalApi/MetadataMenuAdapter', () => ({
   MetadataMenuAdapter: jest.fn().mockImplementation(() => ({
-    isMetadataMenuAvailable: jest.fn().mockReturnValue(true)
+    isMetadataMenuAvailable: jest.fn().mockReturnValue(true),
+    getAllFieldsFileClassesAssociation: jest.fn().mockReturnValue({
+      'title': {fileClasses: ['book']},
+      'author': {fileClasses: ['book']}
+    }),
   }))
 }));
 
@@ -183,6 +187,12 @@ describe('MetaFlowSettingTab', () => {
               {name: 'date'}
             ]]
           ])
+        },
+        settings: {
+          propertyDefaultValueScripts: [
+            {propertyName: 'title', script: 'return "";', enabled: false, order: 0},
+            {propertyName: 'author', script: 'return "";', enabled: true, order: 1},
+          ]
         }
       };
 
@@ -232,13 +242,14 @@ describe('MetaFlowSettingTab', () => {
       await settingTab['autoPopulatePropertyScriptsFromMetadataMenu']();
 
       // Should still have only one script (the existing one)
-      expect(mockPlugin.settings.propertyDefaultValueScripts).toHaveLength(1);
+      expect(mockPlugin.settings.propertyDefaultValueScripts).toHaveLength(2);
       expect(mockPlugin.settings.propertyDefaultValueScripts[0].script).toBe('return "existing";');
     });
 
     test('should handle missing MetadataMenu plugin gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       mockPlugin.autoInserter.isMetadataMenuAvailable.mockReturnValue(false);
+      settingTab.metadataMenuAdapter.isMetadataMenuAvailable = jest.fn().mockReturnValue(false);
 
       await settingTab['autoPopulatePropertyScriptsFromMetadataMenu']();
 

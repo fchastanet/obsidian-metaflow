@@ -1,16 +1,9 @@
-import {TFile} from 'obsidian';
-// Mock the adapters
-const mockMetadataMenuAdapter = {
-  isMetadataMenuAvailable: jest.fn().mockReturnValue(true),
-  getFileClassByName: jest.fn(),
-  insertMissingFields: jest.fn(),
-  getFileClassFromMetadata: jest.fn().mockReturnValue('book'),
-  getFileClassAlias: jest.fn().mockReturnValue('file_class'),
-};
+import {Plugin, TFile} from 'obsidian';
 
-const mockTemplaterAdapter = {
-  isTemplaterAvailable: jest.fn().mockReturnValue(false)
-};
+// Declare mock variables that will be initialized in beforeEach
+let mockMetadataMenuAdapter: any;
+let mockTemplaterAdapter: any;
+let mockScriptContextService: any;
 
 jest.mock('../externalApi/MetadataMenuAdapter', () => ({
   MetadataMenuAdapter: jest.fn().mockImplementation(() => mockMetadataMenuAdapter)
@@ -20,63 +13,8 @@ jest.mock('../externalApi/TemplaterAdapter', () => ({
   TemplaterAdapter: jest.fn().mockImplementation(() => mockTemplaterAdapter)
 }));
 
-// Mock ScriptContextService
 jest.mock('./ScriptContextService', () => ({
-  ScriptContextService: jest.fn().mockImplementation(() => ({
-    executeScript: jest.fn().mockImplementation((script, file, fileClass, metadata) => {
-      // Simple script evaluation for testing
-      if (script.includes('new Date().toISOString()')) {
-        return new Date().toISOString();
-      }
-      if (script.includes('fileClass + "-" + file.name')) {
-        return `${fileClass}-${file.name}`;
-      }
-      if (script.includes('return "first"')) return 'first';
-      if (script.includes('return "second"')) return 'second';
-      if (script.includes('return "third"')) return 'third';
-      return script;
-    }),
-    getScriptContext: jest.fn().mockImplementation((file, fileClass, metadata) => ({
-      fileClass,
-      file,
-      metadata
-    }))
-  }))
-}));
-
-// Mock FrontMatterService
-jest.mock('./FrontMatterService', () => ({
-  FrontMatterService: jest.fn().mockImplementation(() => ({
-    parseFrontmatter: jest.fn().mockImplementation((content) => {
-      if (!content || typeof content !== 'string') return null;
-      if (content.startsWith('---')) {
-        const yamlMatch = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-        if (yamlMatch) {
-          const yamlContent = yamlMatch[1];
-          const restContent = yamlMatch[2];
-          const metadata: any = {};
-
-          // Parse simple YAML for testing
-          yamlContent.split('\n').forEach(line => {
-            const match = line.match(/^(\w+):\s*(.+)$/);
-            if (match) {
-              metadata[match[1]] = match[2];
-            }
-          });
-
-          return {
-            metadata,
-            restOfContent: restContent
-          };
-        }
-      }
-      return null;
-    }),
-    serializeFrontmatter: jest.fn().mockImplementation((metadata, content) => {
-      const yamlLines = Object.entries(metadata).map(([key, value]) => `${key}: ${value}`);
-      return `---\n${yamlLines.join('\n')}\n---\n${content}`;
-    })
-  }))
+  ScriptContextService: jest.fn().mockImplementation(() => mockScriptContextService)
 }));
 
 import {MetaFlowService} from './MetaFlowService';
@@ -96,8 +34,19 @@ describe('MetaFlowService', () => {
   let mockFile: TFile;
 
   beforeEach(() => {
-    // Setup mock app
+    // Setup mock app first
     mockApp = {
+      plugins: {
+        enabledPlugins: new Map([['metadata-menu', true]]),
+        plugins: {
+          'metadata-menu': {
+            api: {},
+            settings: {
+              fileClassAlias: 'fileClass',
+            },
+          }
+        },
+      },
       vault: {
         read: jest.fn(),
         modify: jest.fn()
@@ -105,6 +54,52 @@ describe('MetaFlowService', () => {
       fileManager: {
         generateMarkdownLink: jest.fn()
       }
+    };
+
+    // Create a real MetadataMenuAdapter instance to get the actual getFileClassByName method
+    const realMetadataMenuAdapter = new (jest.requireActual('../externalApi/MetadataMenuAdapter').MetadataMenuAdapter)(
+      mockApp,
+      {
+        ...DEFAULT_SETTINGS,
+        metadataMenuIntegration: true,
+      }
+    );
+
+    // Initialize all mocks here for clean state between tests
+    mockMetadataMenuAdapter = {
+      isMetadataMenuAvailable: jest.fn().mockReturnValue(true),
+      getFileClassByName: jest.fn().mockResolvedValue({
+        name: 'default',
+        fields: []
+      }),
+      insertMissingFields: jest.fn().mockImplementation((frontmatter) => frontmatter),
+      getFileClassFromMetadata: realMetadataMenuAdapter.getFileClassFromMetadata.bind(realMetadataMenuAdapter), // Use real implementation
+      getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
+    };
+
+    mockTemplaterAdapter = {
+      isTemplaterAvailable: jest.fn().mockReturnValue(false)
+    };
+
+    mockScriptContextService = {
+      executeScript: jest.fn().mockImplementation((script, file, fileClass, metadata) => {
+        // Simple script evaluation for testing
+        if (script.includes('new Date().toISOString()')) {
+          return new Date().toISOString();
+        }
+        if (script.includes('fileClass + "-" + file.name')) {
+          return `${fileClass}-${file.name}`;
+        }
+        if (script.includes('return "first"')) return 'first';
+        if (script.includes('return "second"')) return 'second';
+        if (script.includes('return "third"')) return 'third';
+        return script;
+      }),
+      getScriptContext: jest.fn().mockImplementation((file, fileClass, metadata) => ({
+        fileClass,
+        file,
+        metadata
+      }))
     };
 
     // Setup mock file
@@ -166,17 +161,6 @@ describe('MetaFlowService', () => {
   });
 
   describe('Command Execution', () => {
-    beforeEach(() => {
-      // Reset mocks
-      mockMetadataMenuAdapter.isMetadataMenuAvailable.mockReturnValue(true);
-      mockTemplaterAdapter.isTemplaterAvailable.mockReturnValue(false);
-      mockMetadataMenuAdapter.getFileClassByName.mockResolvedValue({
-        name: 'default',
-        fields: []
-      } as any);
-      mockMetadataMenuAdapter.insertMissingFields.mockResolvedValue(undefined);
-    });
-
     test('should fail if MetadataMenu is not available', async () => {
       mockMetadataMenuAdapter.isMetadataMenuAvailable.mockReturnValue(false);
       expect.assertions(2);
@@ -197,12 +181,12 @@ title: Test Book
 
 Content here`;
 
-      // Mock vault.read to return the updated content after MetadataMenu processing
-      mockApp.vault.read.mockResolvedValue(contentWithFileClass);
-
       const result = await metaFlowService.processContent(contentWithFileClass, mockFile);
-
-      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(mockFile, 'book');
+      const expectedFrontmatter = {
+        fileClass: 'book',
+        title: 'Test Book'
+      };
+      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(expectedFrontmatter, 'book');
       expect(typeof result).toBe('string');
       expect(result).toContain('fileClass: book');
     });
@@ -223,13 +207,12 @@ Content here`;
 
       const command = new MetaFlowService(mockApp, settings);
 
-      mockApp.vault.read
-        .mockResolvedValueOnce(contentWithoutFileClass)
-        .mockResolvedValueOnce(contentWithoutFileClass);
-
       await command.processContent(contentWithoutFileClass, mockFile);
 
-      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(mockFile, 'book');
+      const expectedFrontmatter = {
+        title: 'Test Note'
+      };
+      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(expectedFrontmatter, 'book');
     });
   });
 

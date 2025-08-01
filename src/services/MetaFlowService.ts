@@ -65,7 +65,7 @@ export class MetaFlowService {
 
       // Step 6: Insert missing metadata headers using MetadataAutoInserter
       let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass);
-
+      console.log(updatedFrontmatter);
       // Step 8: sort properties if autoSortOnView is enabled
       if (this.metaFlowSettings.autoSortOnView) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
@@ -109,10 +109,11 @@ export class MetaFlowService {
 
     // Process each property default value script in order
     for (const script of orderedScripts) {
-      // Skip if property not defined or has already has a value
+      // Skip if property already has a value (not null, undefined, or empty string)
       if (
-        typeof enrichedFrontmatter[script.propertyName] === 'undefined' ||
-        enrichedFrontmatter[script.propertyName] !== null
+        enrichedFrontmatter[script.propertyName] !== undefined &&
+        enrichedFrontmatter[script.propertyName] !== null &&
+        enrichedFrontmatter[script.propertyName] !== ''
       ) {
         continue;
       }
