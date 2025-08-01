@@ -77,6 +77,11 @@ describe('ScriptContextService', () => {
       expect(result).toBe('English');
     });
 
+    test('should return English for Thinking in systems', () => {
+      const result = scriptContextService.detectLanguage('Thinking in systems');
+      expect(result).toBe('English');
+    });
+
     test('should return English for ambiguous text', () => {
       const ambiguousText = "123 456 789";
       const result = scriptContextService.detectLanguage(ambiguousText);

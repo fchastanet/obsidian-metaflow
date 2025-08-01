@@ -93,7 +93,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.hidePropertiesInEditor = value;
           await this.plugin.saveSettings();
           // Apply CSS to hide/show properties section immediately
-          this.togglePropertiesVisibility(value);
+          this.plugin.metaFlowService.togglePropertiesVisibility(value);
         }));
 
     // MetadataMenu Integration section
@@ -863,33 +863,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         this.displayPropertyScripts(container);
       });
     });
-  }
-
-  private togglePropertiesVisibility(hide: boolean): void {
-    const styleId = 'metaflow-hide-properties';
-    let styleEl = document.getElementById(styleId);
-
-    if (hide) {
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = styleId;
-        styleEl.textContent = `
-          .metadata-container,
-          .frontmatter-container,
-          .metadata-properties-heading,
-          .metadata-property,
-          .metadata-add-button,
-          .frontmatter-container-header {
-            display: none !important;
-          }
-        `;
-        document.head.appendChild(styleEl);
-      }
-    } else {
-      if (styleEl) {
-        styleEl.remove();
-      }
-    }
   }
 
   private displaySimulationSection(): void {
