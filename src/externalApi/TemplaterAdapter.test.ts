@@ -57,6 +57,59 @@ describe('TemplaterAdapter', () => {
     });
   });
 
+  describe('checkTemplaterConsistency', () => {
+    test('should return consistent when Templater not enabled', async () => {
+      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS);
+      const result = await adapter.checkTemplaterConsistency();
+      expect(result.isConsistent).toBe(true);
+      expect(result.warnings).toEqual([]);
+    });
+
+    test('should return warning when Templater enabled but plugin missing', async () => {
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, enableTemplaterIntegration: true});
+      const result = await adapter.checkTemplaterConsistency();
+      expect(result.isConsistent).toBe(false);
+      expect(result.warnings).toContain('Templater plugin not found but integration is enabled');
+    });
+
+    test('should return consistent when Templater available and enabled', async () => {
+      mockApp.plugins.plugins['templater-obsidian'] = {
+        settings: {
+          file_templates: [
+            {regex: '.*', template: 'default-template.md'}  // Match the default folder mapping
+          ],
+          folder_templates: []
+        },
+        templater: {}
+      };
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, enableTemplaterIntegration: true});
+      const result = await adapter.checkTemplaterConsistency();
+      expect(result.isConsistent).toBe(true);
+      expect(result.warnings).toEqual([]);
+    });
+
+    test('should return warnings when folder mappings dont match Templater templates', async () => {
+      mockApp.plugins.plugins['templater-obsidian'] = {
+        settings: {
+          file_templates: [{regex: 'Books/*', template: 'book-template.md'}],
+          folder_templates: []
+        },
+        templater: {}
+      };
+      const settingsWithMappings = {
+        ...DEFAULT_SETTINGS, 
+        enableTemplaterIntegration: true,
+        folderFileClassMappings: [
+          {folderPattern: 'Articles/*', fileClass: 'article', isRegex: false}  // Different pattern
+        ]
+      };
+      const adapter = new TemplaterAdapter(mockApp, settingsWithMappings);
+      const result = await adapter.checkTemplaterConsistency();
+      expect(result.isConsistent).toBe(false);
+      expect(result.warnings).toContain('No matching Templater mapping found for folder pattern: Articles/*');
+    });
+  });
+
   describe('TemplaterAdapter methods', () => {
     test('prompt should return default if Templater unavailable', async () => {
       const result = await templaterAdapter.prompt('Enter value', 'defaultVal');

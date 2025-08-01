@@ -13,3 +13,5 @@ Use MVC design pattern.
 Use services with dependency injection.
 
 Always update/create associated unit tests.
+
+Prefer using the command `npm run test` as test integration in vscode is buggy.
