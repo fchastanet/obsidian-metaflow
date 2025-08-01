@@ -431,7 +431,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.propertyDefaultValueScripts.push({
             propertyName: propertyName,
             script: defaultScript,
-            enabled: false, // Start disabled so user can configure
+            enabled: true,
             order: this.plugin.settings.propertyDefaultValueScripts.length,
             fileClasses,
           });

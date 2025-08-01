@@ -210,7 +210,7 @@ describe('MetaFlowSettingTab', () => {
       );
       expect(titleScript).toBeDefined();
       expect(titleScript?.script).toContain('return "";');
-      expect(titleScript?.enabled).toBe(false);
+      expect(titleScript?.enabled).toBe(true);
 
       // Check that author script exists (used by book only)
       const authorScript = mockPlugin.settings.propertyDefaultValueScripts.find(
