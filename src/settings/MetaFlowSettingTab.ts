@@ -277,6 +277,37 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     this.metadataMenuStatus = containerEl.createEl('p', {text: ''});
     this.templaterStatus = containerEl.createEl('p', {text: ''});
     this.updatePluginsStatus();
+
+    // Add MetaFlow plugin support information
+    const pluginSupport = containerEl.createDiv({cls: 'vt-support', });
+    pluginSupport.innerHTML = `<h3>Enjoying MetaFlow?</h3>
+      <div class="setting-item-description">If you like this Plugin, consider donating to support continued development:</div>
+      <div class="buttons">
+        <a href="https://www.buymeacoffee.com/fchastanetl"
+          style="padding: 0"
+          target="_blank" rel="noopener"
+          title="buy me a coffee to support my work"
+        >
+          <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=fchastanetl&button_colour=BD5FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" />
+        </a>
+        <a
+          href="https://github.com/fchastanet/obsidian-metaflow"
+          style="height: 50px;background-color: #BD5FFF;"
+          target="_blank" rel="noopener"
+          title="Give me a star on Github"
+        >
+          <img height="30" border="0" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png">
+          <span style="color: #ffffff;">Star on GitHub</span>
+        </a>
+      </div>
+      <div class="bug-report">
+        Facing issues or have suggestions?
+        <a
+          href="https://github.com/fchastanet/obsidian-metaflow/issues/"
+          target="_blank" rel="noopener"
+          title="Submit a report" target="_blank">Submit a report</a>.
+      </div>
+    </div>`;
   }
 
   private updatePluginsStatus(): void {
