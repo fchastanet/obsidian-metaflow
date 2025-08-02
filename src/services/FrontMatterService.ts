@@ -15,40 +15,54 @@ export class FrontMatterService {
   /**
    * Parse YAML frontmatter from content
    */
-  parseFrontmatter(content: string): FrontmatterParseResult | null {
+  parseFrontmatter(content: string): FrontmatterParseResult {
+    let frontmatterText = "";
+    let restOfContent = content;
+
+    // parse frontmatter
+    const delimiterRegexp: RegExp = /^---$/gm;
+    let match: RegExpExecArray | null = delimiterRegexp.exec(content);
     // Check if content starts with frontmatter
-    if (!content.startsWith('---\n')) {
-      return null;
-    }
-
-    // Find the end of frontmatter
-    const secondDashIndex = content.indexOf('\n---\n', 4);
-    if (secondDashIndex === -1) {
-      return null;
-    }
-
-    const frontmatterText = content.slice(4, secondDashIndex);
-    const restOfContent = content.slice(secondDashIndex + 5);
-
-    try {
-      // Parse YAML with custom options to preserve strings
-      const metadata = yaml.load(frontmatterText, {
-        schema: yaml.JSON_SCHEMA // Use JSON schema to avoid date parsing
-      });
-
-      if (!metadata || typeof metadata !== 'object') {
-        return null;
+    if (match && match.index === 0) {
+      // Find the end of frontmatter
+      let match2: RegExpExecArray | null = delimiterRegexp.exec(content);
+      if (match2 && match2.index > match.index) {
+        frontmatterText = content.slice(4, match2.index);
+        restOfContent = content.slice(match2.index + 4);
       }
+    }
 
+    if (frontmatterText.match(/^\s*$/)) {
       return {
-        metadata,
-        content: frontmatterText,
+        metadata: {},
+        content: "",
         restOfContent
       };
-    } catch (error) {
-      console.error('Error parsing YAML frontmatter:', error);
-      return null;
+    } else {
+      try {
+        // Parse YAML with custom options to preserve strings
+        const metadata = yaml.load(frontmatterText, {
+          schema: yaml.JSON_SCHEMA // Use JSON schema to avoid date parsing
+        });
+
+        if (metadata && typeof metadata === 'object') {
+          return {
+            metadata,
+            content: frontmatterText,
+            restOfContent
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing YAML frontmatter:', error);
+      }
     }
+
+    // invalid or empty frontmatter
+    return {
+      metadata: {},
+      content: "",
+      restOfContent: content,
+    };
   }
 
   /**

@@ -17,16 +17,44 @@ describe('FrontMatterService', () => {
       expect(result?.restOfContent).toBe('Body text here.');
     });
 
-    it('should return null if no frontmatter present', () => {
+    it('should return empty frontmatter if no frontmatter present', () => {
       const content = 'No frontmatter here.';
       const result = service.parseFrontmatter(content);
-      expect(result).toBeNull();
+      expect(result).toEqual({
+        content: "",
+        metadata: {},
+        restOfContent: 'No frontmatter here.'
+      });
     });
 
-    it('should return null for malformed YAML', () => {
+    it('should return empty frontmatter if frontmatter empty', () => {
+      const content = `---\n---\nBody`;
+      const result = service.parseFrontmatter(content);
+      expect(result).toEqual({
+        content: "",
+        metadata: {},
+        restOfContent: 'Body'
+      });
+    });
+
+    it('should return empty frontmatter if frontmatter with empty lines', () => {
+      const content = `---\n   \n\t\n\n---\nBody`;
+      const result = service.parseFrontmatter(content);
+      expect(result).toEqual({
+        content: "",
+        metadata: {},
+        restOfContent: 'Body'
+      });
+    });
+
+    it('should return empty frontmatter for malformed YAML', () => {
       const content = `---\ntitle: Test\ndate: [unclosed\n---\nBody`;
       const result = service.parseFrontmatter(content);
-      expect(result).toBeNull();
+      expect(result).toEqual({
+        content: "",
+        metadata: {},
+        restOfContent: content
+      });
     });
   });
 

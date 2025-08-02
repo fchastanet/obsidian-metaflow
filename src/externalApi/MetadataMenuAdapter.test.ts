@@ -326,7 +326,7 @@ describe('MetadataMenuAdapter', () => {
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
     });
 
-    test('throws exception when no fields found for fileClass', () => {
+    test('no exception when no fields found for fileClass', () => {
       const mockFieldsMap = new Map();
 
       mockApp.plugins.plugins['metadata-menu'] = {
@@ -336,11 +336,10 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
+      const frontmatter = {};
       adapter = new MetadataMenuAdapter(mockApp);
-
-      expect(() => {
-        adapter.insertFileClassMissingFields({}, 'book');
-      }).toThrow('No fields found for fileClass: book');
+      const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
+      expect(result).toEqual(frontmatter);
     });
 
     test('inserts missing fields only', () => {

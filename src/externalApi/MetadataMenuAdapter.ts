@@ -125,14 +125,12 @@ export class MetadataMenuAdapter {
     }
     // get metadataMenu fileClass fields configuration
     const fileClassFields = this.getFileClassFields(fileClassName);
-    if (!fileClassFields || fileClassFields.length === 0) {
-      throw new MetaFlowException(`No fields found for fileClass: ${fileClassName}`);
-    }
-
-    // Insert each field into the frontmatter
-    for (const field of fileClassFields) {
-      if (field.name && !frontmatter[field.name]) {
-        frontmatter[field.name] = null;
+    if (fileClassFields && fileClassFields.length > 0) {
+      // Insert each field into the frontmatter
+      for (const field of fileClassFields) {
+        if (field.name && !frontmatter[field.name]) {
+          frontmatter[field.name] = null;
+        }
       }
     }
 
