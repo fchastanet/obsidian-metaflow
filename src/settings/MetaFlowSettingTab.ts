@@ -24,7 +24,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: MetaFlowPlugin) {
     super(app, plugin);
     this.plugin = plugin;
-    this.metadataMenuAdapter = new MetadataMenuAdapter(app, plugin.settings);
+    this.metadataMenuAdapter = new MetadataMenuAdapter(app);
     this.templaterAdapter = new TemplaterAdapter(app, plugin.settings);
   }
 
@@ -96,30 +96,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.metaFlowService.togglePropertiesVisibility(value);
         }));
 
-    // MetadataMenu Integration section
-    generalDetails.createEl('h4', {text: 'MetadataMenu Integration'});
-
-    // Enable MetadataMenu integration
-    new Setting(generalDetails)
-      .setName('Enable MetadataMenu integration')
-      .setDesc('Enable integration with the MetadataMenu plugin for fileClass-based field insertion')
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.metadataMenuIntegration)
-        .onChange(async (value) => {
-          this.plugin.settings.metadataMenuIntegration = value;
-          if (value) {
-            if (!this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-              new Notice('MetadataMenu plugin not found or not enabled');
-              this.plugin.settings.metadataMenuIntegration = false;
-            }
-          }
-          await this.plugin.saveSettings();
-          this.displaySimulationSection();
-          // Update button states when integration setting changes
-          this.updateMetadataMenuButtonState();
-          this.updatePluginsStatus();
-        }));
-
     // Auto metadata insertion setting
     new Setting(generalDetails)
       .setName('Auto-insert missing metadata fields')
@@ -129,30 +105,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         .onChange(async (value) => {
           this.plugin.settings.enableAutoMetadataInsertion = value;
           await this.plugin.saveSettings();
-        }));
-
-    // Templater Integration
-    generalDetails.createEl('h4', {text: 'Templater Integration'});
-
-    new Setting(generalDetails)
-      .setName('Enable Templater integration')
-      .setDesc('Enable integration with Templater plugin for advanced scripting features')
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.enableTemplaterIntegration)
-        .onChange(async (value) => {
-          this.plugin.settings.enableTemplaterIntegration = value;
-          await this.plugin.saveSettings();
-          // Check consistency when enabling
-          if (value) {
-            const consistency = await this.templaterAdapter.checkTemplaterConsistency();
-            if (!consistency.isConsistent) {
-              new Notice(`Templater consistency warnings: ${consistency.warnings.join(', ')}`);
-            }
-          }
-          this.displaySimulationSection();
-          // Update button states when integration setting changes
-          this.updateTemplaterButtonState();
-          this.updatePluginsStatus();
         }));
 
     // Folder/FileClass Mappings - Collapsible
@@ -328,16 +280,12 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   }
 
   private updatePluginsStatus(): void {
-    if (!this.plugin.settings.metadataMenuIntegration) {
-      this.metadataMenuStatus.setText('❌ MetadataMenu integration is disabled. Enable it to use fileClass-based field insertion.');
-    } else if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
+    if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
       this.metadataMenuStatus.setText('✅ MetadataMenu plugin is available and ready for integration.');
     } else {
       this.metadataMenuStatus.setText('❌ MetadataMenu plugin not found. Install and enable it to use fileClass-based field insertion.');
     }
-    if (!this.plugin.settings.enableTemplaterIntegration) {
-      this.templaterStatus.setText('❌ Templater integration is disabled. Enable it to use advanced scripting features.');
-    } else if (this.templaterAdapter.isTemplaterAvailable()) {
+    if (this.templaterAdapter.isTemplaterAvailable()) {
       this.templaterStatus.setText('✅ Templater plugin is available and ready for integration.');
     } else {
       this.templaterStatus.setText('❌ Templater plugin not found. Install and enable it to use advanced scripting features.');
@@ -532,13 +480,54 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       });
       patternInput.style.flexGrow = '1';
 
-      // FileClass input
-      const fileClassInput = controlRow.createEl('input', {
-        type: 'text',
-        placeholder: 'FileClass name',
-        value: mapping.fileClass
-      });
-      fileClassInput.style.width = '150px';
+      // FileClass input or select (dropdown) based on MetadataMenu availability
+      let fileClassControl: HTMLInputElement | HTMLSelectElement;
+      let fileClasses: string[] = [];
+
+      // Try to get fileClasses from MetadataMenu
+      try {
+        if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
+          const plugin = this.metadataMenuAdapter.getMetadataMenuPlugin();
+          if (plugin?.fieldIndex?.fileClassesFields) {
+            fileClasses = Array.from(plugin.fieldIndex.fileClassesFields.keys()).map(String);
+          }
+        }
+      } catch (error) {
+        console.error('Error getting fileClasses:', error);
+      }
+
+      if (fileClasses.length > 0) {
+        // Create select dropdown when fileClasses are available
+        const fileClassSelect = controlRow.createEl('select');
+        fileClassSelect.style.width = '150px';
+
+        // Add default option
+        fileClassSelect.createEl('option', {value: '', text: 'Select fileClass...'});
+
+        // Add fileClasses from MetadataMenu
+        fileClasses.forEach(fc => {
+          fileClassSelect.createEl('option', {value: fc, text: fc});
+        });
+
+        // Add existing fileClasses from mappings if not already present
+        this.plugin.settings.folderFileClassMappings.forEach(m => {
+          if (m.fileClass && !fileClasses.includes(m.fileClass)) {
+            fileClassSelect.createEl('option', {value: m.fileClass, text: m.fileClass});
+          }
+        });
+
+        fileClassSelect.value = mapping.fileClass || '';
+        fileClassControl = fileClassSelect;
+      } else {
+        // Fallback to text input when MetadataMenu not available
+        const fileClassInput = controlRow.createEl('input', {
+          type: 'text',
+          placeholder: 'FileClass name',
+          value: mapping.fileClass
+        });
+        fileClassInput.style.width = '150px';
+        fileClassControl = fileClassInput;
+      }
 
       // Regex toggle
       const regexToggle = controlRow.createEl('input', {
@@ -582,10 +571,17 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         await this.plugin.saveSettings();
       });
 
-      fileClassInput.addEventListener('input', async () => {
-        mapping.fileClass = fileClassInput.value;
+      fileClassControl.addEventListener('change', async () => {
+        mapping.fileClass = fileClassControl.value;
         await this.plugin.saveSettings();
       });
+
+      if (fileClassControl.tagName === 'INPUT') {
+        fileClassControl.addEventListener('input', async () => {
+          mapping.fileClass = fileClassControl.value;
+          await this.plugin.saveSettings();
+        });
+      }
 
       regexToggle.addEventListener('change', async () => {
         mapping.isRegex = regexToggle.checked;
@@ -1076,15 +1072,12 @@ The simulation will:
     if (!this.metadataMenuImportButton) return;
 
     const isMetadataMenuAvailable = this.metadataMenuAdapter.isMetadataMenuAvailable();
-    const isMetadataMenuEnabled = this.plugin.settings.metadataMenuIntegration;
-    const shouldEnable = isMetadataMenuAvailable && isMetadataMenuEnabled;
+    const shouldEnable = isMetadataMenuAvailable;
 
     this.metadataMenuImportButton.disabled = !shouldEnable;
 
     if (!isMetadataMenuAvailable) {
       this.metadataMenuImportButton.title = 'MetadataMenu plugin is not available or not enabled';
-    } else if (!isMetadataMenuEnabled) {
-      this.metadataMenuImportButton.title = 'Enable MetadataMenu integration first';
     } else {
       this.metadataMenuImportButton.title = 'Import property scripts from MetadataMenu plugin';
     }
@@ -1094,15 +1087,12 @@ The simulation will:
     if (!this.templaterImportButton) return;
 
     const isTemplaterAvailable = this.templaterAdapter.isTemplaterAvailable();
-    const isTemplaterEnabled = this.plugin.settings.enableTemplaterIntegration;
-    const shouldEnable = isTemplaterAvailable && isTemplaterEnabled;
+    const shouldEnable = isTemplaterAvailable;
 
     this.templaterImportButton.disabled = !shouldEnable;
 
     if (!isTemplaterAvailable) {
       this.templaterImportButton.title = 'Templater plugin is not available or not enabled';
-    } else if (!isTemplaterEnabled) {
-      this.templaterImportButton.title = 'Enable Templater integration first';
     } else {
       this.templaterImportButton.title = 'Import folder mappings from Templater plugin';
     }

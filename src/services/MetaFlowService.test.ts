@@ -78,7 +78,7 @@ describe('MetaFlowService', () => {
     };
 
     mockTemplaterAdapter = {
-      isTemplaterAvailable: jest.fn().mockReturnValue(false)
+      isTemplaterAvailable: jest.fn().mockReturnValue(true)
     };
 
     mockScriptContextService = {
@@ -165,7 +165,7 @@ describe('MetaFlowService', () => {
       mockMetadataMenuAdapter.isMetadataMenuAvailable.mockReturnValue(false);
       expect.assertions(2);
       try {
-        await metaFlowService.processContent('', mockFile);
+        metaFlowService.processContent('', mockFile);
       } catch (error) {
         expect(error).toBeInstanceOf(MetaFlowException);
         expect(error.message).toBe('Error updating metadata fields: MetadataMenu plugin not available');
@@ -181,7 +181,7 @@ title: Test Book
 
 Content here`;
 
-      const result = await metaFlowService.processContent(contentWithFileClass, mockFile);
+      const result = metaFlowService.processContent(contentWithFileClass, mockFile);
       const expectedFrontmatter = {
         fileClass: 'book',
         title: 'Test Book'
@@ -207,7 +207,7 @@ Content here`;
 
       const command = new MetaFlowService(mockApp, settings);
 
-      await command.processContent(contentWithoutFileClass, mockFile);
+      command.processContent(contentWithoutFileClass, mockFile);
 
       const expectedFrontmatter = {
         title: 'Test Note'

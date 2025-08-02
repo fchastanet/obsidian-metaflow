@@ -13,7 +13,7 @@ describe('MetadataMenuAdapter', () => {
         plugins: {}
       }
     };
-    adapter = new MetadataMenuAdapter(mockApp, DEFAULT_SETTINGS);
+    adapter = new MetadataMenuAdapter(mockApp);
   });
 
   describe('isMetadataMenuAvailable', () => {
@@ -23,16 +23,14 @@ describe('MetadataMenuAdapter', () => {
     });
 
     test('returns false if plugin is missing', () => {
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
     });
 
     test('returns false if plugin has no api', () => {
       mockApp.plugins.plugins['metadata-menu'] = {notApi: {}};
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
     });
@@ -40,16 +38,14 @@ describe('MetadataMenuAdapter', () => {
     test('returns false if plugin disabled', () => {
       mockApp.plugins.enabledPlugins.delete('metadata-menu');
       mockApp.plugins.plugins['metadata-menu'] = {api: {}, settings: {}, };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
     });
 
     test('returns true if plugin and api are present and integration enabled', () => {
       mockApp.plugins.plugins['metadata-menu'] = {api: {}, settings: {}, };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(true);
     });
@@ -69,8 +65,7 @@ describe('MetadataMenuAdapter', () => {
     test('returns plugin if available', async () => {
       const pluginObj = {api: {}, foo: 'bar', settings: {}};
       mockApp.plugins.plugins['metadata-menu'] = pluginObj;
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
       const result = await adapter.getMetadataMenuPlugin();
       expect(result).toBe(pluginObj);
     });
@@ -85,12 +80,11 @@ describe('MetadataMenuAdapter', () => {
 
     test('throws exception when no fileClass definitions found', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       expect(() => {
         adapter.getAllFieldsFileClassesAssociation();
@@ -104,21 +98,20 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const result = adapter.getAllFieldsFileClassesAssociation();
 
       expect(result).toEqual({
-        title: { fileClasses: ['book', 'article'] },
-        author: { fileClasses: ['book'] },
-        date: { fileClasses: ['article'] }
+        title: {fileClasses: ['book', 'article']},
+        author: {fileClasses: ['book']},
+        date: {fileClasses: ['article']}
       });
     });
   });
@@ -126,11 +119,10 @@ describe('MetadataMenuAdapter', () => {
   describe('getFileClassFromMetadata', () => {
     test('returns null for null metadata', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
-        settings: { fileClassAlias: 'fileClass' }
+        api: {},
+        settings: {fileClassAlias: 'fileClass'}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const result = adapter.getFileClassFromMetadata(null);
       expect(result).toBe(null);
@@ -138,11 +130,10 @@ describe('MetadataMenuAdapter', () => {
 
     test('returns null for non-object metadata', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
-        settings: { fileClassAlias: 'fileClass' }
+        api: {},
+        settings: {fileClassAlias: 'fileClass'}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const result = adapter.getFileClassFromMetadata('string');
       expect(result).toBe(null);
@@ -150,26 +141,24 @@ describe('MetadataMenuAdapter', () => {
 
     test('returns fileClass value from metadata', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
-        settings: { fileClassAlias: 'fileClass' }
+        api: {},
+        settings: {fileClassAlias: 'fileClass'}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const metadata = { fileClass: 'book', title: 'Test' };
+      const metadata = {fileClass: 'book', title: 'Test'};
       const result = adapter.getFileClassFromMetadata(metadata);
       expect(result).toBe('book');
     });
 
     test('returns null when fileClass not present in metadata', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
-        settings: { fileClassAlias: 'fileClass' }
+        api: {},
+        settings: {fileClassAlias: 'fileClass'}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const metadata = { title: 'Test' };
+      const metadata = {title: 'Test'};
       const result = adapter.getFileClassFromMetadata(metadata);
       expect(result).toBe(null);
     });
@@ -184,11 +173,10 @@ describe('MetadataMenuAdapter', () => {
 
     test('returns default fileClass alias when not configured', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const result = adapter.getFileClassAlias();
       expect(result).toBe('fileClass');
@@ -196,11 +184,10 @@ describe('MetadataMenuAdapter', () => {
 
     test('returns configured fileClass alias', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
-        settings: { fileClassAlias: 'customFileClass' }
+        api: {},
+        settings: {fileClassAlias: 'customFileClass'}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const result = adapter.getFileClassAlias();
       expect(result).toBe('customFileClass');
@@ -210,12 +197,11 @@ describe('MetadataMenuAdapter', () => {
   describe('getFileClassByName', () => {
     test('throws exception when fileClassesFields not available', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {}
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       expect(() => {
         adapter.getFileClassByName('book');
@@ -228,14 +214,13 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       expect(() => {
         adapter.getFileClassByName('book');
@@ -249,14 +234,13 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const result = adapter.getFileClassByName('book');
       expect(result).toBe(mockFields);
@@ -265,8 +249,8 @@ describe('MetadataMenuAdapter', () => {
 
   describe('insertMissingFields', () => {
     test('throws exception when MetadataMenu not available', () => {
-      const frontmatter = { title: 'Test' };
-      
+      const frontmatter = {title: 'Test'};
+
       expect(() => {
         adapter.insertMissingFields(frontmatter, 'book');
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
@@ -279,17 +263,16 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap,
           fileClassesAncestors: new Map()
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const frontmatter = { title: 'Existing Title' };
+      const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
 
       expect(result).toEqual({
@@ -302,7 +285,7 @@ describe('MetadataMenuAdapter', () => {
     test('inserts fields from ancestors first, then main fileClass', () => {
       const ancestorFields = [{name: 'id'}, {name: 'created'}];
       const bookFields = [{name: 'title'}, {name: 'author'}];
-      
+
       const mockFieldsMap = new Map([
         ['default', ancestorFields],
         ['book', bookFields]
@@ -313,17 +296,16 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap,
           fileClassesAncestors: mockAncestorsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const frontmatter = { title: 'Existing Title' };
+      const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
 
       expect(result).toEqual({
@@ -337,8 +319,8 @@ describe('MetadataMenuAdapter', () => {
 
   describe('insertFileClassMissingFields', () => {
     test('throws exception when MetadataMenu not available', () => {
-      const frontmatter = { title: 'Test' };
-      
+      const frontmatter = {title: 'Test'};
+
       expect(() => {
         adapter.insertFileClassMissingFields(frontmatter, 'book');
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
@@ -348,14 +330,13 @@ describe('MetadataMenuAdapter', () => {
       const mockFieldsMap = new Map();
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       expect(() => {
         adapter.insertFileClassMissingFields({}, 'book');
@@ -369,16 +350,15 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const frontmatter = { title: 'Existing Title' };
+      const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
 
       expect(result).toEqual({
@@ -395,16 +375,15 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const frontmatter = { 
+      const frontmatter = {
         title: 'Existing Title',
         author: 'Existing Author',
         extraField: 'Extra Value'
@@ -422,15 +401,14 @@ describe('MetadataMenuAdapter', () => {
   describe('Edge Cases and Error Handling', () => {
     test('insertMissingFields throws exception when fieldIndex missing', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         // No fieldIndex
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const frontmatter = { title: 'Test' };
-      
+      const frontmatter = {title: 'Test'};
+
       expect(() => {
         adapter.insertMissingFields(frontmatter, 'book');
       }).toThrow('No fileClass definitions found in MetadataMenu');
@@ -443,17 +421,16 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap,
           fileClassesAncestors: 'invalid-data' // Invalid data type
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const frontmatter = { existing: 'value' };
+      const frontmatter = {existing: 'value'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
 
       // Should still process the main fileClass even if ancestors fail
@@ -467,7 +444,7 @@ describe('MetadataMenuAdapter', () => {
       const basicFields = [{name: 'id'}];
       const defaultFields = [{name: 'created'}, {name: 'updated'}];
       const bookFields = [{name: 'title'}, {name: 'author'}];
-      
+
       const mockFieldsMap = new Map([
         ['basic', basicFields],
         ['default', defaultFields],
@@ -480,17 +457,16 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap,
           fileClassesAncestors: mockAncestorsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
-      const frontmatter = { title: 'Existing Title' };
+      const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
 
       expect(result).toEqual({
@@ -505,7 +481,7 @@ describe('MetadataMenuAdapter', () => {
     test('insertMissingFields works with object-based ancestors (not Map)', () => {
       const defaultFields = [{name: 'created'}];
       const bookFields = [{name: 'title'}];
-      
+
       const mockFieldsMap = new Map([
         ['default', defaultFields],
         ['book', bookFields]
@@ -517,15 +493,14 @@ describe('MetadataMenuAdapter', () => {
       };
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap,
           fileClassesAncestors: mockAncestorsObject // Object, not Map
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const frontmatter = {};
       const result = adapter.insertMissingFields(frontmatter, 'book');
@@ -543,32 +518,30 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const result = adapter.getAllFieldsFileClassesAssociation();
 
       // Should handle empty field names gracefully
       expect(result).toEqual({
-        title: { fileClasses: ['book', 'article'] },
-        '': { fileClasses: ['book'] },      // Empty string field
-        author: { fileClasses: ['book'] }
+        title: {fileClasses: ['book', 'article']},
+        '': {fileClasses: ['book']},      // Empty string field
+        author: {fileClasses: ['book']}
       });
     });
 
     test('getFileClassAlias throws exception when settings is null', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: null  // No settings
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       expect(() => {
         adapter.getFileClassAlias();
@@ -577,11 +550,10 @@ describe('MetadataMenuAdapter', () => {
 
     test('getFileClassAlias throws exception when settings is not object', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: 'not-an-object'  // Invalid settings
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       expect(() => {
         adapter.getFileClassAlias();
@@ -590,7 +562,7 @@ describe('MetadataMenuAdapter', () => {
 
     test('insertFileClassMissingFields handles fields without names', () => {
       const mockFields = [
-        {name: 'title'}, 
+        {name: 'title'},
         {name: ''}, // Empty name
         {name: null}, // Null name
         {name: 'author'}
@@ -600,14 +572,13 @@ describe('MetadataMenuAdapter', () => {
       ]);
 
       mockApp.plugins.plugins['metadata-menu'] = {
-        api: {}, 
+        api: {},
         settings: {},
         fieldIndex: {
           fileClassesFields: mockFieldsMap
         }
       };
-      const settings = {...DEFAULT_SETTINGS, metadataMenuIntegration: true};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
+      adapter = new MetadataMenuAdapter(mockApp);
 
       const frontmatter = {};
       const result = adapter.insertFileClassMissingFields(frontmatter, 'book');

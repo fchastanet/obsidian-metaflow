@@ -15,13 +15,11 @@ export interface Frontmatter {
 
 export class MetadataMenuAdapter {
   private app: App;
-  private metaFlowSettings: MetaFlowSettings;
   private metadataMenuPlugin: MetadataMenuPluginInterface;
   private METADATA_MENU_PLUGIN_NAME = 'metadata-menu';
 
-  constructor(app: App, metaFlowSettings: MetaFlowSettings) {
+  constructor(app: App) {
     this.app = app;
-    this.metaFlowSettings = metaFlowSettings;
     this.metadataMenuPlugin = (this.app as any).plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
   }
 
@@ -31,7 +29,6 @@ export class MetadataMenuAdapter {
   isMetadataMenuAvailable(): boolean {
     const metadataMenuPlugin = (this.app as any).plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
     if (
-      this.metaFlowSettings.metadataMenuIntegration &&
       (this.app as any)?.plugins?.enabledPlugins?.has(this.METADATA_MENU_PLUGIN_NAME) &&
       metadataMenuPlugin?.api &&
       typeof metadataMenuPlugin.api === 'object' &&
@@ -185,9 +182,6 @@ export class MetadataMenuAdapter {
       // We want to insert in order: "default-basic" (most basic) → "default" → "book" (most specific)
       // So we need to reverse the ancestors array to get most basic first
       const orderedAncestors = ancestors.slice().reverse();
-
-      console.log(`FileClass "${fileClassName}" has ancestors:`, ancestors);
-      console.log(`Insertion order will be:`, [...orderedAncestors, fileClassName]);
 
       return orderedAncestors;
 

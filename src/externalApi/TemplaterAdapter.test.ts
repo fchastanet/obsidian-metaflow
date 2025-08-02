@@ -26,7 +26,7 @@ describe('TemplaterAdapter', () => {
         settings: {},
         templater: {}
       };
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, enableTemplaterIntegration: true});
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
       const result = adapter.isTemplaterAvailable();
       expect(result).toBe(true);
     });
@@ -58,15 +58,8 @@ describe('TemplaterAdapter', () => {
   });
 
   describe('checkTemplaterConsistency', () => {
-    test('should return consistent when Templater not enabled', async () => {
-      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS);
-      const result = await adapter.checkTemplaterConsistency();
-      expect(result.isConsistent).toBe(true);
-      expect(result.warnings).toEqual([]);
-    });
-
     test('should return warning when Templater enabled but plugin missing', async () => {
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, enableTemplaterIntegration: true});
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
       const result = await adapter.checkTemplaterConsistency();
       expect(result.isConsistent).toBe(false);
       expect(result.warnings).toContain('Templater plugin not found but integration is enabled');
@@ -82,7 +75,7 @@ describe('TemplaterAdapter', () => {
         },
         templater: {}
       };
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, enableTemplaterIntegration: true});
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
       const result = await adapter.checkTemplaterConsistency();
       expect(result.isConsistent).toBe(true);
       expect(result.warnings).toEqual([]);
@@ -97,7 +90,7 @@ describe('TemplaterAdapter', () => {
         templater: {}
       };
       const settingsWithMappings = {
-        ...DEFAULT_SETTINGS, 
+        ...DEFAULT_SETTINGS,
         enableTemplaterIntegration: true,
         folderFileClassMappings: [
           {folderPattern: 'Articles/*', fileClass: 'article', isRegex: false}  // Different pattern
@@ -120,7 +113,7 @@ describe('TemplaterAdapter', () => {
       const mockPrompt = jest.fn().mockResolvedValue('userInput');
       mockApp.plugins.plugins['templater-obsidian'] = {prompt: mockPrompt};
       // Recreate adapter to pick up new plugin
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, enableTemplaterIntegration: true});
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
       const result = await adapter.prompt('Enter value', 'defaultVal');
       expect(mockPrompt).toHaveBeenCalledWith('Enter value');
       expect(result).toBe('userInput');
@@ -135,7 +128,7 @@ describe('TemplaterAdapter', () => {
           }
         }
       };
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, enableTemplaterIntegration: true});
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
       const result = adapter.date('YYYY-MM-DD');
       expect(mockDate).toHaveBeenCalledWith('YYYY-MM-DD');
       expect(result).toBe('templater-date');

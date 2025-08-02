@@ -51,7 +51,7 @@ export class ProgressModal extends Modal {
     this.results.style.overflowX = "hidden";
     this.results.style.width = '100%';
     this.results.style.backgroundColor = '#fff';
-    this.results.style.scrollbarWidth = 'thin';
+    (this.results.style as any).scrollbarWidth = 'thin';
 
     this.cancelButton = this.contentEl.createEl('button', {text: 'Cancel'});
     this.cancelButton.classList.add('mod-cta');

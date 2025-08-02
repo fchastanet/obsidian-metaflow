@@ -18,7 +18,7 @@ export class MetaFlowService {
     this.app = app;
     this.metaFlowSettings = metaFlowSettings;
     this.scriptContextService = new ScriptContextService(app, this.metaFlowSettings);
-    this.metadataMenuAdapter = new MetadataMenuAdapter(app, this.metaFlowSettings);
+    this.metadataMenuAdapter = new MetadataMenuAdapter(app);
     this.frontMatterService = new FrontMatterService();
     this.templaterAdapter = new TemplaterAdapter(app, this.metaFlowSettings);
   }
@@ -31,7 +31,7 @@ export class MetaFlowService {
       }
 
       // Step 2: Check if Templater plugin is available (if integration is enabled)
-      if (this.metaFlowSettings.enableTemplaterIntegration && !this.templaterAdapter.isTemplaterAvailable()) {
+      if (!this.templaterAdapter.isTemplaterAvailable()) {
         throw new MetaFlowException('Templater plugin not available');
       }
 

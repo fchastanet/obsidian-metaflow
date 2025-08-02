@@ -19,9 +19,7 @@ export interface MetaFlowSettings {
   enableAutoMetadataInsertion: boolean;
   insertMissingFieldsOnSort: boolean;
   useMetadataMenuDefaults: boolean;
-  metadataMenuIntegration: boolean;
   folderFileClassMappings: FolderFileClassMapping[];
   propertyDefaultValueScripts: PropertyDefaultValueScript[];
-  enableTemplaterIntegration: boolean;
 }
 

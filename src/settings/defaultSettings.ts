@@ -10,7 +10,6 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
   enableAutoMetadataInsertion: false,
   insertMissingFieldsOnSort: false,
   useMetadataMenuDefaults: false,
-  metadataMenuIntegration: false,
   hidePropertiesInEditor: false,
   folderFileClassMappings: [
     {
@@ -20,5 +19,4 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
     }
   ],
   propertyDefaultValueScripts: [],
-  enableTemplaterIntegration: false
 };

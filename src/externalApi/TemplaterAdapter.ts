@@ -43,8 +43,7 @@ export class TemplaterAdapter {
   }
 
   isTemplaterAvailable(): boolean {
-    return this.settings.enableTemplaterIntegration
-      && (this.app as any)?.plugins?.enabledPlugins?.has(this.TEMPLATER_PLUGIN_NAME)
+    return (this.app as any)?.plugins?.enabledPlugins?.has(this.TEMPLATER_PLUGIN_NAME)
       && this.templater !== null
       && typeof this.templater === 'object';
   }
@@ -55,10 +54,6 @@ export class TemplaterAdapter {
   checkTemplaterConsistency(): {isConsistent: boolean; warnings: string[]} {
     const warnings: string[] = [];
     let isConsistent = true;
-
-    if (!this.settings.enableTemplaterIntegration) {
-      return {isConsistent: true, warnings: []};
-    }
 
     if (!this.isTemplaterAvailable()) {
       warnings.push('Templater plugin not found but integration is enabled');
