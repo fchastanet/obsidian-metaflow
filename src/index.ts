@@ -98,6 +98,12 @@ export default class MetaFlowPlugin extends Plugin {
       new Notice('No active file');
       return;
     }
+    // Exclude files in excluded folders
+    const excludeFolders = (this.settings.excludeFolders || []);
+    if (excludeFolders.some(folder => file.path.startsWith(folder + '/'))) {
+      new Notice(`File is in an excluded folder: ${file.path}`);
+      return;
+    }
 
     try {
       const processedContent = this.metaFlowService.processContent(content, file);
@@ -149,7 +155,12 @@ export default class MetaFlowPlugin extends Plugin {
   massUpdateMetadataProperties(files: TFile[]) {
     let updatedCount = 0;
     let processedCount = 0;
-    let totalFiles = files.length;
+    // Filter out files in excluded folders
+    const excludeFolders = (this.settings.excludeFolders || []);
+    const filteredFiles = files.filter(file => {
+      return !excludeFolders.some(folder => file.path.startsWith(folder + '/'));
+    });
+    let totalFiles = filteredFiles.length;
     if (totalFiles === 0) {
       new Notice('No files to update');
       return;
@@ -167,7 +178,7 @@ export default class MetaFlowPlugin extends Plugin {
     new Notice(`Starting mass update of ${totalFiles} files...`);
 
     try {
-      for (const file of files) {
+      for (const file of filteredFiles) {
         try {
           if (abort) {
             break;

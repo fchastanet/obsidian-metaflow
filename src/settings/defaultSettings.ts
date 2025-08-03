@@ -19,4 +19,5 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
     }
   ],
   propertyDefaultValueScripts: [],
+  excludeFolders: [],
 };

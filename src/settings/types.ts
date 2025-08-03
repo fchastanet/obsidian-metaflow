@@ -21,5 +21,6 @@ export interface MetaFlowSettings {
   useMetadataMenuDefaults: boolean;
   folderFileClassMappings: FolderFileClassMapping[];
   propertyDefaultValueScripts: PropertyDefaultValueScript[];
+  excludeFolders?: string[];
 }
 

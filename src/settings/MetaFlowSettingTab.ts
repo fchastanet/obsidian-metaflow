@@ -6,7 +6,9 @@ import {MetaFlowService} from "../services/MetaFlowService";
 import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatterService";
 declare type AceModule = typeof import("ace-builds");
 import * as Ace from "ace-builds";
+import {FolderSuggest} from "./FolderSuggest";
 declare const ace: AceModule;
+
 /**
  * Settings tab for MetaFlow plugin
  * Provides configuration UI for folder mappings, property scripts, and integration settings
@@ -33,6 +35,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   display(): void {
     const {containerEl} = this;
 
+    containerEl.setAttribute('id', 'metaflow-settings');
     containerEl.empty();
 
     containerEl.createEl('h1', {text: 'MetaFlow Settings'});
@@ -62,6 +65,30 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       e.stopPropagation();
       generalDetails.open = !generalDetails.open;
     });
+
+    // Exclude folders setting (multiple rows with folder suggest)
+    const excludeFoldersContainer = generalDetails.createDiv();
+    excludeFoldersContainer.createEl('div', {text: 'Exclude folders', cls: 'setting-item-name'});
+    excludeFoldersContainer.createEl('div', {text: 'Folders to exclude from metadata update commands. Add one per row.', cls: 'setting-item-description'});
+
+    const excludeFoldersList = excludeFoldersContainer.createDiv();
+    // Render each folder row
+    (this.plugin.settings.excludeFolders || []).forEach((folder: string, idx: number) => {
+      this.addFolderRow(excludeFoldersList, folder, idx);
+    });
+
+    // Add button to add new folder row
+    new Setting(excludeFoldersContainer)
+      .addButton(btn => {
+        btn.setButtonText('Add folder')
+          .setCta()
+          .onClick(async () => {
+            this.plugin.settings.excludeFolders = this.plugin.settings.excludeFolders || [];
+            this.plugin.settings.excludeFolders.push('');
+            await this.plugin.saveSettings();
+            this.addFolderRow(excludeFoldersList, '', this.plugin.settings.excludeFolders.length - 1);
+          });
+      });
 
     // Auto-sort on view setting
     new Setting(generalDetails)
@@ -310,6 +337,37 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           title="Submit a report" target="_blank">Submit a report</a>.
       </div>
     </div>`;
+  }
+
+  private addFolderRow(excludeFoldersContainer: HTMLDivElement, folder: string, idx: number): void {
+    const row = new Setting(excludeFoldersContainer)
+      .addSearch(search => {
+        search
+          .setPlaceholder('Example: folder1/folder2')
+          .setValue(folder)
+          .onChange(async (value) => {
+            if (!Array.isArray(this.plugin.settings.excludeFolders)) {
+              this.plugin.settings.excludeFolders = [];
+            }
+            this.plugin.settings.excludeFolders[idx] = value;
+            await this.plugin.saveSettings();
+          });
+        // Add folder suggestions
+        new FolderSuggest(this.app, search.inputEl);
+      });
+    row.settingEl.addClass('no-border');
+    row.addExtraButton((btn) => {
+      btn.setIcon('cross')
+        .setTooltip('Remove')
+        .onClick(async () => {
+          if (!Array.isArray(this.plugin.settings.excludeFolders)) {
+            this.plugin.settings.excludeFolders = [];
+          }
+          this.plugin.settings.excludeFolders.splice(idx, 1);
+          await this.plugin.saveSettings();
+          excludeFoldersContainer.removeChild(row.settingEl);
+        });
+    });
   }
 
   private updatePluginsStatus(): void {
