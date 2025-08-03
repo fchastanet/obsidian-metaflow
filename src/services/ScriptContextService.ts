@@ -9,12 +9,13 @@ export interface ScriptContextInterface {
   file: any; // TFile
   metadata: {[key: string]: any};
   prompt: (message: string, defaultValue?: string) => Promise<string>;
-  date: any; // Templater date function
+  formatDate: (date: Date, format?: string) => any; // Templater date function
   generateMarkdownLink: (file: any) => string;
   detectLanguage: (text: string) => string;
   now: () => string;
   tomorrow: () => string;
   yesterday: () => string;
+  getParentFile: (file: TFile) => string;
 }
 
 
@@ -101,13 +102,14 @@ export class ScriptContextService {
       file,
       fileClass,
       metadata,
-      date: this.templaterAdapter.date.bind(this.templaterAdapter),
       now: this.templaterAdapter.now.bind(this.templaterAdapter),
+      formatDate: this.templaterAdapter.formatDate.bind(this.templaterAdapter),
       tomorrow: this.templaterAdapter.tomorrow.bind(this.templaterAdapter),
       yesterday: this.templaterAdapter.yesterday.bind(this.templaterAdapter),
       generateMarkdownLink: this.obsidianAdapter.generateMarkdownLink.bind(this.obsidianAdapter),
       detectLanguage: this.detectLanguage.bind(this),
       prompt: this.templaterAdapter.prompt.bind(this.templaterAdapter),
+      getParentFile: this.templaterAdapter.getParentFile.bind(this.templaterAdapter),
     };
   }
 }

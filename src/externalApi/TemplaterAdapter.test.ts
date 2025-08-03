@@ -104,6 +104,16 @@ describe('TemplaterAdapter', () => {
   });
 
   describe('TemplaterAdapter methods', () => {
+    beforeEach(() => {
+      // Mock window object for browser APIs used in TemplaterAdapter
+      Object.defineProperty(global, 'window', {
+        value: {
+          moment: undefined // Mock moment as undefined since it's not available in tests
+        },
+        writable: true
+      });
+    });
+
     test('prompt should return default if Templater unavailable', async () => {
       const result = await templaterAdapter.prompt('Enter value', 'defaultVal');
       expect(result).toBe('defaultVal');
@@ -120,29 +130,20 @@ describe('TemplaterAdapter', () => {
     });
 
     test('date should use Templater date if available', () => {
-      const mockDate = jest.fn().mockReturnValue('templater-date');
-      mockApp.plugins.plugins['templater-obsidian'] = {
-        functions_generator: {
-          internal_functions: {
-            modules: {date: mockDate}
-          }
-        }
-      };
       const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
-      const result = adapter.date('YYYY-MM-DD');
-      expect(mockDate).toHaveBeenCalledWith('YYYY-MM-DD');
-      expect(result).toBe('templater-date');
+      const result = adapter.formatDate(new Date(), 'YYYY-MM-DD');
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
-    test('date should fallback to ISO string if Templater not available', () => {
-      const result = templaterAdapter.date();
+    test('formatDate should fallback to ISO string if Templater not available', () => {
+      const result = templaterAdapter.formatDate(new Date());
       expect(typeof result).toBe('string');
-      expect(result).toMatch(/\d{4}-\d{2}-\d{2}T/);
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     test('now should return formatted date', () => {
       const result = templaterAdapter.now('YYYY-MM-DD');
-      expect(result).toMatch(/\d{4}-\d{2}-\d{2}/);
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     test('tomorrow should return tomorrow\'s formatted date', () => {

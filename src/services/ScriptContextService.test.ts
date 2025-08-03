@@ -1,5 +1,6 @@
 import {ScriptContextService} from './ScriptContextService';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
+import {TFile} from 'src/__mocks__/obsidian';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -9,11 +10,12 @@ jest.mock('obsidian', () => ({
 // Mock the adapters
 jest.mock('../externalApi/TemplaterAdapter', () => ({
   TemplaterAdapter: jest.fn().mockImplementation(() => ({
-    date: jest.fn((format?: string) => '2025-07-30'),
+    formatDate: jest.fn((format?: string) => '2025-07-30'),
     now: jest.fn(() => '2025-07-30'),
     tomorrow: jest.fn(() => '2025-07-31'),
     yesterday: jest.fn(() => '2025-07-29'),
-    prompt: jest.fn(async (message: string) => 'mocked-input')
+    prompt: jest.fn(async (message: string) => 'mocked-input'),
+    getParentFile: jest.fn((currentFile: TFile) => 'mocked-parent-file')
   }))
 }));
 
@@ -118,7 +120,7 @@ describe('ScriptContextService', () => {
       expect(context.file).toBe(mockFile);
       expect(context.fileClass).toBe(fileClass);
       expect(context.metadata).toBe(metadata);
-      expect(typeof context.date).toBe('function');
+      expect(typeof context.formatDate).toBe('function');
       expect(typeof context.now).toBe('function');
       expect(typeof context.tomorrow).toBe('function');
       expect(typeof context.yesterday).toBe('function');
@@ -138,7 +140,7 @@ describe('ScriptContextService', () => {
       expect(context.now()).toBe('2025-07-30');
       expect(context.tomorrow()).toBe('2025-07-31');
       expect(context.yesterday()).toBe('2025-07-29');
-      expect(context.date('YYYY-MM-DD')).toBe('2025-07-30');
+      expect(context.formatDate(new Date('2025-07-30'), 'YYYY-MM-DD')).toBe('2025-07-30');
     });
 
     test('should provide working detectLanguage function', () => {
@@ -204,7 +206,7 @@ describe('ScriptContextService', () => {
       const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
 
       // Test that date functions are available and work
-      expect(typeof context.date).toBe('function');
+      expect(typeof context.formatDate).toBe('function');
       expect(typeof context.now).toBe('function');
       expect(typeof context.tomorrow).toBe('function');
       expect(typeof context.yesterday).toBe('function');
@@ -213,7 +215,7 @@ describe('ScriptContextService', () => {
       expect(context.now()).toBe('2025-07-30');
       expect(context.tomorrow()).toBe('2025-07-31');
       expect(context.yesterday()).toBe('2025-07-29');
-      expect(context.date('YYYY-MM-DD')).toBe('2025-07-30');
+      expect(context.formatDate(new Date('2025-07-30'), 'YYYY-MM-DD')).toBe('2025-07-30');
     });
 
     test('should provide prompt function through context', async () => {
@@ -226,6 +228,21 @@ describe('ScriptContextService', () => {
       expect(typeof context.prompt).toBe('function');
       const result = await context.prompt('Enter value', 'default');
       expect(result).toBe('mocked-input');
+    });
+  });
+
+  describe('Parent File Retrieval', () => {
+    test('should retrieve parent file correctly', () => {
+      const mockFile = {name: 'child.md', path: 'folder/child.md'} as any;
+      const parentFile = scriptContextService.getScriptContext(mockFile, 'article', {}).getParentFile(mockFile);
+      expect(parentFile).toBe('mocked-parent-file');
+    });
+
+    test('should handle active file retrieval', () => {
+      const mockFile = {name: 'active.md', path: 'folder/active.md'} as any;
+      const context = scriptContextService.getScriptContext(mockFile, 'article', {});
+      const parentFile = context.getParentFile(mockFile);
+      expect(parentFile).toBe('mocked-parent-file');
     });
   });
 
@@ -271,13 +288,14 @@ describe('ScriptContextService', () => {
       expect(context).toHaveProperty('file');
       expect(context).toHaveProperty('fileClass');
       expect(context).toHaveProperty('metadata');
-      expect(context).toHaveProperty('date');
+      expect(context).toHaveProperty('formatDate');
       expect(context).toHaveProperty('now');
       expect(context).toHaveProperty('tomorrow');
       expect(context).toHaveProperty('yesterday');
       expect(context).toHaveProperty('generateMarkdownLink');
       expect(context).toHaveProperty('detectLanguage');
       expect(context).toHaveProperty('prompt');
+      expect(context).toHaveProperty('getParentFile');
 
       // Verify property values
       expect(context.file).toBe(mockFile);
@@ -317,9 +335,10 @@ describe('ScriptContextService', () => {
       expect(() => context.now()).not.toThrow();
       expect(() => context.tomorrow()).not.toThrow();
       expect(() => context.yesterday()).not.toThrow();
-      expect(() => context.date()).not.toThrow();
+      expect(() => context.formatDate(new Date(), 'YYYY-MM-DD')).not.toThrow();
       expect(() => context.detectLanguage('test')).not.toThrow();
       expect(() => context.generateMarkdownLink({name: 'test.md'})).not.toThrow();
+      expect(() => context.getParentFile(mockFile)).not.toThrow();
     });
   });
 });

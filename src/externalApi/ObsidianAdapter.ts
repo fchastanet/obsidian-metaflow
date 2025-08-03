@@ -13,8 +13,11 @@ export class ObsidianAdapter {
   /**
    * Generate a markdown link to a file
    */
-  generateMarkdownLink(targetFile: TFile, sourceFile?: TFile): string {
+  generateMarkdownLink(targetFile: TFile | null, sourceFile?: TFile | null): string {
     const sourcePath = sourceFile ? sourceFile.path : '';
+    if (!targetFile) {
+      return '';
+    }
     return this.app.fileManager.generateMarkdownLink(targetFile, sourcePath);
   }
 }

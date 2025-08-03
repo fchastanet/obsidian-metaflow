@@ -1,4 +1,4 @@
-import {App} from 'obsidian';
+import {App, TFile} from 'obsidian';
 import {MetaFlowSettings} from 'src/settings/types';
 
 export interface FolderTemplate {
@@ -95,7 +95,7 @@ export class TemplaterAdapter {
     return this.templater.prompt(message);
   }
 
-  private dateFormatFallback(date: Date, format?: string) {
+  private formatDateFallback(date: Date, format?: string) {
     if (!format) {
       return date.toISOString();
     }
@@ -110,35 +110,74 @@ export class TemplaterAdapter {
   }
 
   /**
-   * Get Templater date function if available
+   * format any javascript date using moment
+   * if moment is not available fallback on minimal support
    */
-  date(format?: string): any {
-    if (this.isTemplaterAvailable() && this.templater?.functions_generator?.internal_functions?.modules?.date) {
-      return this.templater.functions_generator.internal_functions.modules.date(format);
+  formatDate(date: Date, format?: string): any {
+    const moment = (window as any).moment;
+    if (moment) {
+      return format ? moment(date).format(format) : moment(date).toISOString();
+    }
+
+    // Fallback simple date function
+    return this.formatDateFallback(date, format);
+  }
+
+  now(format?: string): string {
+    const moment = (window as any).moment;
+    if (moment) {
+      const now = moment();
+      return format ? now.format(format) : now.toISOString();
     }
 
     // Fallback simple date function
     const now = new Date();
-    if (format) {
-      return this.dateFormatFallback(now, format);
-    }
-    return now.toISOString();
-  }
-
-  now(format?: string): string {
-    const now = new Date();
-    return this.dateFormatFallback(now, format);
+    return this.formatDateFallback(now, format);
   }
 
   tomorrow(format?: string): string {
+    const moment = (window as any).moment;
+    if (moment) {
+      const tomorrow = moment().add(1, 'days');
+      return format ? tomorrow.format(format) : tomorrow.toISOString();
+    }
+
+    // Fallback simple date function
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return this.dateFormatFallback(tomorrow, format);
+    return this.formatDateFallback(tomorrow, format);
   }
 
   yesterday(format?: string): string {
+    const moment = (window as any).moment;
+    if (moment) {
+      const yesterday = moment().subtract(1, 'days');
+      return format ? yesterday.format(format) : yesterday.toISOString();
+    }
+
+    // Fallback simple date function
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    return this.dateFormatFallback(yesterday, format);
+    return this.formatDateFallback(yesterday, format);
+  }
+
+  /**
+   * deduce parent file
+   */
+  getParentFile(currentFile: TFile): string | null {
+    const activeFile = this.app.workspace.getActiveFile();
+    let parentFile = null;
+    if (currentFile?.path === activeFile?.path) {
+      // currentFile is actually active file
+      // deduce parent link from previous edited file
+      const parentFilePath = (this.app.workspace as any)?.recentFileTracker?.lastOpenFiles?.[1];
+      if (parentFilePath) {
+        parentFile = this.templater.file.find_tfile(parentFilePath);
+      }
+    } else {
+      parentFile = activeFile;
+    }
+
+    return parentFile;
   }
 }
