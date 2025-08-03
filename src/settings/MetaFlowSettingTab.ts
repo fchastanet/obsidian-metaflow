@@ -4,7 +4,9 @@ import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter, TemplaterSettingsInterface} from "../externalApi/TemplaterAdapter";
 import {MetaFlowService} from "../services/MetaFlowService";
 import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatterService";
-
+declare type AceModule = typeof import("ace-builds");
+import * as Ace from "ace-builds";
+declare const ace: AceModule;
 /**
  * Settings tab for MetaFlow plugin
  * Provides configuration UI for folder mappings, property scripts, and integration settings
@@ -796,6 +798,83 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       scriptTextarea.style.marginTop = '5px';
       scriptTextarea.style.fontFamily = 'monospace';
 
+      let editor = null;
+      if (typeof ace !== 'undefined') {
+        const editorOptions: Ace.Ace.EditorOptions = {
+          mode: "ace/mode/javascript",
+          theme: "ace/theme/dracula",
+          enableBasicAutocompletion: [],
+          showGutter: true,
+          showPrintMargin: false,
+          fontSize: "14px",
+          enableLiveAutocompletion: true,
+          enableSnippets: true,
+          autoScrollEditorIntoView: true,
+          wrap: true,
+          minLines: 5,
+          maxLines: 20,
+          tabSize: 2,
+          useSoftTabs: true,
+          highlightActiveLine: true,
+          highlightGutterLine: true,
+          showLineNumbers: true,
+          selectionStyle: "text",
+          highlightSelectedWord: false,
+          readOnly: false,
+          copyWithEmptySelection: false,
+          cursorStyle: "ace",
+          mergeUndoDeltas: false,
+          behavioursEnabled: false,
+          wrapBehavioursEnabled: false,
+          enableAutoIndent: false,
+          liveAutocompletionDelay: 0,
+          liveAutocompletionThreshold: 0,
+          keyboardHandler: null,
+          placeholder: "",
+          value: "",
+          session: new Ace.EditSession,
+          relativeLineNumbers: false,
+          enableMultiselect: false,
+          enableKeyboardAccessibility: false,
+          enableCodeLens: false,
+          textInputAriaLabel: "",
+          enableMobileMenu: false,
+          wrapMethod: "code",
+          indentedSoftWrap: false,
+          firstLineNumber: 0,
+          useWorker: false,
+          navigateWithinSoftTabs: false,
+          foldStyle: "markbegin",
+          overwrite: false,
+          newLineMode: "auto",
+          scrollSpeed: 0,
+          dragDelay: 0,
+          dragEnabled: false,
+          focusTimeout: 0,
+          tooltipFollowsMouse: false,
+          animatedScroll: false,
+          showInvisibles: false,
+          printMarginColumn: 0,
+          printMargin: 0,
+          fadeFoldWidgets: false,
+          showFoldWidgets: false,
+          displayIndentGuides: false,
+          highlightIndentGuides: false,
+          hScrollBarAlwaysVisible: false,
+          vScrollBarAlwaysVisible: false,
+          fontFamily: "",
+          scrollPastEnd: 0,
+          fixedWidthGutter: false,
+          customScrollbar: false,
+          hasCssTransforms: false,
+          maxPixelHeight: 0,
+          useSvgGutterIcons: false,
+          showFoldedAnnotations: false,
+          useResizeObserver: false
+        };
+        editor = ace.edit(scriptTextarea, editorOptions);
+        editor.resize();
+      }
       // Button row
       const buttonRow = editDiv.createEl('div');
       buttonRow.style.display = 'flex';
@@ -867,8 +946,11 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       okButton.addEventListener('click', async () => {
         // Apply changes
         script.propertyName = propertyInput.value;
-        script.script = scriptTextarea.value;
         script.enabled = enabledToggle.checked;
+        if (editor !== null) {
+          scriptTextarea.value = editor.getValue();
+        }
+        script.script = scriptTextarea.value;
         await this.plugin.saveSettings();
         this.displayPropertyScripts(container);
       });

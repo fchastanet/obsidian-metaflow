@@ -148,6 +148,11 @@ return detectLanguage(file.content);
 
 You can use the [Linter plugin](https://github.com/platers/obsidian-linter) to automatically execute `Metaflow: Update metadata` command on save.
 
+### Ace editor
+
+You can use the [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor) to enhance your editing experience with advanced code editing features.
+This plugin settings are using this `ace` editor if available, otherwise it falls back to simple textarea.
+
 ## 🧪 Testing
 
 The plugin includes comprehensive test coverage:
@@ -197,3 +202,4 @@ and those great Obsidian plugins:
 - [Obsidian Metadata Menu plugin](https://mdelobelle.github.io/metadatamenu)
 - [Obsidian Templater plugin](https://github.com/SilentVoid13/Templater)
 - [Linter plugin](https://github.com/platers/obsidian-linter)
+- [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor)
