@@ -2,6 +2,7 @@ import {MetaFlowSettingTab} from "./MetaFlowSettingTab";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
+  AbstractInputSuggest: class { },
   PluginSettingTab: class MockPluginSettingTab {
     app: any;
     plugin: any;

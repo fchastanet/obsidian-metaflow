@@ -144,10 +144,6 @@ return date.now("YYYY-MM-DD");
 return detectLanguage(file.content);
 ```
 
-### Linter
-
-You can use the [Linter plugin](https://github.com/platers/obsidian-linter) to automatically execute `Metaflow: Update metadata` command on save.
-
 ### Ace editor
 
 You can use the [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor) to enhance your editing experience with advanced code editing features.
@@ -201,5 +197,4 @@ and those great Obsidian plugins:
 
 - [Obsidian Metadata Menu plugin](https://mdelobelle.github.io/metadatamenu)
 - [Obsidian Templater plugin](https://github.com/SilentVoid13/Templater)
-- [Linter plugin](https://github.com/platers/obsidian-linter)
 - [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor)

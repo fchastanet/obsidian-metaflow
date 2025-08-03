@@ -35,6 +35,22 @@ export default class MetaFlowPlugin extends Plugin {
       }
     });
 
+    let leafChangeTimeout: ReturnType<typeof setTimeout> | null = null;
+    this.app.workspace.on("active-leaf-change", () => {
+      if (!this.settings.enableAutoMetadataInsertion) {
+        return;
+      }
+      if (leafChangeTimeout) {
+        clearTimeout(leafChangeTimeout);
+      }
+      leafChangeTimeout = setTimeout(() => {
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView?.editor) {
+          this.updateMetadataPropertiesInEditor(activeView.editor, activeView);
+        }
+      }, 200);
+    });
+
     // Register the command for single file processing to sort metadata
     this.addCommand({
       id: 'metaflow-sort-metadata',
@@ -101,7 +117,7 @@ export default class MetaFlowPlugin extends Plugin {
     // Exclude files in excluded folders
     const excludeFolders = (this.settings.excludeFolders || []);
     if (excludeFolders.some(folder => file.path.startsWith(folder + '/'))) {
-      new Notice(`File is in an excluded folder: ${file.path}`);
+      new Notice(`File ${file.name} is in an excluded folder: ${file.path}`);
       return;
     }
 
