@@ -153,6 +153,28 @@ export class MetadataMenuAdapter {
     return this.metadataMenuPlugin.fieldIndex.fileClassesFields.get(fileClass) || [];
   }
 
+  getAllFields(): Map<string, MetadataMenuField & {fileClasses?: string[]}> {
+    this.checkMetadataMenuAvailable();
+    if (!this.metadataMenuPlugin.fieldIndex?.fileClassesFields ||
+      typeof this.metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
+    ) {
+      throw new MetaFlowException('No fileClass definitions found in MetadataMenu');
+    }
+    let allFields: Map<string, MetadataMenuField & {fileClasses?: string[]}> = new Map();
+    this.metadataMenuPlugin.fieldIndex.fileClassesFields.forEach(
+      (fields: MetadataMenuField[], fc: string) => {
+        fields.forEach((field) => {
+          if (!allFields.has(field.name)) {
+            allFields.set(field.name, {...field, fileClasses: [fc]});
+          } else {
+            allFields.get(field.name)!.fileClasses!.push(fc);
+          }
+        });
+      }
+    );
+    return allFields;
+  }
+
   /**
    * Get the ancestor chain for a fileClass in the correct order for field insertion
    * Returns ancestors from most basic to most specific (e.g., ["default-basic", "default"])

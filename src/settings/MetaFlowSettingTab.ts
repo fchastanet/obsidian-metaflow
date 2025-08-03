@@ -634,6 +634,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     const orderedProperties = this.plugin.settings.propertyDefaultValueScripts
       .slice()
       .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+
     orderedProperties.forEach((script, index) => {
       const scriptDiv = container.createEl('div', {cls: 'setting-item'});
       scriptDiv.style.border = '1px solid #ccc';
@@ -797,82 +798,84 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       scriptTextarea.style.height = '100px';
       scriptTextarea.style.marginTop = '5px';
       scriptTextarea.style.fontFamily = 'monospace';
+      const completions: Ace.Ace.ValueCompletion[] = [
+        {value: 'file', score: 1, meta: 'TFile', docHTML: 'the obsidian TFile object currently being edited'},
+        {value: 'fileClass', score: 2, meta: 'string', docHTML: 'the deduced or forced fileClass for the current file'},
+        {value: 'metadata', score: 1, meta: 'object', docHTML: 'the metadata for the current file'},
+        {value: "now('YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'current date with default ISO format or format specified using moment library'},
+        {value: "tomorrow('YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'date of tomorrow with default ISO format or format specified using moment library'},
+        {value: "yesterday('YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'date of yesterday with default ISO format or format specified using moment library'},
+        {value: "formatDate(date, 'YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'format javascript date with default ISO format or format specified using moment library'},
+        {value: 'generateMarkdownLink(file)', score: 1, meta: 'string', docHTML: 'generate a markdown link to the file'},
+        {value: 'detectLanguage(text)', score: 1, meta: 'string', docHTML: 'simple language detection of the given text'},
+        {value: 'prompt("Your prompt here", "defaultValue")', score: 1, meta: 'string: show prompt dialog', docHTML: 'show a prompt dialog to the user and return the input value, defaultValue will be used in case of mass update'},
+        {value: 'getParentFile()', score: 1, meta: 'string', docHTML: 'get the parent file of the current file'},
+      ];
 
-      let editor = null;
+      const metadataCompletions: Ace.Ace.ValueCompletion[] = [];
+      this.metadataMenuAdapter.getAllFields().forEach(field => {
+        metadataCompletions.push({
+          value: field.name,
+          score: 1,
+          meta: `Metadata`,
+          docHTML: `Metadata field: ${field.name}.<br>Type: ${field.type}.<br>Description: ${(field as any)?.tooltip || 'No description available.'}`,
+        });
+      });
+
+      // Add help button for completions
+      const helpButton = scriptRow.createEl('button', {text: '🛈 Help'});
+      helpButton.style.marginLeft = '10px';
+      helpButton.style.backgroundColor = 'var(--background-modifier-border)';
+      helpButton.style.color = 'var(--text-normal)';
+      helpButton.style.border = 'none';
+      helpButton.style.padding = '3px 8px';
+      helpButton.style.cursor = 'pointer';
+      helpButton.style.borderRadius = '3px';
+      helpButton.style.fontSize = '12px';
+      helpButton.addEventListener('click', () => {
+        // Import and open the modal
+        // @ts-ignore
+        import('./CompletionsHelpModal').then(mod => {
+          new mod.CompletionsHelpModal(this.app, completions).open();
+        });
+      });
+
+      let editor: Ace.Editor | null = null;
       if (typeof ace !== 'undefined') {
-        const editorOptions: Ace.Ace.EditorOptions = {
-          mode: "ace/mode/javascript",
-          theme: "ace/theme/dracula",
-          enableBasicAutocompletion: [],
-          showGutter: true,
-          showPrintMargin: false,
-          fontSize: "14px",
+        editor = ace.edit(scriptTextarea);
+        editor.setTheme("ace/theme/dracula");
+        editor.session.setMode("ace/mode/javascript");
+        editor.session.setUseWrapMode(true);
+        editor.setHighlightActiveLine(true);
+        editor.completers = [
+          {
+            getCompletions: (Editor, session, pos, prefix, callback) => {
+              const linePrefix = session.getLine(pos.row).substring(0, pos.column);
+              if (/metadata\./.exec(linePrefix)) {
+                // If the prefix matches metadata., return metadata completions
+                callback(null, metadataCompletions);
+                return;
+              }
+              callback(null, completions);
+            },
+          }
+        ];
+        editor.setOptions({
+          enableBasicAutocompletion: true,
           enableLiveAutocompletion: true,
           enableSnippets: true,
-          autoScrollEditorIntoView: true,
+          useWorker: false,
+          showLineNumbers: true,
+          fontSize: "14px",
           wrap: true,
+          autoScrollEditorIntoView: true,
           minLines: 5,
           maxLines: 20,
           tabSize: 2,
           useSoftTabs: true,
           highlightActiveLine: true,
           highlightGutterLine: true,
-          showLineNumbers: true,
-          selectionStyle: "text",
-          highlightSelectedWord: false,
-          readOnly: false,
-          copyWithEmptySelection: false,
-          cursorStyle: "ace",
-          mergeUndoDeltas: false,
-          behavioursEnabled: false,
-          wrapBehavioursEnabled: false,
-          enableAutoIndent: false,
-          liveAutocompletionDelay: 0,
-          liveAutocompletionThreshold: 0,
-          keyboardHandler: null,
-          placeholder: "",
-          value: "",
-          session: new Ace.EditSession,
-          relativeLineNumbers: false,
-          enableMultiselect: false,
-          enableKeyboardAccessibility: false,
-          enableCodeLens: false,
-          textInputAriaLabel: "",
-          enableMobileMenu: false,
-          wrapMethod: "code",
-          indentedSoftWrap: false,
-          firstLineNumber: 0,
-          useWorker: false,
-          navigateWithinSoftTabs: false,
-          foldStyle: "markbegin",
-          overwrite: false,
-          newLineMode: "auto",
-          scrollSpeed: 0,
-          dragDelay: 0,
-          dragEnabled: false,
-          focusTimeout: 0,
-          tooltipFollowsMouse: false,
-          animatedScroll: false,
-          showInvisibles: false,
-          printMarginColumn: 0,
-          printMargin: 0,
-          fadeFoldWidgets: false,
-          showFoldWidgets: false,
-          displayIndentGuides: false,
-          highlightIndentGuides: false,
-          hScrollBarAlwaysVisible: false,
-          vScrollBarAlwaysVisible: false,
-          fontFamily: "",
-          scrollPastEnd: 0,
-          fixedWidthGutter: false,
-          customScrollbar: false,
-          hasCssTransforms: false,
-          maxPixelHeight: 0,
-          useSvgGutterIcons: false,
-          showFoldedAnnotations: false,
-          useResizeObserver: false
-        };
-        editor = ace.edit(scriptTextarea, editorOptions);
+        });
         editor.resize();
       }
       // Button row
