@@ -13,9 +13,9 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
   hidePropertiesInEditor: false,
   folderFileClassMappings: [
     {
-      folderPattern: '.*',
+      folder: '/',
       fileClass: 'default',
-      isRegex: true
+      moveToFolder: false
     }
   ],
   propertyDefaultValueScripts: [],

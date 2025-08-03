@@ -1,7 +1,7 @@
 export interface FolderFileClassMapping {
-  folderPattern: string;
+  folder: string;
   fileClass: string;
-  isRegex?: boolean;
+  moveToFolder: boolean;
 }
 
 export interface PropertyDefaultValueScript {

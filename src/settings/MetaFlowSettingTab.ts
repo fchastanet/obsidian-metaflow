@@ -66,30 +66,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       generalDetails.open = !generalDetails.open;
     });
 
-    // Exclude folders setting (multiple rows with folder suggest)
-    const excludeFoldersContainer = generalDetails.createDiv();
-    excludeFoldersContainer.createEl('div', {text: 'Exclude folders', cls: 'setting-item-name'});
-    excludeFoldersContainer.createEl('div', {text: 'Folders to exclude from metadata update commands. Add one per row.', cls: 'setting-item-description'});
-
-    const excludeFoldersList = excludeFoldersContainer.createDiv();
-    // Render each folder row
-    (this.plugin.settings.excludeFolders || []).forEach((folder: string, idx: number) => {
-      this.addFolderRow(excludeFoldersList, folder, idx);
-    });
-
-    // Add button to add new folder row
-    new Setting(excludeFoldersContainer)
-      .addButton(btn => {
-        btn.setButtonText('Add folder')
-          .setCta()
-          .onClick(async () => {
-            this.plugin.settings.excludeFolders = this.plugin.settings.excludeFolders || [];
-            this.plugin.settings.excludeFolders.push('');
-            await this.plugin.saveSettings();
-            this.addFolderRow(excludeFoldersList, '', this.plugin.settings.excludeFolders.length - 1);
-          });
-      });
-
     // Auto-sort on view setting
     new Setting(generalDetails)
       .setName('Sort metadata properties on insert')
@@ -136,6 +112,30 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
+    // Exclude folders setting (multiple rows with folder suggest)
+    const excludeFoldersContainer = generalDetails.createDiv();
+    excludeFoldersContainer.createEl('div', {text: 'Exclude folders', cls: 'setting-item-name'});
+    excludeFoldersContainer.createEl('div', {text: 'Folders to exclude from metadata update commands. Add one per row.', cls: 'setting-item-description'});
+
+    const excludeFoldersList = excludeFoldersContainer.createDiv();
+    // Render each folder row
+    (this.plugin.settings.excludeFolders || []).forEach((folder: string, idx: number) => {
+      this.addFolderRow(excludeFoldersList, folder, idx);
+    });
+
+    // Add button to add new folder row
+    new Setting(excludeFoldersContainer)
+      .addButton(btn => {
+        btn.setButtonText('Add folder')
+          .setCta()
+          .onClick(async () => {
+            this.plugin.settings.excludeFolders = this.plugin.settings.excludeFolders || [];
+            this.plugin.settings.excludeFolders.push('');
+            await this.plugin.saveSettings();
+            this.addFolderRow(excludeFoldersList, '', this.plugin.settings.excludeFolders.length - 1);
+          });
+      });
+
     // Folder/FileClass Mappings - Collapsible
     const mappingsDetails = containerEl.createEl('details', {cls: 'setting-details'});
     mappingsDetails.open = false; // Collapsed by default
@@ -169,9 +169,9 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     templaterImportSetting.addButton(button => {
       this.templaterImportButton = button.buttonEl;
       button
-        .setButtonText('🔃 Sync with Templater')
+        .setButtonText('📥 Import from Templater')
         .onClick(async () => {
-          await this.syncFolderMappingsWithTemplater();
+          await this.importFolderMappingsFromTemplater();
           this.displayFolderMappings(mappingsContainer);
         });
     });
@@ -190,9 +190,9 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         .setCta()
         .onClick(() => {
           this.plugin.settings.folderFileClassMappings.push({
-            folderPattern: '',
+            folder: '',
             fileClass: '',
-            isRegex: false
+            moveToFolder: false
           });
           this.plugin.saveSettings();
           this.displayFolderMappings(mappingsContainer);
@@ -383,47 +383,37 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     }
   }
 
-  private async syncFolderMappingsWithTemplater(): Promise<void> {
+  private async importFolderMappingsFromTemplater(): Promise<void> {
     try {
-      const templaterPlugin = (this.app as any).plugins?.plugins?.['templater-obsidian'];
-      if (!templaterPlugin) {
-        new Notice('Templater plugin not found');
-        return;
-      }
-
-      const templaterSettings = templaterPlugin.settings as TemplaterSettingsInterface;
-      if (!templaterSettings?.file_templates) {
-        new Notice('No file templates found in Templater settings');
-        return;
-      }
+      const folderTemplateMapping = this.templaterAdapter.getFolderTemplatesMapping();
 
       let importedCount = 0;
-      for (const fileTemplate of templaterSettings.file_templates) {
+      for (const folderTemplate of folderTemplateMapping) {
         // Check if mapping already exists
         const existingMapping = this.plugin.settings.folderFileClassMappings.find(
-          mapping => mapping.folderPattern === fileTemplate.regex
+          mapping => mapping.folder === folderTemplate.folder
         );
 
         if (!existingMapping) {
           this.plugin.settings.folderFileClassMappings.push({
-            folderPattern: fileTemplate.regex,
+            folder: folderTemplate.folder,
             fileClass: '',
-            isRegex: true
+            moveToFolder: true
           });
           importedCount++;
         }
       }
 
-      // Create a map of regex patterns to their index in templaterSettings.file_templates
+      // Create a map of folder names to their index in folderTemplateMapping
       const templaterOrder = new Map();
-      templaterSettings.file_templates.forEach((template, index) => {
-        templaterOrder.set(template.regex, index);
+      folderTemplateMapping.forEach((template, index) => {
+        templaterOrder.set(template.folder, index);
       });
 
-      // make order of folderFileClassMappings elements, the same as templaterSettings.file_templates
+      // make order of folderFileClassMappings elements, the same as folderTemplateMapping
       this.plugin.settings.folderFileClassMappings.sort((a, b) => {
-        const aIndex = templaterOrder.get(a.folderPattern);
-        const bIndex = templaterOrder.get(b.folderPattern);
+        const aIndex = templaterOrder.get(a.folder);
+        const bIndex = templaterOrder.get(b.folder);
 
         // If both patterns exist in templater settings, sort by their order
         if (aIndex !== undefined && bIndex !== undefined) {
@@ -564,12 +554,19 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       controlRow.style.flexGrow = '1';
 
       // Folder pattern input
-      const patternInput = controlRow.createEl('input', {
+      const folderInput = controlRow.createEl('input', {
         type: 'text',
-        placeholder: 'Folder pattern (e.g., Books/*, .*)',
-        value: mapping.folderPattern
+        placeholder: 'A Vault folder',
+        value: mapping.folder
       });
-      patternInput.style.flexGrow = '1';
+      // Add folder suggestions
+      new FolderSuggest(this.app, folderInput);
+      folderInput.style.flexGrow = '1';
+
+      folderInput.addEventListener('input', async () => {
+        mapping.folder = folderInput.value;
+        await this.plugin.saveSettings();
+      });
 
       // FileClass input or select (dropdown) based on MetadataMenu availability
       let fileClassControl: HTMLInputElement | HTMLSelectElement;
@@ -620,13 +617,21 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         fileClassControl = fileClassInput;
       }
 
-      // Regex toggle
-      const regexToggle = controlRow.createEl('input', {
-        type: 'checkbox'
+      // moveToFolder toggle
+      const moveToFolderToggle = controlRow.createEl('input', {
+        type: 'checkbox',
+        title: 'Move files to this folder if they match this fileClass',
       });
-      regexToggle.checked = mapping.isRegex || false;
+      moveToFolderToggle.checked = mapping.moveToFolder || false;
+      const moveToFolderLabel = controlRow.createEl('label', {
+        text: 'AutoMove',
+        title: 'Move files to this folder if they match this fileClass',
+      });
+      moveToFolderToggle.addEventListener('change', async () => {
+        mapping.moveToFolder = moveToFolderToggle.checked;
+        await this.plugin.saveSettings();
+      });
 
-      const regexLabel = controlRow.createEl('label', {text: 'Regex'});
 
       // Delete button
       const deleteButton = controlRow.createEl('button', {text: '🗑️ Delete'});
@@ -657,11 +662,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }
       });
 
-      patternInput.addEventListener('input', async () => {
-        mapping.folderPattern = patternInput.value;
-        await this.plugin.saveSettings();
-      });
-
       fileClassControl.addEventListener('change', async () => {
         mapping.fileClass = fileClassControl.value;
         await this.plugin.saveSettings();
@@ -673,11 +673,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       }
-
-      regexToggle.addEventListener('change', async () => {
-        mapping.isRegex = regexToggle.checked;
-        await this.plugin.saveSettings();
-      });
 
       deleteButton.addEventListener('click', async () => {
         this.plugin.settings.folderFileClassMappings.splice(index, 1);

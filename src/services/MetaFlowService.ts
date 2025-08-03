@@ -174,34 +174,14 @@ export class MetaFlowService {
    */
   private deduceFileClassFromPath(filePath: string): string | null {
     for (const mapping of this.metaFlowSettings.folderFileClassMappings) {
-      if (this.matchesPattern(filePath, mapping.folderPattern, mapping.isRegex)) {
+      // Remove trailing and leading slashes
+      let cleanFolder = mapping.folder.replace(/\/$/, '').replace(/^\//, '');
+      cleanFolder = (cleanFolder !== '') ? cleanFolder + '/' : '';
+      if (filePath.startsWith(cleanFolder)) {
         return mapping.fileClass;
       }
     }
     return null;
-  }
-
-  /**
-   * Check if a file path matches a pattern
-   */
-  private matchesPattern(filePath: string, pattern: string, isRegex: boolean = false): boolean {
-    if (isRegex) {
-      try {
-        const regex = new RegExp(pattern);
-        return regex.test(filePath);
-      } catch (error) {
-        console.error(`Invalid regex pattern: ${pattern}`, error);
-        return false;
-      }
-    } else {
-      // Simple glob-like matching
-      const regexPattern = pattern
-        .replace(/\./g, '\\.')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.');
-      const regex = new RegExp(`^${regexPattern}$`);
-      return regex.test(filePath);
-    }
   }
 
   /**

@@ -113,41 +113,14 @@ describe('MetaFlowService', () => {
     metaFlowService = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
   });
 
-  describe('Pattern Matching', () => {
-    test('should match simple glob patterns', () => {
-      // Access private method for testing
-      const matchesPattern = (metaFlowService as any).matchesPattern.bind(metaFlowService);
-
-      expect(matchesPattern('Books/note.md', 'Books/*')).toBe(true);
-      expect(matchesPattern('Books/subfolder/note.md', 'Books/*')).toBe(true); // minimatch considers this a match
-      expect(matchesPattern('Books/subfolder/note.md', 'Books/**')).toBe(true);
-      expect(matchesPattern('Articles/note.md', 'Books/*')).toBe(false);
-    });
-
-    test('should match regex patterns', () => {
-      const matchesPattern = (metaFlowService as any).matchesPattern.bind(metaFlowService);
-
-      expect(matchesPattern('Books/note.md', 'Books/.*', true)).toBe(true);
-      expect(matchesPattern('Books/subfolder/note.md', 'Books/.*', true)).toBe(true);
-      expect(matchesPattern('Articles/note.md', 'Books/.*', true)).toBe(false);
-    });
-
-    test('should handle fallback pattern', () => {
-      const matchesPattern = (metaFlowService as any).matchesPattern.bind(metaFlowService);
-
-      expect(matchesPattern('any/path/note.md', '.*', true)).toBe(true);
-      expect(matchesPattern('note.md', '.*', true)).toBe(true);
-    });
-  });
-
   describe('FileClass Deduction', () => {
     test('should deduce fileClass from folder mapping', () => {
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folderPattern: 'Books/**', fileClass: 'book', isRegex: false},
-          {folderPattern: 'Articles/**', fileClass: 'article', isRegex: false},
-          {folderPattern: '.*', fileClass: 'default', isRegex: true}
+          {folder: 'Books', fileClass: 'book', moveToFolder: true},
+          {folder: 'Articles', fileClass: 'article', moveToFolder: true},
+          {folder: '/', fileClass: 'default', moveToFolder: false}
         ]
       };
 
@@ -157,6 +130,7 @@ describe('MetaFlowService', () => {
       expect(deduceFileClass('Books/my-book.md')).toBe('book');
       expect(deduceFileClass('Articles/my-article.md')).toBe('article');
       expect(deduceFileClass('Notes/my-note.md')).toBe('default');
+      expect(deduceFileClass('my-note.md')).toBe('default');
     });
   });
 
@@ -201,7 +175,8 @@ Content here`;
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folderPattern: '.*', fileClass: 'book', isRegex: true}
+          {folder: 'Books', fileClass: 'book', moveToFolder: true},
+          {folder: '/', fileClass: 'note', moveToFolder: false}
         ]
       };
 
@@ -212,7 +187,8 @@ Content here`;
       const expectedFrontmatter = {
         title: 'Test Note'
       };
-      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(expectedFrontmatter, 'book');
+      expect(mockMetadataMenuAdapter.insertMissingFields).
+        toHaveBeenCalledWith(expectedFrontmatter, 'note');
     });
   });
 

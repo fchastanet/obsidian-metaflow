@@ -68,10 +68,10 @@ describe('TemplaterAdapter', () => {
     test('should return consistent when Templater available and enabled', async () => {
       mockApp.plugins.plugins['templater-obsidian'] = {
         settings: {
-          file_templates: [
-            {regex: '.*', template: 'default-template.md'}  // Match the default folder mapping
+          folder_templates: [
+            {folder: '/', template: 'default-template.md'}  // Match the default folder mapping
           ],
-          folder_templates: []
+          file_templates: []
         },
         templater: {}
       };
@@ -93,7 +93,7 @@ describe('TemplaterAdapter', () => {
         ...DEFAULT_SETTINGS,
         enableTemplaterIntegration: true,
         folderFileClassMappings: [
-          {folderPattern: 'Articles/*', fileClass: 'article', isRegex: false}  // Different pattern
+          {folder: 'Articles/*', fileClass: 'article', moveToFolder: true}  // Different pattern
         ]
       };
       const adapter = new TemplaterAdapter(mockApp, settingsWithMappings);

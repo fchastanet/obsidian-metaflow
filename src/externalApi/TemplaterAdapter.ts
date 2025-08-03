@@ -2,9 +2,8 @@ import {App, TFile} from 'obsidian';
 import {MetaFlowSettings} from 'src/settings/types';
 
 export interface FolderTemplate {
-  fileClass: string;
-  templatePath: string;
-  isRegex: boolean;
+  folder: string;
+  template: string;
 }
 
 export interface FileTemplate {
@@ -42,6 +41,14 @@ export class TemplaterAdapter {
     return this.templater.settings;
   }
 
+  getFolderTemplatesMapping(): FolderTemplate[] {
+    if (!this.isTemplaterAvailable()) {
+      return [];
+    }
+
+    return this.templater.settings.folder_templates || [];
+  }
+
   isTemplaterAvailable(): boolean {
     return (this.app as any)?.plugins?.enabledPlugins?.has(this.TEMPLATER_PLUGIN_NAME)
       && this.templater !== null
@@ -67,12 +74,12 @@ export class TemplaterAdapter {
 
       // Compare with our mappings
       for (const mapping of this.settings.folderFileClassMappings) {
-        const matchingTemplaterMapping = templaterSettings.file_templates.find((ft: FileTemplate) =>
-          ft.regex === mapping.folderPattern
+        const matchingTemplaterMapping = templaterSettings.folder_templates.find((ft: FolderTemplate) =>
+          ft.folder === mapping.folder
         );
 
         if (!matchingTemplaterMapping) {
-          warnings.push(`No matching Templater mapping found for folder pattern: ${mapping.folderPattern}`);
+          warnings.push(`No matching Templater mapping found for folder pattern: ${mapping.folder}`);
           isConsistent = false;
         }
       }

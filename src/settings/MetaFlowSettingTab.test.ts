@@ -33,7 +33,14 @@ jest.mock('../externalApi/MetadataMenuAdapter', () => ({
 }));
 
 jest.mock('../externalApi/TemplaterAdapter', () => ({
-  TemplaterAdapter: jest.fn().mockImplementation(() => ({}))
+  TemplaterAdapter: jest.fn().mockImplementation(() => ({
+    isTemplaterAvailable: jest.fn().mockReturnValue(true),
+    getFolderTemplatesMapping: jest.fn().mockReturnValue([
+      {folder: 'Books', template: 'book-template.md'},
+      {folder: 'Articles', template: 'article-template.md'}
+    ]),
+    getFileTemplatesMapping: jest.fn().mockReturnValue([])
+  }))
 }));
 
 describe('MetaFlowSettingTab', () => {
@@ -49,17 +56,6 @@ describe('MetaFlowSettingTab', () => {
     mockApp = {
       plugins: {
         plugins: {
-          'templater-obsidian': {
-            templater: {
-              settings: {
-                folder_templates: [
-                  {folder: 'Books', template: 'book-template.md'},
-                  {folder: 'Projects/*', template: 'project-template.md'},
-                  {folder: 'Notes', template: 'note-template.md'}
-                ]
-              }
-            }
-          },
           'metadata-menu': {
             api: {}, // This is required for isMetadataMenuAvailable to return true
             settings: {
@@ -105,63 +101,55 @@ describe('MetaFlowSettingTab', () => {
 
   describe('Auto-populate from Templater', () => {
     test('should import folder mappings from Templater settings', async () => {
-      // Setup Templater plugin mock
-      mockApp.plugins.plugins['templater-obsidian'] = {
-        settings: {
-          file_templates: [
-            {regex: 'Books/*', template: 'book-template.md'},
-            {regex: 'Articles/*', template: 'article-template.md'},
-            {regex: 'Notes/*', template: 'note-template.md'}
-          ],
-          folder_templates: []
-        }
-      };
-
       // Clear existing mappings
       mockPlugin.settings.folderFileClassMappings = [];
 
-      await settingTab['syncFolderMappingsWithTemplater']();
+      await settingTab['importFolderMappingsFromTemplater']();
 
-      expect(mockPlugin.settings.folderFileClassMappings).toHaveLength(3);
+      expect(mockPlugin.settings.folderFileClassMappings).toHaveLength(2);
       expect(mockPlugin.settings.folderFileClassMappings[0]).toEqual({
-        folderPattern: 'Books/*',
+        folder: 'Books',
         fileClass: '',
-        isRegex: true
+        moveToFolder: true
       });
       expect(mockPlugin.settings.folderFileClassMappings[1]).toEqual({
-        folderPattern: 'Articles/*',
+        folder: 'Articles',
         fileClass: '',
-        isRegex: true
+        moveToFolder: true
       });
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });
 
     test('should not duplicate existing mappings', async () => {
-      // Setup Templater plugin mock
-      mockApp.plugins.plugins['templater-obsidian'] = {
-        settings: {
-          folder_templates: [
-            {folder: 'Books/*', template: 'book-template.md'}
-          ]
-        }
-      };
-
       // Add existing mapping
       mockPlugin.settings.folderFileClassMappings = [
-        {folderPattern: 'Books/*', fileClass: 'existing-book', isRegex: false}
+        {folder: 'Books', fileClass: 'existing-book', moveToFolder: false}
       ];
 
-      await settingTab['syncFolderMappingsWithTemplater']();
+      await settingTab['importFolderMappingsFromTemplater']();
 
       // Should still have only one mapping (the existing one)
-      expect(mockPlugin.settings.folderFileClassMappings).toHaveLength(1);
-      expect(mockPlugin.settings.folderFileClassMappings[0].fileClass).toBe('existing-book');
+      expect(mockPlugin.settings.folderFileClassMappings).toStrictEqual([
+        {"fileClass": "existing-book", "folder": "Books", "moveToFolder": false},
+        {"fileClass": "", "folder": "Articles", "moveToFolder": true}
+      ]);
     });
 
     test('should handle missing Templater plugin gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await settingTab['syncFolderMappingsWithTemplater']();
+      jest.resetModules();
+      jest.doMock('../externalApi/TemplaterAdapter', () => ({
+        TemplaterAdapter: jest.fn().mockImplementation(async () => ({
+          getFolderTemplatesMapping: jest.fn().mockReturnValue([]),
+        }))
+      }));
+
+      // Re-import after mocking
+      const {MetaFlowSettingTab} = require('./MetaFlowSettingTab');
+      settingTab = new MetaFlowSettingTab(mockApp, mockPlugin);
+
+      await settingTab['importFolderMappingsFromTemplater']();
 
       // Should not throw error
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
