@@ -596,7 +596,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         fileClassSelect.createEl('option', {value: '', text: 'Select fileClass...'});
 
         // Add fileClasses from MetadataMenu
-        fileClasses.forEach(fc => {
+        fileClasses.sort().forEach(fc => {
           fileClassSelect.createEl('option', {value: fc, text: fc});
         });
 
