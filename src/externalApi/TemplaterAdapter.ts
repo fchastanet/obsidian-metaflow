@@ -168,6 +168,10 @@ export class TemplaterAdapter {
     const activeFile = this.app.workspace.getActiveFile();
     let parentFile = null;
     if (currentFile?.path === activeFile?.path) {
+      if (!this.templater?.file?.find_tfile) {
+        console.warn('Templater file.find_tfile method not available, cannot deduce parent file');
+        return null;
+      }
       // currentFile is actually active file
       // deduce parent link from previous edited file
       const parentFilePath = (this.app.workspace as any)?.recentFileTracker?.lastOpenFiles?.[1];
