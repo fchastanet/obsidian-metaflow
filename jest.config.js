@@ -1,6 +1,6 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
   testMatch: [
     '**/__tests__/**/*.+(ts|tsx|js)',
@@ -15,5 +15,8 @@ module.exports = {
     '!*.d.ts',
     '!jest.config.js',
     '!esbuild.config.mjs'
-  ]
+  ],
+  "globals": {
+    "window": {}
+  }
 };

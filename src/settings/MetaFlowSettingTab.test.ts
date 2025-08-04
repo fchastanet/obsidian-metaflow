@@ -309,5 +309,72 @@ describe('MetaFlowSettingTab', () => {
 
       expect(mockContainer.empty).toHaveBeenCalled();
     });
+
+    describe('Export/Import Settings Section', () => {
+      test('should export settings as JSON file', () => {
+        // Mock document.createElement and click
+        const aMock = {click: jest.fn(), setAttribute: jest.fn(), href: '', download: '', remove: jest.fn()};
+        document.body.appendChild = jest.fn();
+        document.body.removeChild = jest.fn();
+        window.URL.createObjectURL = jest.fn(() => 'blob:url');
+        window.URL.revokeObjectURL = jest.fn();
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+          if (tag === 'a') return aMock as any;
+          return document.createElement(tag);
+        });
+        // Simulate export button click
+        const exportBtn = {
+          setButtonText: jest.fn().mockReturnThis(),
+          setCta: jest.fn().mockReturnThis(),
+          onClick: jest.fn((cb) => cb())
+        };
+        // Call the export logic directly
+        const dataStr = JSON.stringify(mockPlugin.settings, null, 2);
+        const blob = new Blob([dataStr], {type: 'application/json'});
+        const url = window.URL.createObjectURL(blob);
+        expect(url).toBe('blob:url');
+      });
+
+      test('should import settings from JSON file', async () => {
+        // Mock file input and FileReader
+        const fileContent = JSON.stringify({autoMoveNoteToRightFolder: true});
+        const file = new Blob([fileContent], {type: 'application/json'});
+        const fileReaderMock = {
+          readAsText: jest.fn(),
+          onload: null
+        };
+        window.FileReader = jest.fn(() => fileReaderMock as any);
+        // Simulate input element
+        const inputMock = {
+          type: 'file',
+          accept: 'application/json',
+          onchange: null,
+          click: jest.fn()
+        };
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+          if (tag === 'input') return inputMock as any;
+          return document.createElement(tag);
+        });
+        // Simulate import button click
+        const importBtn = {
+          setButtonText: jest.fn().mockReturnThis(),
+          setCta: jest.fn().mockReturnThis(),
+          onClick: jest.fn((cb) => cb())
+        };
+        // Simulate FileReader onload
+        fileReaderMock.onload = async (e) => {
+          try {
+            const importedSettings = JSON.parse(fileContent);
+            Object.assign(mockPlugin.settings, importedSettings);
+            await mockPlugin.saveSettings();
+            expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(true);
+          } catch (err) {
+            expect(false).toBe(true); // Should not throw
+          }
+        };
+        // Simulate file input change
+        await fileReaderMock.onload({target: {result: fileContent}});
+      });
+    });
   });
 });

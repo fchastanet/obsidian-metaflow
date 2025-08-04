@@ -105,13 +105,11 @@ describe('TemplaterAdapter', () => {
 
   describe('TemplaterAdapter methods', () => {
     beforeEach(() => {
-      // Mock window object for browser APIs used in TemplaterAdapter
-      Object.defineProperty(global, 'window', {
-        value: {
-          moment: undefined // Mock moment as undefined since it's not available in tests
-        },
-        writable: true
-      });
+      (window as any).moment = undefined; // Mock moment as undefined
+    });
+
+    afterEach(() => {
+      delete (window as any).moment;
     });
 
     test('prompt should return default if Templater unavailable', async () => {

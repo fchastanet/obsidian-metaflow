@@ -300,6 +300,73 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     this.simulationContainer = this.simulationDetails.createEl('div');
     this.displaySimulationSection();
 
+    // Export/Import Settings Section - Collapsible
+    const exportImportDetails = containerEl.createEl('details', {cls: 'setting-details'});
+    exportImportDetails.open = false;
+    const exportImportSummary = exportImportDetails.createEl('summary', {cls: 'setting-summary'});
+    exportImportSummary.style.display = 'flex';
+    exportImportSummary.style.alignItems = 'center';
+    exportImportSummary.style.justifyContent = 'space-between';
+    exportImportSummary.style.cursor = 'pointer';
+    exportImportSummary.createEl('h3', {text: 'Export/Import Settings'});
+    const exportImportToggleDiv = exportImportSummary.createEl('div', {cls: 'setting-item-control'});
+    const exportImportToggleButton = exportImportToggleDiv.createEl('button', {cls: 'mod-cta'});
+    exportImportToggleButton.innerHTML = this.EXPAND_BUTTON;
+    exportImportToggleButton.addEventListener('click', (e) => {e.stopPropagation();});
+    const exportImportDesc = exportImportDetails.createEl('p');
+    exportImportDesc.innerHTML = 'Export your MetaFlow settings as a JSON file or import settings from a JSON file.';
+    // Export button
+    new Setting(exportImportDetails)
+      .setName('Export Settings')
+      .setDesc('Download current settings as a JSON file')
+      .addButton(btn => btn
+        .setButtonText('⬇️ Export')
+        .setCta()
+        .onClick(() => {
+          const dataStr = JSON.stringify(this.plugin.settings, null, 2);
+          const blob = new Blob([dataStr], {type: 'application/json'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'metaflow-settings.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        })
+      );
+    // Import button and file input
+    new Setting(exportImportDetails)
+      .setName('Import Settings')
+      .setDesc('Import settings from a JSON file (overwrites current settings)')
+      .addButton(btn => {
+        btn.setButtonText('⬆️ Import')
+          .setCta()
+          .onClick(() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = async (event: any) => {
+              const file = event.target.files[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = async (e: any) => {
+                try {
+                  const importedSettings = JSON.parse(e.target.result);
+                  Object.assign(this.plugin.settings, importedSettings);
+                  await this.plugin.saveSettings();
+                  new (window as any).Notice('Settings imported successfully!');
+                  this.display();
+                } catch (err) {
+                  new (window as any).Notice('Failed to import settings: Invalid JSON', 5000);
+                }
+              };
+              reader.readAsText(file);
+            };
+            input.click();
+          });
+      });
+
     // Add some help text
     containerEl.createEl('h3', {text: 'Usage'});
     containerEl.createEl('p', {text: 'Use the command palette to:'});
