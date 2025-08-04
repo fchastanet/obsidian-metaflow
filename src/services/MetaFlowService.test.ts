@@ -139,7 +139,10 @@ describe('MetaFlowService', () => {
       mockMetadataMenuAdapter.isMetadataMenuAvailable.mockReturnValue(false);
       expect.assertions(2);
       try {
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
         metaFlowService.processContent('', mockFile);
+        expect(spy).toHaveBeenCalledWith('Error updating metadata fields: MetadataMenu plugin not available');
+        spy.mockRestore();
       } catch (error) {
         expect(error).toBeInstanceOf(MetaFlowException);
         expect(error.message).toBe('Error updating metadata fields: MetadataMenu plugin not available');

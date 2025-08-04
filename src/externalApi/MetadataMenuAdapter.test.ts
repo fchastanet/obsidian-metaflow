@@ -7,6 +7,7 @@ describe('MetadataMenuAdapter', () => {
   let adapter: MetadataMenuAdapter;
 
   beforeEach(() => {
+    const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
     mockApp = {
       plugins: {
         enabledPlugins: new Set(['metadata-menu']),
@@ -87,7 +88,10 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp);
 
       expect(() => {
+        const spy = jest.spyOn(console, 'log').mockImplementation(() => { });
         adapter.getAllFieldsFileClassesAssociation();
+        expect(spy).toHaveBeenCalledWith('MetadataMenu fieldIndex.fileClassesAncestors not available');
+        spy.mockRestore();
       }).toThrow('No fileClass definitions found in MetadataMenu');
     });
 
@@ -409,7 +413,10 @@ describe('MetadataMenuAdapter', () => {
       const frontmatter = {title: 'Test'};
 
       expect(() => {
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
         adapter.insertMissingFields(frontmatter, 'book');
+        spy.mockRestore();
+        expect(spy).toHaveBeenCalledWith('No fileClass definitions found in MetadataMenu');
       }).toThrow('No fileClass definitions found in MetadataMenu');
     });
 

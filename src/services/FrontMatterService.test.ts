@@ -49,7 +49,10 @@ describe('FrontMatterService', () => {
 
     it('should return empty frontmatter for malformed YAML', () => {
       const content = `---\ntitle: Test\ndate: [unclosed\n---\nBody`;
+      const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const result = service.parseFrontmatter(content);
+      expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));
+      spy.mockRestore();
       expect(result).toEqual({
         content: "",
         metadata: {},
