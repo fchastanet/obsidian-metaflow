@@ -52,7 +52,11 @@ describe('MetaFlowService', () => {
         modify: jest.fn()
       },
       fileManager: {
-        generateMarkdownLink: jest.fn()
+        generateMarkdownLink: jest.fn(),
+        renameFile: jest.fn().mockImplementation((file, newPath) => {
+          file.path = newPath;
+          return Promise.resolve(file);
+        })
       }
     };
 
@@ -525,6 +529,87 @@ Content here`;
       expect(result.data).toEqual(complexData);
       expect(result.data.nested).toEqual({key: 'value'});
       expect(result.data.array).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe('moveNoteToTheRightFolder', () => {
+    test('should move note to the right folder when autoMoveNoteToRightFolder is enabled and mapping exists', () => {
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        autoMoveNoteToRightFolder: true,
+        folderFileClassMappings: [
+          {folder: 'Books', fileClass: 'book', moveToFolder: true},
+          {folder: 'Articles', fileClass: 'article', moveToFolder: true}
+        ]
+      };
+      const service = new MetaFlowService(mockApp, settings);
+      // Mock obsidianAdapter.moveNote as a jest mock function
+      (service as any).obsidianAdapter.moveNote = jest.fn();
+      const file = {name: 'my-book.md', path: 'Books/my-book.md'} as TFile;
+      service.moveNoteToTheRightFolder(file, 'book');
+      expect((service as any).obsidianAdapter.moveNote).toHaveBeenCalledWith(file, 'Books/my-book.md');
+    });
+
+    test('should not move note if autoMoveNoteToRightFolder is disabled', () => {
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        autoMoveNoteToRightFolder: false,
+        folderFileClassMappings: [
+          {folder: 'Books', fileClass: 'book', moveToFolder: true}
+        ]
+      };
+      const service = new MetaFlowService(mockApp, settings);
+      // Mock obsidianAdapter.moveNote as a jest mock function
+      (service as any).obsidianAdapter.moveNote = jest.fn();
+      const file = {name: 'my-book.md', path: 'Books/my-book.md'} as TFile;
+      (service as any).moveNoteToTheRightFolder(file, 'book');
+      expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
+    });
+
+    test('should not move note if no target folder is found', () => {
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        autoMoveNoteToRightFolder: true,
+        folderFileClassMappings: [
+          {folder: 'Books', fileClass: 'book', moveToFolder: false}
+        ]
+      };
+      const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const service = new MetaFlowService(mockApp, settings);
+      // Mock obsidianAdapter.moveNote as a jest mock function
+      (service as any).obsidianAdapter.moveNote = jest.fn();
+      const file = {name: 'my-book.md', path: 'Books/my-book.md'} as TFile;
+      (service as any).moveNoteToTheRightFolder(file, 'book');
+      expect(spy).toHaveBeenCalledWith('No target folder defined for fileClass "book"');
+      spy.mockRestore();
+      expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getTargetFolderForFileClass', () => {
+    test('should return folder if mapping exists and moveToFolder is true', () => {
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        folderFileClassMappings: [
+          {folder: 'Books', fileClass: 'book', moveToFolder: true},
+          {folder: 'Articles', fileClass: 'article', moveToFolder: false},
+          {folder: 'Articles2', fileClass: 'article', moveToFolder: true},
+        ]
+      };
+      const service = new MetaFlowService(mockApp, settings);
+      expect(service.getTargetFolderForFileClass('book')).toBe('Books');
+      expect(service.getTargetFolderForFileClass('article')).toBe('Articles2');
+    });
+
+    test('should return null if no mapping exists for fileClass', () => {
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        folderFileClassMappings: [
+          {folder: 'Books', fileClass: 'book', moveToFolder: true}
+        ]
+      };
+      const service = new MetaFlowService(mockApp, settings);
+      expect(service.getTargetFolderForFileClass('unknown')).toBe(null);
     });
   });
 });

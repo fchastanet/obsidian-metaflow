@@ -7,9 +7,8 @@ import {MetaFlowSettings} from "./types";
 export const DEFAULT_SETTINGS: MetaFlowSettings = {
   autoSort: true,
   sortUnknownPropertiesLast: true,
-  enableAutoMetadataInsertion: false,
-  insertMissingFieldsOnSort: false,
-  useMetadataMenuDefaults: false,
+  enableAutoMetadataInsertion: true,
+  insertMissingFieldsOnSort: true,
   hidePropertiesInEditor: false,
   folderFileClassMappings: [
     {
@@ -20,4 +19,5 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
   ],
   propertyDefaultValueScripts: [],
   excludeFolders: [],
+  autoMoveNoteToRightFolder: true,
 };

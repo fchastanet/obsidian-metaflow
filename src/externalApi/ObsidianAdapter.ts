@@ -20,4 +20,8 @@ export class ObsidianAdapter {
     }
     return this.app.fileManager.generateMarkdownLink(targetFile, sourcePath);
   }
+
+  async moveNote(file: TFile, newPath: string): Promise<void> {
+    return await this.app.fileManager.renameFile(file, newPath);
+  }
 }

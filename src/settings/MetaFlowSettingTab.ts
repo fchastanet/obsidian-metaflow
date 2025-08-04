@@ -1,7 +1,7 @@
 import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import MetaFlowPlugin from "..";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter, TemplaterSettingsInterface} from "../externalApi/TemplaterAdapter";
+import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
 import {MetaFlowService} from "../services/MetaFlowService";
 import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatterService";
 declare type AceModule = typeof import("ace-builds");
@@ -112,6 +112,16 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
+    // Auto-move note to right folder setting
+    new Setting(generalDetails)
+      .setName('Auto-move note to the right folder')
+      .setDesc('Automatically move note to the correct folder based on Folder/FileClass mapping when updating metadata')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoMoveNoteToRightFolder)
+        .onChange(async (value) => {
+          this.plugin.settings.autoMoveNoteToRightFolder = value;
+          await this.plugin.saveSettings();
+        }));
     // Exclude folders setting (multiple rows with folder suggest)
     const excludeFoldersContainer = generalDetails.createDiv();
     excludeFoldersContainer.createEl('div', {text: 'Exclude folders', cls: 'setting-item-name'});

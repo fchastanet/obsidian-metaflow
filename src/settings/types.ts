@@ -18,9 +18,9 @@ export interface MetaFlowSettings {
   sortUnknownPropertiesLast: boolean;
   enableAutoMetadataInsertion: boolean;
   insertMissingFieldsOnSort: boolean;
-  useMetadataMenuDefaults: boolean;
   folderFileClassMappings: FolderFileClassMapping[];
   propertyDefaultValueScripts: PropertyDefaultValueScript[];
   excludeFolders?: string[];
+  autoMoveNoteToRightFolder: boolean;
 }
 

@@ -5,6 +5,7 @@ import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
 import {ScriptContextService} from "./ScriptContextService";
 import {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
+import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 
 export class MetaFlowService {
   private app: App;
@@ -13,6 +14,7 @@ export class MetaFlowService {
   private metadataMenuAdapter: MetadataMenuAdapter;
   private frontMatterService: FrontMatterService;
   private templaterAdapter: TemplaterAdapter;
+  private obsidianAdapter: ObsidianAdapter;
 
   constructor(app: App, metaFlowSettings: MetaFlowSettings) {
     this.app = app;
@@ -21,6 +23,7 @@ export class MetaFlowService {
     this.metadataMenuAdapter = new MetadataMenuAdapter(app);
     this.frontMatterService = new FrontMatterService();
     this.templaterAdapter = new TemplaterAdapter(app, this.metaFlowSettings);
+    this.obsidianAdapter = new ObsidianAdapter(app, this.metaFlowSettings);
   }
 
   processContent(content: string, file: TFile): string {
@@ -77,12 +80,38 @@ export class MetaFlowService {
         fileClass
       );
 
-      // Step 10: Write the updated content back to the file
+      // Step 11: Write the updated content back to the file
       return this.frontMatterService.serializeFrontmatter(enrichedFrontmatter, bodyContent);
     } catch (error) {
       console.error('Error in auto update metadata fields:', error);
       throw new MetaFlowException(`Error updating metadata fields: ${error.message}`);
     }
+  }
+
+  public getFileClassFromContent(content: string): string | null {
+    return this.frontMatterService.parseFileClassFromContent(content);
+  }
+
+  public moveNoteToTheRightFolder(file: TFile, fileClass: string): void {
+    if (!this.metaFlowSettings.autoMoveNoteToRightFolder) {
+      return;
+    }
+
+    const targetFolder = this.getTargetFolderForFileClass(fileClass);
+    if (targetFolder) {
+      this.obsidianAdapter.moveNote(file, `${targetFolder}/${file.name}`);
+    } else {
+      console.warn(`No target folder defined for fileClass "${fileClass}"`);
+    }
+  }
+
+  getTargetFolderForFileClass(fileClass: string): string | null {
+    const mapping = this.metaFlowSettings.folderFileClassMappings.find(
+      mapping => mapping.fileClass === fileClass && mapping.moveToFolder);
+    if (mapping) {
+      return mapping.folder.replace(/\/$/, ''); // Remove trailing slash
+    }
+    return null;
   }
 
   processSortContent(content: string, file: TFile): string {

@@ -87,7 +87,8 @@ describe('MetaFlowSettingTab', () => {
         folderFileClassMappings: [],
         propertyDefaultValueScripts: [],
         propertiesOrder: [],
-        metadataMenuIntegration: true // This is required for isMetadataMenuAvailable to return true
+        metadataMenuIntegration: true, // This is required for isMetadataMenuAvailable to return true
+        autoMoveNoteToRightFolder: false
       },
       saveSettings: jest.fn(),
       autoInserter: {
@@ -272,6 +273,16 @@ describe('MetaFlowSettingTab', () => {
       }).not.toThrow();
 
       expect(mockContainer.empty).toHaveBeenCalled();
+    });
+
+    test('should toggle autoMoveNoteToRightFolder setting', async () => {
+      // Simulate the toggle change
+      expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(false);
+      // Simulate user toggling the checkbox
+      mockPlugin.settings.autoMoveNoteToRightFolder = true;
+      await mockPlugin.saveSettings();
+      expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(true);
+      expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });
 
     test('should handle empty property scripts list', () => {

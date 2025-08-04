@@ -21,7 +21,8 @@ describe('ObsidianAdapter', () => {
   beforeEach(() => {
     mockApp = {
       fileManager: {
-        generateMarkdownLink: jest.fn((targetFile, sourcePath) => `[[${targetFile.path}|${sourcePath}]]`)
+        generateMarkdownLink: jest.fn((targetFile, sourcePath) => `[[${targetFile.path}|${sourcePath}]]`),
+        renameFile: jest.fn((file, newPath) => Promise.resolve({...file, path: newPath}))
       }
     };
     adapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS);
@@ -40,5 +41,12 @@ describe('ObsidianAdapter', () => {
     const result = adapter.generateMarkdownLink(targetFile);
     expect(mockApp.fileManager.generateMarkdownLink).toHaveBeenCalledWith(targetFile, '');
     expect(result).toBe('[[target.md|]]');
+  });
+
+  test('moveNote should call app.fileManager.renameFile with correct args', async () => {
+    const file = createMockTFile('old/path/note.md');
+    const newPath = 'new/path/note.md';
+    await adapter.moveNote(file, newPath);
+    expect(mockApp.fileManager.renameFile).toHaveBeenCalledWith(file, newPath);
   });
 });

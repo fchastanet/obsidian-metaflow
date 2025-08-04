@@ -220,7 +220,12 @@ export default class MetaFlowPlugin extends Plugin {
                 new Notice(msg);
               }
             }
-          }).bind(this));
+          }).bind(this)).then((content) => {
+            const fileClass = this.metaFlowService.getFileClassFromContent(content);
+            if (fileClass) {
+              this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+            }
+          });
         } catch (error) {
           modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
           console.error(`Error updating metadata in file ${file.path}:`, error);
