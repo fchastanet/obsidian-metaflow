@@ -1,10 +1,12 @@
-import {Plugin, Editor, MarkdownView, TFolder, Notice, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal} from 'obsidian';
+import {Plugin, Editor, MarkdownView, TFolder, Notice, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal, MarkdownFileInfo, CachedMetadata, WorkspaceLeaf} from 'obsidian';
 import {MetaFlowSettings} from './settings/types';
 import {DEFAULT_SETTINGS} from './settings/defaultSettings';
 import {MetaFlowSettingTab} from './settings/MetaFlowSettingTab';
 import {MetaFlowService} from './services/MetaFlowService';
 import {MetaFlowException} from './MetaFlowException';
 import {ProgressModal} from './ui/ProgressModal';
+import {FrontMatterService} from './services/FrontMatterService';
+import {FileClassStateManager} from './managers/FileClassStateManager';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -18,14 +20,80 @@ import {ProgressModal} from './ui/ProgressModal';
 export default class MetaFlowPlugin extends Plugin {
   settings: MetaFlowSettings;
   metaFlowService: MetaFlowService;
+  frontMatterService: FrontMatterService;
+  fileClassStateManager: FileClassStateManager;
+  timer: {[key: string]: number} = {}
 
   async onload() {
     this.settings = await this.loadSettings();
     this.metaFlowService = new MetaFlowService(this.app, this.settings);
+    this.frontMatterService = new FrontMatterService();
+    this.fileClassStateManager = new FileClassStateManager(
+      this.app, this.settings, this.metaFlowService.handleFileClassChanged.bind(this.metaFlowService)
+    );
 
     // Apply properties visibility setting on load
     this.metaFlowService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
 
+    this.registerCommands();
+    this.registerEvents();
+    this.registerContextMenus();
+
+    // Add settings tab
+    this.addSettingTab(new MetaFlowSettingTab(this.app, this));
+  }
+
+  private registerContextMenus() {
+    // Add context menu for folder-based mass updates
+    this.registerEvent(
+      this.app.workspace.on('file-menu', (menu, file) => {
+        if (file instanceof TFolder) {
+          menu.addItem((item) => {
+            item
+              .setTitle('Metaflow - Update metadata in folder')
+              .setIcon('folder-edit')
+              .onClick(() => {
+                const files: TFile[] = [];
+                Vault.recurseChildren(file, (f: TAbstractFile) => {
+                  if (f instanceof TFile) {
+                    files.push(f);
+                  }
+                });
+
+                this.massUpdateMetadataProperties(files);
+              });
+          });
+        }
+      })
+    );
+  }
+
+  private registerEvents() {
+    // leafChange event allow to initialize fileClass when the file is loading
+    this.registerEvent(this.app.workspace.on(
+      "active-leaf-change",
+      this.fileClassStateManager.handleActiveLeafChange.bind(this.fileClassStateManager)
+    ));
+
+    this.registerEvent(this.app.metadataCache.on(
+      'changed',
+      this.fileClassStateManager.handleMetadataChanged.bind(this.fileClassStateManager)
+    ));
+
+    // Watch for typing events
+    this.registerDomEvent(document, 'keydown', this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager));
+    // Watch for clipboard paste
+    this.registerDomEvent(document, 'paste', this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager));
+
+    this.app.workspace.onLayoutReady(() => {
+      this.registerEvent(this.app.vault.on('create', this.fileClassStateManager.handleCreateFileEvent.bind(this.fileClassStateManager)));
+      this.registerEvent(this.app.vault.on('modify', this.fileClassStateManager.handleModifyFileEvent.bind(this.fileClassStateManager)));
+      this.registerEvent(this.app.vault.on('delete', this.fileClassStateManager.handleDeleteFileEvent.bind(this.fileClassStateManager)));
+      this.registerEvent(this.app.vault.on('rename', this.fileClassStateManager.handleRenameFileEvent.bind(this.fileClassStateManager)));
+    });
+  }
+
+  private registerCommands() {
     // Register the main command for single file processing
     this.addCommand({
       id: 'metaflow-update-metadata',
@@ -33,22 +101,6 @@ export default class MetaFlowPlugin extends Plugin {
       editorCallback: (editor: Editor, view: MarkdownView) => {
         this.updateMetadataPropertiesInEditor(editor, view);
       }
-    });
-
-    let leafChangeTimeout: ReturnType<typeof setTimeout> | null = null;
-    this.app.workspace.on("active-leaf-change", () => {
-      if (!this.settings.enableAutoMetadataInsertion) {
-        return;
-      }
-      if (leafChangeTimeout) {
-        clearTimeout(leafChangeTimeout);
-      }
-      leafChangeTimeout = setTimeout(() => {
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (activeView?.editor) {
-          this.updateMetadataPropertiesInEditor(activeView.editor, activeView);
-        }
-      }, 200);
     });
 
     // Register the command for single file processing to sort metadata
@@ -75,36 +127,11 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-toggle-properties-panel',
       name: 'Toggle properties panel visibility',
       callback: () => {
-        this.togglePropertiesPanelSetting();
+        this.togglePropertiesPanelVisibility();
       }
     });
-
-    // Add context menu for folder-based mass updates
-    this.registerEvent(
-      this.app.workspace.on('file-menu', (menu, file) => {
-        if (file instanceof TFolder) {
-          menu.addItem((item) => {
-            item
-              .setTitle('Metaflow - Update metadata in folder')
-              .setIcon('folder-edit')
-              .onClick(() => {
-                const files: TFile[] = [];
-                Vault.recurseChildren(file, (f: TAbstractFile) => {
-                  if (f instanceof TFile) {
-                    files.push(f);
-                  }
-                });
-
-                this.massUpdateMetadataProperties(files);
-              });
-          });
-        }
-      })
-    );
-
-    // Add settings tab
-    this.addSettingTab(new MetaFlowSettingTab(this.app, this));
   }
+
 
   updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
     const content = editor.getValue();
@@ -242,7 +269,7 @@ export default class MetaFlowPlugin extends Plugin {
     this.metaFlowService.togglePropertiesVisibility(false);
   }
 
-  private togglePropertiesPanelSetting() {
+  private togglePropertiesPanelVisibility() {
     this.settings.hidePropertiesInEditor = !this.settings.hidePropertiesInEditor;
     this.saveSettings();
     this.metaFlowService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);

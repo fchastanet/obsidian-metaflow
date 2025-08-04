@@ -612,4 +612,57 @@ Content here`;
       expect(service.getTargetFolderForFileClass('unknown')).toBe(null);
     });
   });
+
+  describe('getFileClassFromContent', () => {
+    test('should return fileClass from frontmatter if present', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      const content = `---\nfileClass: book\ntitle: Test Book\n---\nContent here`;
+      const result = service.getFileClassFromContent(content);
+      expect(result).toBe('book');
+    });
+
+    test('should return null if fileClass is not present in frontmatter', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      const content = `---\ntitle: Test Book\n---\nContent here`;
+      const result = service.getFileClassFromContent(content);
+      expect(result).toBe(null);
+    });
+
+    test('should return null if no frontmatter exists', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      const content = `Content here without frontmatter`;
+      const result = service.getFileClassFromContent(content);
+      expect(result).toBe(null);
+    });
+  });
+
+  describe('getFileClassFromMetadata', () => {
+    test('should return fileClass from metadata using alias', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      // fileClassAlias is mocked to 'fileClass' in beforeEach
+      const metadata = {fileClass: 'book', title: 'Test Book'};
+      const result = service.getFileClassFromMetadata(metadata);
+      expect(result).toBe('book');
+    });
+
+    test('should return null if fileClass is not present in metadata', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      const metadata = {title: 'Test Book'};
+      const result = service.getFileClassFromMetadata(metadata);
+      expect(result).toBe(null);
+    });
+
+    test('should return null if metadata is null or undefined', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      expect(service.getFileClassFromMetadata(null)).toBe(null);
+      expect(service.getFileClassFromMetadata(undefined)).toBe(null);
+    });
+
+    test('should return null if metadata is not an object', () => {
+      const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      expect(service.getFileClassFromMetadata('string')).toBe(null);
+      expect(service.getFileClassFromMetadata(123)).toBe(null);
+      expect(service.getFileClassFromMetadata([])).toBe(null);
+    });
+  });
 });

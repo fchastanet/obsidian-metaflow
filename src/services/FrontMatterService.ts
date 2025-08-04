@@ -39,21 +39,13 @@ export class FrontMatterService {
         restOfContent
       };
     } else {
-      try {
-        // Parse YAML with custom options to preserve strings
-        const metadata = yaml.load(frontmatterText, {
-          schema: yaml.JSON_SCHEMA // Use JSON schema to avoid date parsing
-        });
-
-        if (metadata && typeof metadata === 'object') {
-          return {
-            metadata,
-            content: frontmatterText,
-            restOfContent
-          };
-        }
-      } catch (error) {
-        console.error('Error parsing YAML frontmatter:', error);
+      const metadata = this.parseRawFrontmatter(frontmatterText);
+      if (metadata) {
+        return {
+          metadata,
+          content: frontmatterText,
+          restOfContent
+        };
       }
     }
 
@@ -63,6 +55,23 @@ export class FrontMatterService {
       content: "",
       restOfContent: content,
     };
+  }
+
+  parseRawFrontmatter(rawFrontMatter: string): object | null {
+    try {
+      // Parse YAML with custom options to preserve strings
+      const metadata = yaml.load(rawFrontMatter, {
+        schema: yaml.JSON_SCHEMA // Use JSON schema to avoid date parsing
+      });
+
+      if (metadata && typeof metadata === 'object') {
+        return metadata;
+      }
+    } catch (error) {
+      console.error('Error parsing YAML frontmatter:', error);
+      return null;
+    }
+    return {};
   }
 
   /**

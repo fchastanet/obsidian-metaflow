@@ -1,3 +1,45 @@
+describe('FrontMatterService', () => {
+  let service: FrontMatterService;
+
+  beforeEach(() => {
+    service = new FrontMatterService();
+  });
+
+  describe('parseRawFrontmatter', () => {
+    test('parses valid YAML frontmatter', () => {
+      const raw = `title: "My Note"\nfileClass: book\ncount: 5`;
+      const result = service.parseRawFrontmatter(raw);
+      expect(result).toEqual({
+        title: "My Note",
+        fileClass: "book",
+        count: 5
+      });
+    });
+
+    test('returns empty object for empty string', () => {
+      const result = service.parseRawFrontmatter('');
+      expect(result).toEqual({});
+    });
+
+    test('returns null for invalid YAML', () => {
+      const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const raw = `title: "My Note"\nfileClass: [unclosed`;
+      const result = service.parseRawFrontmatter(raw);
+      expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));
+      spy.mockRestore();
+      expect(result).toBeNull();
+    });
+
+    test('parses YAML with null values', () => {
+      const raw = `title: null\nfileClass: book`;
+      const result = service.parseRawFrontmatter(raw);
+      expect(result).toEqual({
+        title: null,
+        fileClass: "book"
+      });
+    });
+  });
+});
 import {FrontMatterService} from './FrontMatterService';
 
 describe('FrontMatterService', () => {

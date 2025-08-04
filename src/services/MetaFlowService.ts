@@ -1,4 +1,4 @@
-import {App, TFile} from "obsidian";
+import {App, CachedMetadata, TFile} from "obsidian";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {FrontMatterService} from "./FrontMatterService";
 import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
@@ -24,6 +24,69 @@ export class MetaFlowService {
     this.frontMatterService = new FrontMatterService();
     this.templaterAdapter = new TemplaterAdapter(app, this.metaFlowSettings);
     this.obsidianAdapter = new ObsidianAdapter(app, this.metaFlowSettings);
+  }
+
+  async handleFileClassChanged(
+    file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
+  ): Promise<void> {
+    if (!this.metaFlowSettings.enableAutoMetadataInsertion) {
+      return;
+    }
+    if (!file || !(file instanceof TFile)) {
+      console.warn('Invalid file provided for class change');
+      return;
+    }
+    if (newFileClass === oldFileClass) {
+      console.warn(`File class for "${file.name}" is already "${newFileClass}"`);
+      return;
+    }
+
+    // Step 1: Determine or validate fileClass if not available
+    let fileClass = newFileClass;
+    if (!fileClass || fileClass.trim() === '') {
+      // Try to deduce fileClass from folder/fileClass mapping
+      const deducedFileClass = this.deduceFileClassFromPath(file.path);
+      if (!deducedFileClass) {
+        throw new MetaFlowException(`No fileClass found for file "${file.name}" and no matching folder pattern.`);
+      }
+      if (!this.validateFileClassAgainstMapping(file.path, deducedFileClass)) {
+        throw new MetaFlowException(`FileClass "${deducedFileClass}" does not match any folder/fileClass mapping.`);
+      }
+      fileClass = deducedFileClass;
+    }
+
+    // Step 2: Validate fileClass exists in MetadataMenu, throw error if not found
+    this.metadataMenuAdapter.getFileClassByName(fileClass);
+
+    // Step 3: Insert missing metadata headers using MetadataAutoInserter
+    let updatedFrontmatter: any = cache?.frontmatter || {};
+    updatedFrontmatter = this.metadataMenuAdapter.insertMissingFields(updatedFrontmatter, fileClass);
+
+    // Step 4: sort properties if autoSort is enabled
+    if (this.metaFlowSettings.autoSort) {
+      updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
+    }
+
+    // Step 5: Add default values to properties
+    const enrichedFrontmatter = this.addDefaultValuesToProperties(
+      updatedFrontmatter || {},
+      file,
+      fileClass
+    );
+
+    setTimeout(async () => {
+      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+        // Remove all keys from frontmatter
+        Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
+        // Add keys back in desired order
+        Object.keys(enrichedFrontmatter).forEach(key => {
+          frontmatter[key] = enrichedFrontmatter[key];
+        });
+      }).then(() => {
+        // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
+        this.moveNoteToTheRightFolder(file, fileClass);
+      });
+    }, 500);
   }
 
   processContent(content: string, file: TFile): string {
@@ -90,6 +153,18 @@ export class MetaFlowService {
 
   public getFileClassFromContent(content: string): string | null {
     return this.frontMatterService.parseFileClassFromContent(content);
+  }
+
+  public getFileClassFromMetadata(metadata: any): string | null {
+    if (!metadata || typeof metadata !== 'object') {
+      return null;
+    }
+    const fileClassAlias = this.metadataMenuAdapter.getFileClassAlias();
+    if (Array.isArray(metadata)) {
+      return null; // Invalid metadata format
+    }
+    // Return the fileClass from metadata using the alias
+    return metadata?.[fileClassAlias] || null;
   }
 
   public moveNoteToTheRightFolder(file: TFile, fileClass: string): void {
@@ -261,12 +336,10 @@ export class MetaFlowService {
     });
 
     // Build the sorted frontmatter object
-    const sortedFrontmatter: {[key: string]: any} = {};
-    sortedKeys.forEach(key => {
-      sortedFrontmatter[key] = frontmatter[key];
-    });
-
-    return sortedFrontmatter;
+    return sortedKeys.reduce(function (result: any, key) {
+      result[key] = frontmatter[key];
+      return result;
+    }, {});
   }
 
   /**

@@ -198,3 +198,4 @@ and those great Obsidian plugins:
 - [Obsidian Metadata Menu plugin](https://mdelobelle.github.io/metadatamenu)
 - [Obsidian Templater plugin](https://github.com/SilentVoid13/Templater)
 - [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor)
+- [Update frontmatter modified date plugin](https://github.com/alangrainger/obsidian-frontmatter-modified-date) for the inspiration on how to handle manual file modification
