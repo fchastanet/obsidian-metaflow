@@ -106,13 +106,13 @@ describe('FrontMatterService', () => {
   describe('parseFileClassFromContent', () => {
     it('should extract fileClass from frontmatter', () => {
       const content = `---\nfileClass: book\ntitle: Test\n---\nText`;
-      const result = service.parseFileClassFromContent(content);
+      const result = service.parseFileClassFromContent(content, 'fileClass');
       expect(result).toBe('book');
     });
 
     it('should return null if no fileClass present', () => {
       const content = `---\ntitle: Test\n---\nText`;
-      const result = service.parseFileClassFromContent(content);
+      const result = service.parseFileClassFromContent(content, 'fileClass');
       expect(result).toBeNull();
     });
   });
@@ -120,13 +120,13 @@ describe('FrontMatterService', () => {
   describe('getFileClassFromMetadata', () => {
     it('should return fileClass if present', () => {
       const metadata = {fileClass: 'article'};
-      const result = service.getFileClassFromMetadata(metadata);
+      const result = service.getFileClassFromMetadata(metadata, 'fileClass');
       expect(result).toBe('article');
     });
 
     it('should return null if fileClass not present', () => {
       const metadata = {title: 'Test'};
-      const result = service.getFileClassFromMetadata(metadata);
+      const result = service.getFileClassFromMetadata(metadata, 'fileClass');
       expect(result).toBeNull();
     });
   });

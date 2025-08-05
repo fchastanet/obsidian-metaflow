@@ -1,4 +1,4 @@
-import {App, CachedMetadata, TFile} from "obsidian";
+import {App, CachedMetadata, Notice, TFile} from "obsidian";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {FrontMatterService} from "./FrontMatterService";
 import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
@@ -29,12 +29,17 @@ export class MetaFlowService {
   async handleFileClassChanged(
     file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
   ): Promise<void> {
-    if (!this.metaFlowSettings.enableAutoMetadataInsertion) {
-      return;
-    }
-    if (!file || !(file instanceof TFile)) {
-      console.warn('Invalid file provided for class change');
-      return;
+    try {
+      this.checkIfAutomaticMetadataInsertionEnabled();
+      this.checkIfMetadataInsertionApplicable(file);
+    } catch (error) {
+      if (error instanceof MetaFlowException) {
+        console.warn('MetaFlow:', error.message);
+        return;
+      } else {
+        console.warn('Error checking file availability:', error);
+        return;
+      }
     }
     if (newFileClass === oldFileClass) {
       console.warn(`File class for "${file.name}" is already "${newFileClass}"`);
@@ -84,24 +89,66 @@ export class MetaFlowService {
         });
       }).then(() => {
         // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
-        this.moveNoteToTheRightFolder(file, fileClass);
+        try {
+          const newFilePath = this.moveNoteToTheRightFolder(file, fileClass);
+          if (newFilePath) {
+            new Notice(`Moved note "${file.name}" with fileClass "${fileClass}" to ${newFilePath}.`);
+          }
+        } catch (error) {
+          console.error(`Error moving note to the right folder for file ${file.path}:`, error);
+          if (error instanceof MetaFlowException) {
+            new Notice(error.message);
+          }
+        }
       });
     }, 500);
   }
 
+  checkIfAutomaticMetadataInsertionEnabled(): void {
+    if (!this.metaFlowSettings.enableAutoMetadataInsertion) {
+      throw new MetaFlowException('Auto metadata insertion is disabled');
+    }
+  }
+
+  checkIfMetadataInsertionApplicable(file: TFile): void {
+    this.checkIfValidFile(file);
+    this.checkIfExcluded(file);
+
+    // Check if MetadataMenu plugin is available
+    if (!this.metadataMenuAdapter.isMetadataMenuAvailable()) {
+      throw new MetaFlowException('MetadataMenu plugin not available');
+    }
+
+    // Check if Templater plugin is available (if integration is enabled)
+    if (!this.templaterAdapter.isTemplaterAvailable()) {
+      throw new MetaFlowException('Templater plugin not available');
+    }
+  }
+
+  checkIfExcluded(file: TFile): void {
+    // Exclude files in excluded folders
+    const excludeFolders = (this.metaFlowSettings.excludeFolders || []);
+    if (excludeFolders.some(folder => file.path.startsWith(folder + '/'))) {
+      throw new MetaFlowException(`File ${file.name} is in an excluded folder: ${file.path}`);
+    }
+  }
+
+  checkIfAutoMoveNoteToRightFolderEnabled(): void {
+    if (!this.metaFlowSettings.autoMoveNoteToRightFolder) {
+      throw new MetaFlowException('Auto move note to right folder is disabled');
+    }
+  }
+
+  checkIfValidFile(file: TFile): void {
+    if (!file || !(file instanceof TFile)) {
+      throw new MetaFlowException('Invalid file provided for class change');
+    }
+  }
+
   processContent(content: string, file: TFile): string {
+    this.checkIfMetadataInsertionApplicable(file);
     try {
-      // Step 1: Check if MetadataMenu plugin is available
-      if (!this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-        throw new MetaFlowException('MetadataMenu plugin not available');
-      }
-
-      // Step 2: Check if Templater plugin is available (if integration is enabled)
-      if (!this.templaterAdapter.isTemplaterAvailable()) {
-        throw new MetaFlowException('Templater plugin not available');
-      }
-
-      // Step 3: parse frontmatter
+      // Step 1: parse frontmatter
       const parseResult = this.frontMatterService.parseFrontmatter(content);
 
       let frontmatter: any = {};
@@ -112,7 +159,7 @@ export class MetaFlowService {
         bodyContent = parseResult.restOfContent;
       }
 
-      // Step 4: Determine or validate fileClass
+      // Step 2: Determine or validate fileClass
       let fileClass = this.metadataMenuAdapter.getFileClassFromMetadata(frontmatter);
 
       if (!fileClass) {
@@ -126,24 +173,24 @@ export class MetaFlowService {
         }
       }
 
-      // Step 5: Validate fileClass exists in MetadataMenu, throw error if not found
+      // Step 3: Validate fileClass exists in MetadataMenu, throw error if not found
       this.metadataMenuAdapter.getFileClassByName(fileClass);
 
-      // Step 6: Insert missing metadata headers using MetadataAutoInserter
+      // Step 4: Insert missing metadata headers using MetadataAutoInserter
       let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass);
-      // Step 8: sort properties if autoSort is enabled
+      // Step 5: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
       }
 
-      // Step 9: Add default values to properties
+      // Step 6: Add default values to properties
       const enrichedFrontmatter = this.addDefaultValuesToProperties(
         updatedFrontmatter || {},
         file,
         fileClass
       );
 
-      // Step 11: Write the updated content back to the file
+      // Step 7: Write the updated content back to the file
       return this.frontMatterService.serializeFrontmatter(enrichedFrontmatter, bodyContent);
     } catch (error) {
       console.error('Error in auto update metadata fields:', error);
@@ -152,7 +199,8 @@ export class MetaFlowService {
   }
 
   public getFileClassFromContent(content: string): string | null {
-    return this.frontMatterService.parseFileClassFromContent(content);
+    const fileClassAlias = this.metadataMenuAdapter.getFileClassAlias();
+    return this.frontMatterService.parseFileClassFromContent(content, fileClassAlias);
   }
 
   public getFileClassFromMetadata(metadata: any): string | null {
@@ -167,20 +215,37 @@ export class MetaFlowService {
     return metadata?.[fileClassAlias] || null;
   }
 
-  public moveNoteToTheRightFolder(file: TFile, fileClass: string): void {
-    if (!this.metaFlowSettings.autoMoveNoteToRightFolder) {
-      return;
-    }
-
-    const targetFolder = this.getTargetFolderForFileClass(fileClass);
-    if (targetFolder) {
-      this.obsidianAdapter.moveNote(file, `${targetFolder}/${file.name}`);
-    } else {
-      console.warn(`No target folder defined for fileClass "${fileClass}"`);
+  private checkIfTargetFileExists(targetFolder: string, file: TFile): void {
+    const targetFilePath = `${targetFolder}/${file.name}`;
+    if (this.obsidianAdapter.isFileExists(targetFilePath)) {
+      throw new MetaFlowException(`Target file "${targetFilePath}" already exists`);
     }
   }
 
-  getTargetFolderForFileClass(fileClass: string): string | null {
+  public moveNoteToTheRightFolder(file: TFile, fileClass: string): string | null {
+    this.checkIfAutoMoveNoteToRightFolderEnabled();
+    this.checkIfValidFile(file);
+    this.checkIfExcluded(file);
+    if (!this.metaFlowSettings.autoMoveNoteToRightFolder) {
+      throw new MetaFlowException('Auto move note to right folder is disabled');
+    }
+    const targetFolder = this.getTargetFolderForFileClass(fileClass);
+    if (targetFolder) {
+      if (targetFolder === file.parent?.path || '') {
+        console.info(`Note "${file.name}" is already in the right folder: ${targetFolder}`);
+        return null;
+      }
+      this.checkIfTargetFileExists(targetFolder, file);
+      const newFilePath = `${targetFolder}/${file.name}`;
+      this.obsidianAdapter.moveNote(file, newFilePath);
+      return newFilePath;
+
+    } else {
+      throw new MetaFlowException(`No target folder defined for fileClass "${fileClass}"`);
+    }
+  }
+
+  private getTargetFolderForFileClass(fileClass: string): string | null {
     const mapping = this.metaFlowSettings.folderFileClassMappings.find(
       mapping => mapping.fileClass === fileClass && mapping.moveToFolder);
     if (mapping) {
@@ -189,7 +254,10 @@ export class MetaFlowService {
     return null;
   }
 
-  processSortContent(content: string, file: TFile): string {
+  public processSortContent(content: string, file: TFile): string {
+    this.checkIfValidFile(file);
+    this.checkIfExcluded(file);
+
     try {
       // Step 1: parse frontmatter
       const parseResult = this.frontMatterService.parseFrontmatter(content);
@@ -291,7 +359,7 @@ export class MetaFlowService {
   /**
    * Sort properties based on the order defined in propertyDefaultValueScripts
    */
-  sortProperties(frontmatter: {[key: string]: any}, sortUnknownPropertiesLast: boolean): {[key: string]: any} {
+  private sortProperties(frontmatter: {[key: string]: any}, sortUnknownPropertiesLast: boolean): {[key: string]: any} {
     if (!frontmatter || typeof frontmatter !== 'object' || Array.isArray(frontmatter)) {
       return frontmatter;
     }
@@ -372,7 +440,7 @@ export class MetaFlowService {
     return executeScript(context);
   }
 
-  togglePropertiesVisibility(hide: boolean): void {
+  public togglePropertiesVisibility(hide: boolean): void {
     const styleId = 'metaflow-hide-properties';
     let styleEl = document.getElementById(styleId);
 

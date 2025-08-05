@@ -77,7 +77,7 @@ export class FrontMatterService {
   /**
    * Determine fileClass from file content
    */
-  parseFileClassFromContent(content: string, fileClassAlias: string = 'fileClass'): string | null {
+  parseFileClassFromContent(content: string, fileClassAlias: string): string | null {
     const parseResult = this.parseFrontmatter(content);
     if (!parseResult) {
       return null;
@@ -86,7 +86,7 @@ export class FrontMatterService {
     return this.getFileClassFromMetadata(parseResult.metadata, fileClassAlias);
   }
 
-  getFileClassFromMetadata(metadata: any, fileClassAlias: string = 'fileClass'): string | null {
+  getFileClassFromMetadata(metadata: any, fileClassAlias: string): string | null {
     return metadata?.[fileClassAlias] || null;
   }
 

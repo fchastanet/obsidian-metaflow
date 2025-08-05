@@ -22,6 +22,11 @@ export class ObsidianAdapter {
   }
 
   async moveNote(file: TFile, newPath: string): Promise<void> {
+    console.info(`Moving note ${file.path} to ${newPath}`);
     return await this.app.fileManager.renameFile(file, newPath);
+  }
+
+  isFileExists(filePath: string): boolean {
+    return !!this.app.vault.getAbstractFileByPath(filePath);
   }
 }

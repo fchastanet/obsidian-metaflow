@@ -1,3 +1,6 @@
+/**
+ * @jest-environment jsdom
+ */
 import {MetaFlowSettingTab} from "./MetaFlowSettingTab";
 
 // Mock Obsidian modules
@@ -341,14 +344,13 @@ describe('MetaFlowSettingTab', () => {
         const file = new Blob([fileContent], {type: 'application/json'});
         const fileReaderMock = {
           readAsText: jest.fn(),
-          onload: null
+          onload: jest.fn()
         };
-        window.FileReader = jest.fn(() => fileReaderMock as any);
         // Simulate input element
         const inputMock = {
           type: 'file',
           accept: 'application/json',
-          onchange: null,
+          onchange: jest.fn(),
           click: jest.fn()
         };
         jest.spyOn(document, 'createElement').mockImplementation((tag) => {
@@ -362,18 +364,18 @@ describe('MetaFlowSettingTab', () => {
           onClick: jest.fn((cb) => cb())
         };
         // Simulate FileReader onload
-        fileReaderMock.onload = async (e) => {
+        fileReaderMock.onload = jest.fn((e) => {
           try {
             const importedSettings = JSON.parse(fileContent);
             Object.assign(mockPlugin.settings, importedSettings);
-            await mockPlugin.saveSettings();
+            mockPlugin.saveSettings();
             expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(true);
           } catch (err) {
             expect(false).toBe(true); // Should not throw
           }
-        };
+        });
         // Simulate file input change
-        await fileReaderMock.onload({target: {result: fileContent}});
+        fileReaderMock.onload({target: {result: fileContent}});
       });
     });
   });

@@ -29,7 +29,7 @@ export default class MetaFlowPlugin extends Plugin {
     this.metaFlowService = new MetaFlowService(this.app, this.settings);
     this.frontMatterService = new FrontMatterService();
     this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, this.metaFlowService.handleFileClassChanged.bind(this.metaFlowService)
+      this.app, this.settings, this.handleFileClassChanged.bind(this)
     );
 
     // Apply properties visibility setting on load
@@ -41,6 +41,20 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Add settings tab
     this.addSettingTab(new MetaFlowSettingTab(this.app, this));
+  }
+
+  private async handleFileClassChanged(
+    file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
+  ): Promise<void> {
+    try {
+      this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass);
+    } catch (error) {
+      if (error instanceof MetaFlowException) {
+        new Notice(error.message);
+      } else {
+        console.error(`Error handling file class change for file ${file.path}:`, error);
+      }
+    }
   }
 
   private registerContextMenus() {
@@ -99,7 +113,15 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-update-metadata',
       name: 'Update metadata properties',
       editorCallback: (editor: Editor, view: MarkdownView) => {
-        this.updateMetadataPropertiesInEditor(editor, view);
+        try {
+          this.updateMetadataPropertiesInEditor(editor, view);
+        } catch (error) {
+          if (error instanceof MetaFlowException) {
+            new Notice(error.message);
+          } else {
+            console.error(`Error moving note to the right folder for file ${view.file?.path}:`, error);
+          }
+        }
       }
     });
 
@@ -108,7 +130,32 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-sort-metadata',
       name: 'Sort metadata properties',
       editorCallback: (editor: Editor, view: MarkdownView) => {
-        this.sortMetadataPropertiesInEditor(editor, view);
+        try {
+          this.sortMetadataPropertiesInEditor(editor, view);
+        } catch (error) {
+          if (error instanceof MetaFlowException) {
+            new Notice(error.message);
+          } else {
+            console.error(`Error moving note to the right folder for file ${view.file?.path}:`, error);
+          }
+        }
+      }
+    });
+
+    // Register the command to move the note to the right folder
+    this.addCommand({
+      id: 'metaflow-move-note-to-right-folder',
+      name: 'Move the note to the right folder',
+      editorCallback: (editor: Editor, view: MarkdownView) => {
+        try {
+          this.moveNoteToTheRightFolder(editor, view);
+        } catch (error) {
+          if (error instanceof MetaFlowException) {
+            new Notice(error.message);
+          } else {
+            console.error(`Error moving note to the right folder for file ${view.file?.path}:`, error);
+          }
+        }
       }
     });
 
@@ -132,19 +179,12 @@ export default class MetaFlowPlugin extends Plugin {
     });
   }
 
-
-  updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
+  private updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
     const content = editor.getValue();
     const file = view.file;
 
     if (!file) {
       new Notice('No active file');
-      return;
-    }
-    // Exclude files in excluded folders
-    const excludeFolders = (this.settings.excludeFolders || []);
-    if (excludeFolders.some(folder => file.path.startsWith(folder + '/'))) {
-      new Notice(`File ${file.name} is in an excluded folder: ${file.path}`);
       return;
     }
 
@@ -167,7 +207,36 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
+  private moveNoteToTheRightFolder(editor: Editor, view: MarkdownView) {
+    const content = editor.getValue();
+    const file = view.file;
+
+    if (!file) {
+      new Notice('No active file');
+      return;
+    }
+
+    try {
+      this.metaFlowService.checkIfValidFile(file);
+      this.metaFlowService.checkIfAutoMoveNoteToRightFolderEnabled();
+
+      const fileClass = this.metaFlowService.getFileClassFromContent(content);
+      if (fileClass) {
+        this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+      } else {
+        new Notice('No file class found');
+      }
+    } catch (error) {
+      console.error('Error updating metadata properties:', error);
+      if (error instanceof MetaFlowException) {
+        new Notice(`Error: ${error.message}`);
+      } else {
+        new Notice('Error updating metadata properties');
+      }
+    }
+  }
+
+  private sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView) {
     const content = editor.getValue();
     const file = view.file;
 
@@ -195,7 +264,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  massUpdateMetadataProperties(files: TFile[]) {
+  private massUpdateMetadataProperties(files: TFile[]) {
     let updatedCount = 0;
     let processedCount = 0;
     // Filter out files in excluded folders
@@ -205,7 +274,7 @@ export default class MetaFlowPlugin extends Plugin {
     });
     let totalFiles = filteredFiles.length;
     if (totalFiles === 0) {
-      new Notice('No files to update');
+      new Notice('No files to update - all files are excluded or no markdown files found.');
       return;
     }
     let abort = false;
@@ -250,7 +319,15 @@ export default class MetaFlowPlugin extends Plugin {
           }).bind(this)).then((content) => {
             const fileClass = this.metaFlowService.getFileClassFromContent(content);
             if (fileClass) {
-              this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+              try {
+                this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+              } catch (error) {
+                if (error instanceof MetaFlowException) {
+                  new Notice(error.message);
+                } else {
+                  console.error(`Error moving note to the right folder for file ${file.path}:`, error);
+                }
+              }
             }
           });
         } catch (error) {

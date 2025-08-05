@@ -7,6 +7,7 @@ import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatte
 declare type AceModule = typeof import("ace-builds");
 import * as Ace from "ace-builds";
 import {FolderSuggest} from "./FolderSuggest";
+import {basename} from "path";
 declare const ace: AceModule;
 
 /**
@@ -66,17 +67,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       generalDetails.open = !generalDetails.open;
     });
 
-    // Auto-sort on view setting
-    new Setting(generalDetails)
-      .setName('Sort metadata properties on insert')
-      .setDesc('Automatically sort metadata properties when updating metadata')
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.autoSort)
-        .onChange(async (value) => {
-          this.plugin.settings.autoSort = value;
-          await this.plugin.saveSettings();
-        }));
-
     // Sort unknown properties setting
     new Setting(generalDetails)
       .setName('Sort unknown properties alphabetically')
@@ -99,6 +89,17 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
           // Apply CSS to hide/show properties section immediately
           this.plugin.metaFlowService.togglePropertiesVisibility(value);
+        }));
+
+    // Auto-sort on view setting
+    new Setting(generalDetails)
+      .setName('Auto-sort metadata properties')
+      .setDesc('Automatically sort metadata properties when updating metadata')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoSort)
+        .onChange(async (value) => {
+          this.plugin.settings.autoSort = value;
+          await this.plugin.saveSettings();
         }));
 
     // Auto metadata insertion setting
@@ -932,16 +933,26 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         {value: 'file', score: 1, meta: 'TFile', docHTML: 'the obsidian TFile object currently being edited'},
         {value: 'fileClass', score: 2, meta: 'string', docHTML: 'the deduced or forced fileClass for the current file'},
         {value: 'metadata', score: 1, meta: 'object', docHTML: 'the metadata for the current file'},
-        {value: "now('YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'current date with default ISO format or format specified using moment library'},
-        {value: "tomorrow('YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'date of tomorrow with default ISO format or format specified using moment library'},
-        {value: "yesterday('YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'date of yesterday with default ISO format or format specified using moment library'},
-        {value: "formatDate(date, 'YYYY-MM-DDT')", score: 1, meta: 'string', docHTML: 'format javascript date with default ISO format or format specified using moment library'},
+        {value: "now()", score: 1, meta: 'string', docHTML: 'current date with default ISO format'},
+        {value: "now('YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'current date with the moment library\'s format'},
+        {value: "tomorrow()", score: 1, meta: 'string', docHTML: 'date of tomorrow with default ISO format'},
+        {value: "tomorrow('YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'date of tomorrow with the moment library\'s format'},
+        {value: "yesterday()", score: 1, meta: 'string', docHTML: 'date of yesterday with default ISO format'},
+        {value: "yesterday('YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'date of yesterday with the moment library\'s format'},
+        {value: "formatDate(date, 'YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'format javascript date with the moment library\'s format'},
         {value: 'generateMarkdownLink(file)', score: 1, meta: 'string', docHTML: 'generate a markdown link to the file'},
         {value: 'detectLanguage(text)', score: 1, meta: 'string', docHTML: 'simple language detection of the given text'},
         {value: 'prompt("Your prompt here", "defaultValue")', score: 1, meta: 'string: show prompt dialog', docHTML: 'show a prompt dialog to the user and return the input value, defaultValue will be used in case of mass update'},
         {value: 'getParentFile()', score: 1, meta: 'string', docHTML: 'get the parent file of the current file'},
       ];
 
+      const fileCompletions: Ace.Ace.ValueCompletion[] = [
+        {value: 'name', score: 1, meta: 'filename', docHTML: 'obsidian TFile object - file name without the path'},
+        {value: 'basename', score: 1, meta: 'file\'s basename', docHTML: 'obsidian TFile object - file name without path and extension'},
+        {value: 'extension', score: 1, meta: 'file extension', docHTML: 'obsidian TFile object - file extension without the dot'},
+        {value: 'parent.path', score: 1, meta: 'folder path', docHTML: 'obsidian TFile object - parent folder path'},
+        {value: 'path', score: 1, meta: 'file path', docHTML: 'obsidian TFile object - full file path'},
+      ];
       const metadataCompletions: Ace.Ace.ValueCompletion[] = [];
       this.metadataMenuAdapter.getAllFields().forEach(field => {
         metadataCompletions.push({
@@ -984,6 +995,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
               if (/metadata\./.exec(linePrefix)) {
                 // If the prefix matches metadata., return metadata completions
                 callback(null, metadataCompletions);
+                return;
+              } else if (/file\./.exec(linePrefix)) {
+                // If the prefix matches metadata., return metadata completions
+                callback(null, fileCompletions);
                 return;
               }
               callback(null, completions);
@@ -1130,7 +1145,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         try {
           const metadataMenuPlugin = (this.app as any).plugins?.plugins?.['metadata-menu'];
           if (metadataMenuPlugin?.fieldIndex?.fileClassesFields) {
-            const fileClasses = Array.from(metadataMenuPlugin.fieldIndex.fileClassesFields.keys());
+            const fileClasses = Array.from(metadataMenuPlugin.fieldIndex.fileClassesFields.keys()).sort();
             fileClasses.forEach(fileClass => {
               const fileClassName = String(fileClass);
               dropdown.addOption(fileClassName, fileClassName);
@@ -1238,8 +1253,12 @@ This is sample content for testing.`
 
         // Create a mock file object for simulation
         const mockFile = {
+          basename: 'simulation-test',
           name: 'simulation-test.md',
-          path: 'simulation-test.md',
+          path: 'folder/simulation-test.md',
+          parent: {
+            path: 'folder'
+          },
           extension: 'md'
         } as any;
 

@@ -1,4 +1,4 @@
-import {Plugin, TFile} from 'obsidian';
+import {FileStats, Plugin, TFile} from 'obsidian';
 
 // Declare mock variables that will be initialized in beforeEach
 let mockMetadataMenuAdapter: any;
@@ -49,7 +49,13 @@ describe('MetaFlowService', () => {
       },
       vault: {
         read: jest.fn(),
-        modify: jest.fn()
+        modify: jest.fn(),
+        getAbstractFileByPath: jest.fn().mockImplementation((path) => {
+          if (path === 'test.md') {
+            return mockFile;
+          }
+          return null;
+        }),
       },
       fileManager: {
         generateMarkdownLink: jest.fn(),
@@ -107,11 +113,11 @@ describe('MetaFlowService', () => {
     };
 
     // Setup mock file
-    mockFile = {
-      name: 'test.md',
-      path: 'test.md',
-      extension: 'md'
-    } as TFile;
+    mockFile = new TFile();
+    mockFile.basename = 'test';
+    mockFile.extension = 'md';
+    mockFile.name = 'test.md';
+    mockFile.path = 'test.md';
 
     // Create the command instance
     metaFlowService = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
@@ -149,7 +155,7 @@ describe('MetaFlowService', () => {
         spy.mockRestore();
       } catch (error) {
         expect(error).toBeInstanceOf(MetaFlowException);
-        expect(error.message).toBe('Error updating metadata fields: MetadataMenu plugin not available');
+        expect(error.message).toBe('MetadataMenu plugin not available');
       }
       // The command should handle the error gracefully
     });
@@ -545,7 +551,9 @@ Content here`;
       const service = new MetaFlowService(mockApp, settings);
       // Mock obsidianAdapter.moveNote as a jest mock function
       (service as any).obsidianAdapter.moveNote = jest.fn();
-      const file = {name: 'my-book.md', path: 'Books/my-book.md'} as TFile;
+      const file = mockFile;
+      file.path = 'Books/my-book.md';
+      file.name = 'my-book.md';
       service.moveNoteToTheRightFolder(file, 'book');
       expect((service as any).obsidianAdapter.moveNote).toHaveBeenCalledWith(file, 'Books/my-book.md');
     });
@@ -561,8 +569,16 @@ Content here`;
       const service = new MetaFlowService(mockApp, settings);
       // Mock obsidianAdapter.moveNote as a jest mock function
       (service as any).obsidianAdapter.moveNote = jest.fn();
-      const file = {name: 'my-book.md', path: 'Books/my-book.md'} as TFile;
-      (service as any).moveNoteToTheRightFolder(file, 'book');
+      const file = mockFile;
+      file.path = 'Books/my-book.md';
+      file.name = 'my-book.md';
+
+      try {
+        (service as any).moveNoteToTheRightFolder(file, 'book');
+      } catch (error) {
+        expect(error).toBeInstanceOf(MetaFlowException);
+        expect(error.message).toBe('Auto move note to right folder is disabled');
+      }
       expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
     });
 
@@ -578,9 +594,43 @@ Content here`;
       const service = new MetaFlowService(mockApp, settings);
       // Mock obsidianAdapter.moveNote as a jest mock function
       (service as any).obsidianAdapter.moveNote = jest.fn();
-      const file = {name: 'my-book.md', path: 'Books/my-book.md'} as TFile;
-      (service as any).moveNoteToTheRightFolder(file, 'book');
-      expect(spy).toHaveBeenCalledWith('No target folder defined for fileClass "book"');
+      const file = mockFile;
+      file.path = 'Books/my-book.md';
+      file.name = 'my-book.md';
+
+      try {
+        (service as any).moveNoteToTheRightFolder(file, 'book');
+      } catch (error) {
+        expect(error).toBeInstanceOf(MetaFlowException);
+        expect(error.message).toBe('No target folder defined for fileClass "book"');
+      }
+      spy.mockRestore();
+      expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
+    });
+
+    test('should not move note if target file exists', () => {
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        autoMoveNoteToRightFolder: true,
+        folderFileClassMappings: [
+          {folder: 'Books', fileClass: 'book', moveToFolder: true}
+        ]
+      };
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(mockFile); // Simulate existing file
+      const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const service = new MetaFlowService(mockApp, settings);
+      // Mock obsidianAdapter.moveNote as a jest mock function
+      (service as any).obsidianAdapter.moveNote = jest.fn();
+      const file = mockFile;
+      file.path = 'Books/my-book.md';
+      file.name = 'my-book.md';
+
+      try {
+        (service as any).moveNoteToTheRightFolder(file, 'book');
+      } catch (error) {
+        expect(error).toBeInstanceOf(MetaFlowException);
+        expect(error.message).toBe('Target file "Books/my-book.md" already exists');
+      }
       spy.mockRestore();
       expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
     });
@@ -597,8 +647,8 @@ Content here`;
         ]
       };
       const service = new MetaFlowService(mockApp, settings);
-      expect(service.getTargetFolderForFileClass('book')).toBe('Books');
-      expect(service.getTargetFolderForFileClass('article')).toBe('Articles2');
+      expect((service as any).getTargetFolderForFileClass('book')).toBe('Books');
+      expect((service as any).getTargetFolderForFileClass('article')).toBe('Articles2');
     });
 
     test('should return null if no mapping exists for fileClass', () => {
@@ -609,7 +659,7 @@ Content here`;
         ]
       };
       const service = new MetaFlowService(mockApp, settings);
-      expect(service.getTargetFolderForFileClass('unknown')).toBe(null);
+      expect((service as any).getTargetFolderForFileClass('unknown')).toBe(null);
     });
   });
 
