@@ -1,0 +1,7 @@
+.metaflow-settings-icon {
+  background-image: url("./assets/icon.png");
+  float:left;
+  width: 100px;
+  height: 100px;
+  background-size: 100px 100px;
+}

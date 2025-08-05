@@ -2,9 +2,18 @@
   "syncEnabled": false,
   "syncPath": "",
   "filesToSync": [
-    "main.js",
-    "styles.css",
-    "manifest.json"
+    {
+      "src": "dist/main.js",
+      "dest": "main.js"
+    },
+    {
+      "src": "dist/styles.css",
+      "dest": "styles.css"
+    },
+    {
+      "src": "manifest.json",
+      "dest": "manifest.json"
+    }
   ],
   "comment": "Copy this file to sync.config.json and configure your sync settings. Set syncEnabled to true and provide a syncPath to enable syncing built files. Example syncPath: '/home/user/.obsidian/plugins/your-plugin-name/'"
 }

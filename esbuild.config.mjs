@@ -60,8 +60,16 @@ const modeConfig = debug ? debugConfig : (prod ? prodConfig : devConfig);
 
 const context = await esbuild.context({
   ...modeConfig,
-  entryPoints: ["src/index.ts"],
+  entryPoints: ["src/main.ts", "src/styles.css"],
   bundle: true,
+  loader: {
+    ".png": "dataurl",
+    ".svg": "dataurl",
+    ".css": "css",
+  },
+  entryNames: "[name]",
+  assetNames: "[name]-[hash]",
+  outdir: "./dist",
   external: [
     "obsidian",
     "electron",
@@ -78,9 +86,8 @@ const context = await esbuild.context({
     "@lezer/lr",
     ...builtins],
   format: "cjs",
-  target: "es2018",
+  target: "es2020",
   treeShaking: true,
-  outfile: "main.js",
 });
 
 if (prod) {

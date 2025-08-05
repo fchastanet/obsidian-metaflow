@@ -1,5 +1,5 @@
 import {App, Notice, PluginSettingTab, Setting} from "obsidian";
-import MetaFlowPlugin from "..";
+import MetaFlowPlugin from "../main";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
 import {MetaFlowService} from "../services/MetaFlowService";
@@ -7,7 +7,6 @@ import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatte
 declare type AceModule = typeof import("ace-builds");
 import * as Ace from "ace-builds";
 import {FolderSuggest} from "./FolderSuggest";
-import {basename} from "path";
 declare const ace: AceModule;
 
 /**
@@ -39,6 +38,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     containerEl.setAttribute('id', 'metaflow-settings');
     containerEl.empty();
 
+    containerEl.createDiv({cls: 'metaflow-settings-icon'});
     containerEl.createEl('h1', {text: 'MetaFlow Settings'});
 
     containerEl.createEl('p', {
@@ -387,6 +387,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
     // Add MetaFlow plugin support information
     const pluginSupport = containerEl.createDiv({cls: 'vt-support', });
+    // cspell:words colour FFDD00
     pluginSupport.innerHTML = `<h3>Enjoying MetaFlow?</h3>
       <div class="setting-item-description">If you like this Plugin, consider donating to support continued development:</div>
       <div class="buttons">
