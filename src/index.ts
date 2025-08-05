@@ -246,14 +246,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
 
     try {
-      const processedContent = this.metaFlowService.processSortContent(content, file);
-
-      if (processedContent !== content) {
-        editor.setValue(processedContent);
-        new Notice(`Successfully updated metadata fields for "${file.name}"`);
-      } else {
-        new Notice('No changes needed');
-      }
+      this.metaFlowService.processSortContent(content, file);
     } catch (error) {
       console.error('Error updating metadata properties:', error);
       if (error instanceof MetaFlowException) {

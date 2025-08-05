@@ -254,7 +254,7 @@ export class MetaFlowService {
     return null;
   }
 
-  public processSortContent(content: string, file: TFile): string {
+  public processSortContent(content: string, file: TFile): void {
     this.checkIfValidFile(file);
     this.checkIfExcluded(file);
 
@@ -262,17 +262,25 @@ export class MetaFlowService {
       // Step 1: parse frontmatter
       const parseResult = this.frontMatterService.parseFrontmatter(content);
 
-      let frontmatter: any = {};
+      let enrichedFrontmatter: any = {};
       let bodyContent = content;
 
       if (parseResult) {
-        frontmatter = parseResult.metadata || {};
+        enrichedFrontmatter = parseResult.metadata || {};
         bodyContent = parseResult.restOfContent;
       }
-      frontmatter = this.sortProperties(frontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
+      enrichedFrontmatter = this.sortProperties(enrichedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
 
-      // Step 10: Write the updated content back to the file
-      return this.frontMatterService.serializeFrontmatter(frontmatter, bodyContent);
+      setTimeout(async () => {
+        await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+          // Remove all keys from frontmatter
+          Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
+          // Add keys back in desired order
+          Object.keys(enrichedFrontmatter).forEach(key => {
+            frontmatter[key] = enrichedFrontmatter[key];
+          });
+        })
+      }, 500)
     } catch (error) {
       console.error('Error in auto update metadata fields:', error);
       throw new MetaFlowException(`Error updating metadata fields: ${error.message}`);
