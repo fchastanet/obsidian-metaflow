@@ -165,7 +165,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
 
     try {
-      const processedContent = this.metaFlowService.processContent(content, file);
+      const processedContent = this.metaFlowService.processContent(content, file, logManager);
 
       if (processedContent !== content) {
         editor.setValue(processedContent);

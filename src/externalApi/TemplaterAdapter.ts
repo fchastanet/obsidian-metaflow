@@ -1,4 +1,5 @@
 import {App, TFile} from 'obsidian';
+import {LogManagerInterface} from 'src/managers/types';
 import {MetaFlowSettings} from 'src/settings/types';
 
 export interface FolderTemplate {
@@ -171,12 +172,12 @@ export class TemplaterAdapter {
   /**
    * deduce parent file
    */
-  getParentFile(currentFile: TFile): string | null {
+  getParentFile(currentFile: TFile, logManager: LogManagerInterface): string | null {
     const activeFile = this.app.workspace.getActiveFile();
     let parentFile = null;
     if (currentFile?.path === activeFile?.path) {
       if (!this.templater?.file?.find_tfile) {
-        console.warn('Templater file.find_tfile method not available, cannot deduce parent file');
+        logManager.addWarning('Templater file.find_tfile method not available, cannot deduce parent file');
         return null;
       }
       // currentFile is actually active file

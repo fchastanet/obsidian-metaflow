@@ -1,5 +1,5 @@
 import {App, Notice, TFile} from 'obsidian';
-import {MetaFlowSettings} from 'src/settings/types';
+import {MetaFlowSettings} from '../settings/types';
 
 export class ObsidianAdapter {
   private app: App;
@@ -33,4 +33,19 @@ export class ObsidianAdapter {
   notice(message: string): Notice {
     return new Notice(message);
   }
+
+  createMockTFile(path: string): TFile {
+    const file = {
+      path,
+      name: path.split('/').pop() || path,
+      stat: {} as any,
+      basename: path.split('/').pop() || path,
+      extension: 'md',
+      vault: {} as any,
+      parent: {} as any,
+    } as TFile;
+    Object.setPrototypeOf(file, TFile.prototype);
+    return file;
+  }
+
 }

@@ -89,14 +89,14 @@ export class MetadataMenuAdapter {
    * 2. More specific ancestor fields (e.g., "default")
    * 3. Finally the main fileClass fields (e.g., "book")
    */
-  insertMissingFields(frontmatter: Frontmatter, fileClassName: string): Frontmatter {
+  insertMissingFields(frontmatter: Frontmatter, fileClassName: string, logManager: LogManagerInterface): Frontmatter {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
 
     try {
       // Get the ancestor chain for this fileClass
-      const ancestorChain = this.getFileClassAncestorChain(fileClassName);
+      const ancestorChain = this.getFileClassAncestorChain(fileClassName, logManager);
 
       // Insert fields from ancestors first, then the fileClass itself
       // The chain is already in the correct order (most basic ancestor first)
@@ -182,12 +182,12 @@ export class MetadataMenuAdapter {
    * Get the ancestor chain for a fileClass in the correct order for field insertion
    * Returns ancestors from most basic to most specific (e.g., ["default-basic", "default"])
    */
-  private getFileClassAncestorChain(fileClassName: string): string[] {
+  private getFileClassAncestorChain(fileClassName: string, logManager: LogManagerInterface): string[] {
     try {
       // Access MetadataMenu's fieldIndex.fileClassesAncestors
       const fieldIndex = (this.metadataMenuPlugin as any)?.fieldIndex;
       if (!fieldIndex?.fileClassesAncestors) {
-        console.warn('MetadataMenu fieldIndex.fileClassesAncestors not available');
+        logManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
         return [];
       }
 

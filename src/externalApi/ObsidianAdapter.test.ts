@@ -1,6 +1,6 @@
 import {ObsidianAdapter} from './ObsidianAdapter';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import {Notice, TFile} from 'obsidian';
+import {Notice} from 'obsidian';
 
 // Mock the entire obsidian module
 jest.mock('obsidian');
@@ -8,18 +8,6 @@ jest.mock('obsidian');
 describe('ObsidianAdapter', () => {
   let mockApp: any;
   let adapter: ObsidianAdapter;
-
-  function createMockTFile(path: string): TFile {
-    return {
-      path,
-      name: path.split('/').pop() || path,
-      stat: {} as any,
-      basename: path.split('/').pop() || path,
-      extension: 'md',
-      vault: {} as any,
-      parent: {} as any,
-    } as TFile;
-  }
 
   beforeEach(() => {
     // Clear all mocks before each test
@@ -35,22 +23,22 @@ describe('ObsidianAdapter', () => {
   });
 
   test('generateMarkdownLink should call app.fileManager.generateMarkdownLink with correct args', () => {
-    const targetFile = createMockTFile('target.md');
-    const sourceFile = createMockTFile('source.md');
+    const targetFile = adapter.createMockTFile('target.md');
+    const sourceFile = adapter.createMockTFile('source.md');
     const result = adapter.generateMarkdownLink(targetFile, sourceFile);
     expect(mockApp.fileManager.generateMarkdownLink).toHaveBeenCalledWith(targetFile, 'source.md');
     expect(result).toBe('[[target.md|source.md]]');
   });
 
   test('generateMarkdownLink should use empty string for sourceFile if not provided', () => {
-    const targetFile = createMockTFile('target.md');
+    const targetFile = adapter.createMockTFile('target.md');
     const result = adapter.generateMarkdownLink(targetFile);
     expect(mockApp.fileManager.generateMarkdownLink).toHaveBeenCalledWith(targetFile, '');
     expect(result).toBe('[[target.md|]]');
   });
 
   test('moveNote should call app.fileManager.renameFile with correct args', async () => {
-    const file = createMockTFile('old/path/note.md');
+    const file = adapter.createMockTFile('old/path/note.md');
     const newPath = 'new/path/note.md';
     const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
     await adapter.moveNote(file, newPath);
@@ -60,7 +48,7 @@ describe('ObsidianAdapter', () => {
   });
 
   test('moveNote should resolve without error and call renameFile', async () => {
-    const file = createMockTFile('old/path/note.md');
+    const file = adapter.createMockTFile('old/path/note.md');
     const newPath = 'new/path/note.md';
     const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
     await expect(adapter.moveNote(file, newPath)).resolves.toBeUndefined();

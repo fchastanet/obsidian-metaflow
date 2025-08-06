@@ -21,6 +21,7 @@ import {MetaFlowService} from './MetaFlowService';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {MetaFlowSettings} from '../settings/types';
 import {MetaFlowException} from '../MetaFlowException';
+import {LogManagerInterface} from 'src/managers/types';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -32,6 +33,7 @@ describe('MetaFlowService', () => {
   let mockApp: any;
   let metaFlowService: MetaFlowService;
   let mockFile: TFile;
+  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     // Setup mock app first
@@ -64,6 +66,13 @@ describe('MetaFlowService', () => {
           return Promise.resolve(file);
         })
       }
+    };
+    mockLogManager = {
+      addDebug: jest.fn(),
+      addWarning: jest.fn(),
+      addError: jest.fn(),
+      addInfo: jest.fn(),
+      addMessage: jest.fn(),
     };
 
     // Create a real MetadataMenuAdapter instance to get the actual getFileClassByName method
@@ -150,7 +159,7 @@ describe('MetaFlowService', () => {
       expect.assertions(2);
       try {
         const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
-        metaFlowService.processContent('', mockFile);
+        metaFlowService.processContent('', mockFile, mockLogManager);
         expect(spy).toHaveBeenCalledWith('Error updating metadata fields: MetadataMenu plugin not available');
         spy.mockRestore();
       } catch (error) {
@@ -168,14 +177,15 @@ title: Test Book
 
 Content here`;
 
-      const result = metaFlowService.processContent(contentWithFileClass, mockFile);
+      const result = metaFlowService.processContent(contentWithFileClass, mockFile, mockLogManager);
       const expectedFrontmatter = {
         fileClass: 'book',
         title: 'Test Book'
       };
-      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(expectedFrontmatter, 'book');
+      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(expectedFrontmatter, 'book', mockLogManager);
       expect(typeof result).toBe('string');
       expect(result).toContain('fileClass: book');
+      expect(mockLogManager.addError).not.toHaveBeenCalled();
     });
 
     test('should deduce fileClass from folder mapping', async () => {
@@ -195,13 +205,14 @@ Content here`;
 
       const command = new MetaFlowService(mockApp, settings);
 
-      command.processContent(contentWithoutFileClass, mockFile);
+      command.processContent(contentWithoutFileClass, mockFile, mockLogManager);
 
       const expectedFrontmatter = {
         title: 'Test Note'
       };
       expect(mockMetadataMenuAdapter.insertMissingFields).
-        toHaveBeenCalledWith(expectedFrontmatter, 'note');
+        toHaveBeenCalledWith(expectedFrontmatter, 'note', mockLogManager);
+      expect(mockLogManager.addError).not.toHaveBeenCalled();
     });
   });
 

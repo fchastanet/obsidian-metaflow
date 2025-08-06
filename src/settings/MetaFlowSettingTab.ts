@@ -7,6 +7,8 @@ import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatte
 declare type AceModule = typeof import("ace-builds");
 import * as Ace from "ace-builds";
 import {FolderSuggest} from "./FolderSuggest";
+import {LogNoticeManager} from "../managers/LogNoticeManager";
+import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 declare const ace: AceModule;
 
 /**
@@ -1226,15 +1228,8 @@ This is sample content for testing.`
         this.showStatus(statusDiv, 'Running simulation...', 'info');
 
         // Create a mock file object for simulation
-        const mockFile = {
-          basename: 'simulation-test',
-          name: 'simulation-test.md',
-          path: 'folder/simulation-test.md',
-          parent: {
-            path: 'folder'
-          },
-          extension: 'md'
-        } as any;
+        const obsidianAdapter = new ObsidianAdapter(this.app, this.plugin.settings);
+        const mockFile = obsidianAdapter.createMockTFile('folder/simulation-test.md');
 
         // Create a MetaFlowService instance with current settings
         const metaFlowService = new MetaFlowService(this.app, this.plugin.settings);
@@ -1243,7 +1238,8 @@ This is sample content for testing.`
         this.metadataMenuAdapter.getFileClassFromMetadata = () => selectedFileClass;
 
         // Run the simulation
-        const result = await metaFlowService.processContent(inputContent, mockFile);
+        const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.plugin.settings));
+        const result = metaFlowService.processContent(inputContent, mockFile, logManager);
 
         // Display results
         outputTextarea.value = result;

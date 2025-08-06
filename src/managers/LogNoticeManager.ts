@@ -1,4 +1,4 @@
-import {ObsidianAdapter} from "src/externalApi/ObsidianAdapter";
+import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {LogManagerInterface, LogManagerLogLevel} from "./types";
 
 export class LogNoticeManager implements LogManagerInterface {

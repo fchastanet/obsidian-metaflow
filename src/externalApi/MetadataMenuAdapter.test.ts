@@ -1,12 +1,14 @@
 import {MetadataMenuAdapter} from './MetadataMenuAdapter';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {MetaFlowException} from '../MetaFlowException';
-import {MetaFlowSettings} from 'src/settings/types';
+import {MetaFlowSettings} from '../settings/types';
+import {LogManagerInterface} from '../managers/types';
 
 describe('MetadataMenuAdapter', () => {
   let mockApp: any;
   let adapter: MetadataMenuAdapter;
   let settings: MetaFlowSettings;
+  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
@@ -17,6 +19,13 @@ describe('MetadataMenuAdapter', () => {
       }
     };
     settings = {...DEFAULT_SETTINGS, debugMode: true};
+    mockLogManager = {
+      addDebug: jest.fn(),
+      addWarning: jest.fn(),
+      addError: jest.fn(),
+      addInfo: jest.fn(),
+      addMessage: jest.fn(),
+    };
   });
 
   describe('isMetadataMenuAvailable', () => {
@@ -260,7 +269,11 @@ describe('MetadataMenuAdapter', () => {
       const frontmatter = {title: 'Test'};
       adapter = new MetadataMenuAdapter(mockApp, settings);
       expect(() => {
-        adapter.insertMissingFields(frontmatter, 'book');
+        adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+        expect(mockLogManager.addError).toHaveBeenCalledWith(
+          'MetadataMenu integration is not enabled or plugin is not available',
+          'info'
+        );
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
     });
 
@@ -281,13 +294,14 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
-      const result = adapter.insertMissingFields(frontmatter, 'book');
+      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         title: 'Existing Title',  // Existing field preserved
         author: null,             // Missing field added
         date: null                // Missing field added
       });
+      expect(mockLogManager.addError).not.toHaveBeenCalledWith();
     });
 
     test('inserts fields from ancestors first, then main fileClass', () => {
@@ -314,7 +328,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
-      const result = adapter.insertMissingFields(frontmatter, 'book');
+      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         title: 'Existing Title',  // Existing field preserved
@@ -322,6 +336,7 @@ describe('MetadataMenuAdapter', () => {
         created: null,            // From ancestor
         author: null              // From main fileClass
       });
+      expect(mockLogManager.addError).not.toHaveBeenCalledWith();
     });
   });
 
@@ -419,11 +434,15 @@ describe('MetadataMenuAdapter', () => {
       expect(() => {
         const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
         const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
-        adapter.insertMissingFields(frontmatter, 'book');
+        adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
         spy.mockRestore();
         errorSpy.mockRestore();
         expect(spy).toHaveBeenCalledWith('MetadataMenu fieldIndex.fileClassesFields not available');
         expect(errorSpy).toHaveBeenCalledWith('No fileClass definitions found in MetadataMenu');
+        expect(mockLogManager.addError).toHaveBeenCalledWith(
+          'No fileClass definitions found in MetadataMenu',
+          'warning'
+        );
       }).toThrow('No fileClass definitions found in MetadataMenu');
     });
 
@@ -444,13 +463,14 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {existing: 'value'};
-      const result = adapter.insertMissingFields(frontmatter, 'book');
+      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
 
       // Should still process the main fileClass even if ancestors fail
       expect(result).toEqual({
         existing: 'value',
         title: null
       });
+      expect(mockLogManager.addError).not.toHaveBeenCalled();
     });
 
     test('insertMissingFields handles multiple ancestor levels correctly', () => {
@@ -480,7 +500,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
-      const result = adapter.insertMissingFields(frontmatter, 'book');
+      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         title: 'Existing Title',  // Existing field preserved
@@ -489,6 +509,7 @@ describe('MetadataMenuAdapter', () => {
         updated: null,            // From default
         author: null              // From book
       });
+      expect(mockLogManager.addError).not.toHaveBeenCalled();
     });
 
     test('insertMissingFields works with object-based ancestors (not Map)', () => {
@@ -516,12 +537,13 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {};
-      const result = adapter.insertMissingFields(frontmatter, 'book');
+      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         created: null,  // From ancestor
         title: null     // From main fileClass
       });
+      expect(mockLogManager.addError).not.toHaveBeenCalled();
     });
 
     test('getAllFieldsFileClassesAssociation handles empty field names', () => {

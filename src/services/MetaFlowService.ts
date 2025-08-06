@@ -6,7 +6,7 @@ import {ScriptContextService} from "./ScriptContextService";
 import {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import {LogManagerInterface} from "src/managers/types";
+import {LogManagerInterface} from "../managers/types";
 
 export class MetaFlowService {
   private app: App;
@@ -72,7 +72,7 @@ export class MetaFlowService {
 
       // Step 3: Insert missing metadata headers using MetadataAutoInserter
       let updatedFrontmatter: any = cache?.frontmatter || {};
-      updatedFrontmatter = this.metadataMenuAdapter.insertMissingFields(updatedFrontmatter, fileClass);
+      updatedFrontmatter = this.metadataMenuAdapter.insertMissingFields(updatedFrontmatter, fileClass, logManager);
 
       // Step 4: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
@@ -83,7 +83,8 @@ export class MetaFlowService {
       const enrichedFrontmatter = this.addDefaultValuesToProperties(
         updatedFrontmatter || {},
         file,
-        fileClass
+        fileClass,
+        logManager
       );
 
       setTimeout(async () => {
@@ -162,7 +163,7 @@ export class MetaFlowService {
     }
   }
 
-  processContent(content: string, file: TFile): string {
+  processContent(content: string, file: TFile, logManager: LogManagerInterface): string {
     this.checkIfMetadataInsertionApplicable(file);
     try {
       // Step 1: parse frontmatter
@@ -194,7 +195,7 @@ export class MetaFlowService {
       this.metadataMenuAdapter.getFileClassByName(fileClass);
 
       // Step 4: Insert missing metadata headers using MetadataAutoInserter
-      let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass);
+      let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass, logManager);
       // Step 5: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
@@ -204,7 +205,8 @@ export class MetaFlowService {
       const enrichedFrontmatter = this.addDefaultValuesToProperties(
         updatedFrontmatter || {},
         file,
-        fileClass
+        fileClass,
+        logManager
       );
 
       // Step 7: Write the updated content back to the file
@@ -307,7 +309,8 @@ export class MetaFlowService {
   private addDefaultValuesToProperties(
     frontmatter: {[key: string]: any},
     file: TFile,
-    fileClass: string
+    fileClass: string,
+    logManager: LogManagerInterface
   ): {[key: string]: any} {
     const enrichedFrontmatter = {...frontmatter};
 
@@ -339,7 +342,8 @@ export class MetaFlowService {
           script,
           file,
           fileClass,
-          enrichedFrontmatter
+          enrichedFrontmatter,
+          logManager
         );
 
         if (defaultValue !== undefined && defaultValue !== null && defaultValue !== '') {
@@ -438,13 +442,15 @@ export class MetaFlowService {
     script: PropertyDefaultValueScript,
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any}
+    metadata: {[key: string]: any},
+    logManager: LogManagerInterface
   ): any {
     // Get utilities from ScriptContextService
     const context = this.scriptContextService.getScriptContext(
       file,
       fileClass,
-      metadata
+      metadata,
+      logManager
     );
 
     // Create a safe execution environment

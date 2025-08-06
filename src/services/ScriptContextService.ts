@@ -2,6 +2,7 @@ import {App, TFile} from 'obsidian';
 import {TemplaterAdapter} from '../externalApi/TemplaterAdapter';
 import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
 import {MetaFlowSettings} from '../settings/types';
+import {LogManagerInterface} from '../managers/types';
 
 
 export interface ScriptContextInterface {
@@ -96,7 +97,8 @@ export class ScriptContextService {
   getScriptContext(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any}
+    metadata: {[key: string]: any},
+    logManager: LogManagerInterface
   ): ScriptContextInterface {
     return {
       file,
@@ -109,7 +111,9 @@ export class ScriptContextService {
       generateMarkdownLink: this.obsidianAdapter.generateMarkdownLink.bind(this.obsidianAdapter),
       detectLanguage: this.detectLanguage.bind(this),
       prompt: this.templaterAdapter.prompt.bind(this.templaterAdapter),
-      getParentFile: this.templaterAdapter.getParentFile.bind(this.templaterAdapter),
+      getParentFile: (file: TFile): string => {
+        return this.templaterAdapter.getParentFile(file, logManager) || '';
+      },
     };
   }
 }

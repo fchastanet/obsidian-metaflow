@@ -1,6 +1,8 @@
 import {ScriptContextService} from './ScriptContextService';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import {TFile} from 'src/__mocks__/obsidian';
+import {TFile} from '../__mocks__/obsidian';
+import {mock} from 'node:test';
+import {LogManagerInterface} from 'src/managers/types';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -28,6 +30,7 @@ jest.mock('../externalApi/ObsidianAdapter', () => ({
 describe('ScriptContextService', () => {
   let mockApp: any;
   let scriptContextService: ScriptContextService;
+  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     // Setup mock app
@@ -41,7 +44,22 @@ describe('ScriptContextService', () => {
     };
 
     scriptContextService = new ScriptContextService(mockApp, DEFAULT_SETTINGS);
+    mockLogManager = {
+      addDebug: jest.fn(),
+      addWarning: jest.fn(),
+      addError: jest.fn(),
+      addInfo: jest.fn(),
+      addMessage: jest.fn(),
+    };
   });
+
+  const expectNoLogs = () => {
+    expect(mockLogManager.addDebug).not.toHaveBeenCalled();
+    expect(mockLogManager.addInfo).not.toHaveBeenCalled();
+    expect(mockLogManager.addWarning).not.toHaveBeenCalled();
+    expect(mockLogManager.addError).not.toHaveBeenCalled();
+    expect(mockLogManager.addMessage).not.toHaveBeenCalled();
+  }
 
   describe('Language Detection', () => {
     test('should detect English text', () => {
@@ -115,7 +133,7 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test', author: 'John'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       expect(context.file).toBe(mockFile);
       expect(context.fileClass).toBe(fileClass);
@@ -127,6 +145,7 @@ describe('ScriptContextService', () => {
       expect(typeof context.generateMarkdownLink).toBe('function');
       expect(typeof context.detectLanguage).toBe('function');
       expect(typeof context.prompt).toBe('function');
+      expectNoLogs();
     });
 
     test('should bind adapter methods correctly', () => {
@@ -134,13 +153,14 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       // Test that the bound methods work correctly
       expect(context.now()).toBe('2025-07-30');
       expect(context.tomorrow()).toBe('2025-07-31');
       expect(context.yesterday()).toBe('2025-07-29');
       expect(context.formatDate(new Date('2025-07-30'), 'YYYY-MM-DD')).toBe('2025-07-30');
+      expectNoLogs();
     });
 
     test('should provide working detectLanguage function', () => {
@@ -148,10 +168,11 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       expect(context.detectLanguage('The quick brown fox and the lazy dog')).toBe('English');
       expect(context.detectLanguage('Le renard brun et le chien paresseux')).toBe('French');
+      expectNoLogs();
     });
 
     test('should provide working generateMarkdownLink function', () => {
@@ -160,9 +181,10 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       expect(context.generateMarkdownLink(linkTarget)).toBe('[[target.md]]');
+      expectNoLogs();
     });
 
     test('should provide working prompt function', async () => {
@@ -170,10 +192,11 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       const result = await context.prompt('Enter value');
       expect(result).toBe('mocked-input');
+      expectNoLogs();
     });
   });
 
@@ -203,7 +226,7 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       // Test that date functions are available and work
       expect(typeof context.formatDate).toBe('function');
@@ -216,6 +239,8 @@ describe('ScriptContextService', () => {
       expect(context.tomorrow()).toBe('2025-07-31');
       expect(context.yesterday()).toBe('2025-07-29');
       expect(context.formatDate(new Date('2025-07-30'), 'YYYY-MM-DD')).toBe('2025-07-30');
+
+      expectNoLogs();
     });
 
     test('should provide prompt function through context', async () => {
@@ -223,26 +248,30 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       expect(typeof context.prompt).toBe('function');
       const result = await context.prompt('Enter value', 'default');
       expect(result).toBe('mocked-input');
+      expectNoLogs();
     });
   });
 
   describe('Parent File Retrieval', () => {
     test('should retrieve parent file correctly', () => {
       const mockFile = {name: 'child.md', path: 'folder/child.md'} as any;
-      const parentFile = scriptContextService.getScriptContext(mockFile, 'article', {}).getParentFile(mockFile);
+      const context = scriptContextService.getScriptContext(mockFile, 'article', {}, mockLogManager);
+      const parentFile = context.getParentFile(mockFile);
       expect(parentFile).toBe('mocked-parent-file');
+      expectNoLogs();
     });
 
     test('should handle active file retrieval', () => {
       const mockFile = {name: 'active.md', path: 'folder/active.md'} as any;
-      const context = scriptContextService.getScriptContext(mockFile, 'article', {});
+      const context = scriptContextService.getScriptContext(mockFile, 'article', {}, mockLogManager);
       const parentFile = context.getParentFile(mockFile);
       expect(parentFile).toBe('mocked-parent-file');
+      expectNoLogs();
     });
   });
 
@@ -253,11 +282,12 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       expect(typeof context.generateMarkdownLink).toBe('function');
       const result = context.generateMarkdownLink(targetFile);
       expect(result).toBe('[[target.md]]');
+      expectNoLogs();
     });
 
     test('should handle markdown link generation with different file types', () => {
@@ -265,7 +295,7 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       // Test with different target files
       const pdfFile = {name: 'document.pdf', path: 'files/document.pdf'} as any;
@@ -273,6 +303,7 @@ describe('ScriptContextService', () => {
 
       expect(context.generateMarkdownLink(pdfFile)).toBe('[[document.pdf]]');
       expect(context.generateMarkdownLink(imageFile)).toBe('[[image.png]]');
+      expectNoLogs();
     });
   });
 
@@ -282,7 +313,7 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test', author: 'John Doe'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       // Verify all required properties exist
       expect(context).toHaveProperty('file');
@@ -301,6 +332,7 @@ describe('ScriptContextService', () => {
       expect(context.file).toBe(mockFile);
       expect(context.fileClass).toBe(fileClass);
       expect(context.metadata).toBe(metadata);
+      expectNoLogs();
     });
 
     test('should provide working utility functions', () => {
@@ -308,7 +340,7 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       // Test that utility functions work as expected
       expect(context.detectLanguage('The quick brown fox and the lazy dog')).toBe('English');
@@ -319,6 +351,7 @@ describe('ScriptContextService', () => {
       expect(context.now()).toBe('2025-07-30');
       expect(context.tomorrow()).toBe('2025-07-31');
       expect(context.yesterday()).toBe('2025-07-29');
+      expectNoLogs();
     });
   });
 
@@ -328,7 +361,7 @@ describe('ScriptContextService', () => {
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
-      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata);
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       // Verify that the adapter methods are properly bound
       // (by checking they don't throw when called)
@@ -339,6 +372,7 @@ describe('ScriptContextService', () => {
       expect(() => context.detectLanguage('test')).not.toThrow();
       expect(() => context.generateMarkdownLink({name: 'test.md'})).not.toThrow();
       expect(() => context.getParentFile(mockFile)).not.toThrow();
+      expectNoLogs();
     });
   });
 });
