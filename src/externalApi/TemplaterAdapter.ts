@@ -189,6 +189,10 @@ export class TemplaterAdapter {
     } else {
       parentFile = activeFile;
     }
+    if (parentFile.path === currentFile.path) {
+      if (this.settings.debugMode) console.debug('Parent file is the same as current file, cannot deduce parent file');
+      return null;
+    }
 
     return parentFile;
   }

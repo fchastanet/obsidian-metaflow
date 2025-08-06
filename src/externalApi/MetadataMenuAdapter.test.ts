@@ -2,13 +2,12 @@ import {MetadataMenuAdapter} from './MetadataMenuAdapter';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {MetaFlowException} from '../MetaFlowException';
 import {MetaFlowSettings} from '../settings/types';
-import {LogManagerInterface} from '../managers/types';
+import {expectNoLogs, mockLogManager} from '../__mocks__/logManager';
 
 describe('MetadataMenuAdapter', () => {
   let mockApp: any;
   let adapter: MetadataMenuAdapter;
   let settings: MetaFlowSettings;
-  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
@@ -19,13 +18,6 @@ describe('MetadataMenuAdapter', () => {
       }
     };
     settings = {...DEFAULT_SETTINGS, debugMode: true};
-    mockLogManager = {
-      addDebug: jest.fn(),
-      addWarning: jest.fn(),
-      addError: jest.fn(),
-      addInfo: jest.fn(),
-      addMessage: jest.fn(),
-    };
   });
 
   describe('isMetadataMenuAvailable', () => {
@@ -33,18 +25,21 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
+      expectNoLogs();
     });
 
     test('returns false if plugin is missing', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
+      expectNoLogs();
     });
 
     test('returns false if plugin has no api', () => {
       mockApp.plugins.plugins['metadata-menu'] = {notApi: {}};
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
+      expectNoLogs();
     });
 
     test('returns false if plugin disabled', () => {
@@ -53,6 +48,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
+      expectNoLogs();
     });
 
     test('returns true if plugin and api are present and integration enabled', () => {
@@ -60,6 +56,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(true);
+      expectNoLogs();
     });
   });
 
@@ -69,6 +66,7 @@ describe('MetadataMenuAdapter', () => {
       expect.assertions(2);
       try {
         adapter.getMetadataMenuPlugin();
+        expectNoLogs();
       } catch (e) {
         expect(e).toBeInstanceOf(MetaFlowException);
         expect(e.message).toBe('MetadataMenu integration is not enabled or plugin is not available');
@@ -81,6 +79,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.getMetadataMenuPlugin();
       expect(result).toBe(mockApp.plugins.plugins['metadata-menu']);
+      expectNoLogs();
     });
   });
 
@@ -89,6 +88,7 @@ describe('MetadataMenuAdapter', () => {
       expect(() => {
         adapter.getAllFieldsFileClassesAssociation();
       }).toThrow(MetaFlowException);
+      expectNoLogs();
     });
 
     test('throws exception when no fileClass definitions found', () => {
@@ -104,6 +104,7 @@ describe('MetadataMenuAdapter', () => {
         adapter.getAllFieldsFileClassesAssociation();
         expect(spy).toHaveBeenCalledWith('MetadataMenu fieldIndex.fileClassesAncestors not available');
         spy.mockRestore();
+        expectNoLogs();
       }).toThrow('No fileClass definitions found in MetadataMenu');
     });
 
@@ -129,6 +130,7 @@ describe('MetadataMenuAdapter', () => {
         author: {fileClasses: ['book']},
         date: {fileClasses: ['article']}
       });
+      expectNoLogs();
     });
   });
 
@@ -142,6 +144,7 @@ describe('MetadataMenuAdapter', () => {
 
       const result = adapter.getFileClassFromMetadata(null);
       expect(result).toBe(null);
+      expectNoLogs();
     });
 
     test('returns null for non-object metadata', () => {
@@ -153,6 +156,7 @@ describe('MetadataMenuAdapter', () => {
 
       const result = adapter.getFileClassFromMetadata('string');
       expect(result).toBe(null);
+      expectNoLogs();
     });
 
     test('returns fileClass value from metadata', () => {
@@ -165,6 +169,7 @@ describe('MetadataMenuAdapter', () => {
       const metadata = {fileClass: 'book', title: 'Test'};
       const result = adapter.getFileClassFromMetadata(metadata);
       expect(result).toBe('book');
+      expectNoLogs();
     });
 
     test('returns null when fileClass not present in metadata', () => {
@@ -177,6 +182,7 @@ describe('MetadataMenuAdapter', () => {
       const metadata = {title: 'Test'};
       const result = adapter.getFileClassFromMetadata(metadata);
       expect(result).toBe(null);
+      expectNoLogs();
     });
   });
 
@@ -186,6 +192,7 @@ describe('MetadataMenuAdapter', () => {
       expect(() => {
         adapter.getFileClassAlias();
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
+      expectNoLogs();
     });
 
     test('returns default fileClass alias when not configured', () => {
@@ -197,6 +204,7 @@ describe('MetadataMenuAdapter', () => {
 
       const result = adapter.getFileClassAlias();
       expect(result).toBe('fileClass');
+      expectNoLogs();
     });
 
     test('returns configured fileClass alias', () => {
@@ -208,6 +216,7 @@ describe('MetadataMenuAdapter', () => {
 
       const result = adapter.getFileClassAlias();
       expect(result).toBe('customFileClass');
+      expectNoLogs();
     });
   });
 
@@ -270,11 +279,8 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
       expect(() => {
         adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
-        expect(mockLogManager.addError).toHaveBeenCalledWith(
-          'MetadataMenu integration is not enabled or plugin is not available',
-          'info'
-        );
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
+      expectNoLogs();
     });
 
     test('inserts missing fields from fileClass', () => {
@@ -302,6 +308,7 @@ describe('MetadataMenuAdapter', () => {
         date: null                // Missing field added
       });
       expect(mockLogManager.addError).not.toHaveBeenCalledWith();
+      expectNoLogs();
     });
 
     test('inserts fields from ancestors first, then main fileClass', () => {
@@ -336,7 +343,7 @@ describe('MetadataMenuAdapter', () => {
         created: null,            // From ancestor
         author: null              // From main fileClass
       });
-      expect(mockLogManager.addError).not.toHaveBeenCalledWith();
+      expectNoLogs();
     });
   });
 
@@ -347,6 +354,7 @@ describe('MetadataMenuAdapter', () => {
       expect(() => {
         adapter.insertFileClassMissingFields(frontmatter, 'book');
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
+      expectNoLogs();
     });
 
     test('no exception when no fields found for fileClass', () => {
@@ -363,6 +371,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
       expect(result).toEqual(frontmatter);
+      expectNoLogs();
     });
 
     test('inserts missing fields only', () => {
@@ -388,6 +397,7 @@ describe('MetadataMenuAdapter', () => {
         author: null,             // Missing field added
         date: null                // Missing field added
       });
+      expectNoLogs();
     });
 
     test('preserves existing fields', () => {
@@ -417,6 +427,7 @@ describe('MetadataMenuAdapter', () => {
         author: 'Existing Author', // Preserved
         extraField: 'Extra Value'  // Preserved
       });
+      expectNoLogs();
     });
   });
 
@@ -430,20 +441,17 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Test'};
+      const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
       expect(() => {
-        const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
-        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
-        spy.mockRestore();
-        errorSpy.mockRestore();
-        expect(spy).toHaveBeenCalledWith('MetadataMenu fieldIndex.fileClassesFields not available');
-        expect(errorSpy).toHaveBeenCalledWith('No fileClass definitions found in MetadataMenu');
-        expect(mockLogManager.addError).toHaveBeenCalledWith(
-          'No fileClass definitions found in MetadataMenu',
-          'warning'
-        );
       }).toThrow('No fileClass definitions found in MetadataMenu');
+      expect(spy).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalledWith('Error inserting missing fields:', expect.any(Error));
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
 
     test('insertMissingFields handles ancestor chain errors gracefully', () => {
@@ -471,6 +479,9 @@ describe('MetadataMenuAdapter', () => {
         title: null
       });
       expect(mockLogManager.addError).not.toHaveBeenCalled();
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
 
     test('insertMissingFields handles multiple ancestor levels correctly', () => {
@@ -510,6 +521,9 @@ describe('MetadataMenuAdapter', () => {
         author: null              // From book
       });
       expect(mockLogManager.addError).not.toHaveBeenCalled();
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
 
     test('insertMissingFields works with object-based ancestors (not Map)', () => {
@@ -544,6 +558,9 @@ describe('MetadataMenuAdapter', () => {
         title: null     // From main fileClass
       });
       expect(mockLogManager.addError).not.toHaveBeenCalled();
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
 
     test('getAllFieldsFileClassesAssociation handles empty field names', () => {
@@ -569,6 +586,9 @@ describe('MetadataMenuAdapter', () => {
         '': {fileClasses: ['book']},      // Empty string field
         author: {fileClasses: ['book']}
       });
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
 
     test('getFileClassAlias throws exception when settings is null', () => {
@@ -581,6 +601,9 @@ describe('MetadataMenuAdapter', () => {
       expect(() => {
         adapter.getFileClassAlias();
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
 
     test('getFileClassAlias throws exception when settings is not object', () => {
@@ -593,6 +616,9 @@ describe('MetadataMenuAdapter', () => {
       expect(() => {
         adapter.getFileClassAlias();
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
 
     test('insertFileClassMissingFields handles fields without names', () => {
@@ -624,6 +650,9 @@ describe('MetadataMenuAdapter', () => {
         author: null
         // Empty and null names should be skipped
       });
+      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
+        'MetadataMenu fieldIndex.fileClassesAncestors not available'
+      );
     });
   });
 });

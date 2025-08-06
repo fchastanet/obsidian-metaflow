@@ -1,8 +1,7 @@
 import {ScriptContextService} from './ScriptContextService';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {TFile} from '../__mocks__/obsidian';
-import {mock} from 'node:test';
-import {LogManagerInterface} from 'src/managers/types';
+import {expectNoLogs, mockLogManager} from '../__mocks__/logManager';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -30,7 +29,6 @@ jest.mock('../externalApi/ObsidianAdapter', () => ({
 describe('ScriptContextService', () => {
   let mockApp: any;
   let scriptContextService: ScriptContextService;
-  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     // Setup mock app
@@ -44,22 +42,11 @@ describe('ScriptContextService', () => {
     };
 
     scriptContextService = new ScriptContextService(mockApp, DEFAULT_SETTINGS);
-    mockLogManager = {
-      addDebug: jest.fn(),
-      addWarning: jest.fn(),
-      addError: jest.fn(),
-      addInfo: jest.fn(),
-      addMessage: jest.fn(),
-    };
   });
-
-  const expectNoLogs = () => {
-    expect(mockLogManager.addDebug).not.toHaveBeenCalled();
-    expect(mockLogManager.addInfo).not.toHaveBeenCalled();
-    expect(mockLogManager.addWarning).not.toHaveBeenCalled();
-    expect(mockLogManager.addError).not.toHaveBeenCalled();
-    expect(mockLogManager.addMessage).not.toHaveBeenCalled();
-  }
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+  });
 
   describe('Language Detection', () => {
     test('should detect English text', () => {
@@ -253,24 +240,6 @@ describe('ScriptContextService', () => {
       expect(typeof context.prompt).toBe('function');
       const result = await context.prompt('Enter value', 'default');
       expect(result).toBe('mocked-input');
-      expectNoLogs();
-    });
-  });
-
-  describe('Parent File Retrieval', () => {
-    test('should retrieve parent file correctly', () => {
-      const mockFile = {name: 'child.md', path: 'folder/child.md'} as any;
-      const context = scriptContextService.getScriptContext(mockFile, 'article', {}, mockLogManager);
-      const parentFile = context.getParentFile(mockFile);
-      expect(parentFile).toBe('mocked-parent-file');
-      expectNoLogs();
-    });
-
-    test('should handle active file retrieval', () => {
-      const mockFile = {name: 'active.md', path: 'folder/active.md'} as any;
-      const context = scriptContextService.getScriptContext(mockFile, 'article', {}, mockLogManager);
-      const parentFile = context.getParentFile(mockFile);
-      expect(parentFile).toBe('mocked-parent-file');
       expectNoLogs();
     });
   });

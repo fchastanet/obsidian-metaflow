@@ -1,8 +1,8 @@
 import {MetaFlowService} from "../services/MetaFlowService";
 import {FileClassStateManager} from "./FileClassStateManager";
 import {TFile, WorkspaceLeaf, MarkdownView} from "obsidian";
-import {LogManagerInterface} from "./types";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import {expectNoLogs, mockLogManager} from "../__mocks__/logManager";
 
 // Mock obsidian modules
 jest.mock('obsidian', () => ({
@@ -18,7 +18,6 @@ describe('FileClassStateManager', () => {
   let mockSettings: any;
   let mockFileClassChangedCallback: any;
   let obsidianAdapter: ObsidianAdapter;
-  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     obsidianAdapter = new ObsidianAdapter(mockApp, mockSettings);
@@ -35,13 +34,7 @@ describe('FileClassStateManager', () => {
       autoMetadataInsertion: true,
       debugMode: true,
     };
-    mockLogManager = {
-      addDebug: jest.fn(),
-      addWarning: jest.fn(),
-      addError: jest.fn(),
-      addInfo: jest.fn(),
-      addMessage: jest.fn(),
-    };
+
     jest.spyOn(MetaFlowService.prototype, 'getFileClassFromMetadata')
       .mockImplementation(mockMetaFlowService.getFileClassFromMetadata);
     mockFileClassChangedCallback = jest.fn();
@@ -50,15 +43,8 @@ describe('FileClassStateManager', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
-
-  const expectNoLogs = () => {
-    expect(mockLogManager.addDebug).not.toHaveBeenCalled();
-    expect(mockLogManager.addInfo).not.toHaveBeenCalled();
-    expect(mockLogManager.addWarning).not.toHaveBeenCalled();
-    expect(mockLogManager.addError).not.toHaveBeenCalled();
-    expect(mockLogManager.addMessage).not.toHaveBeenCalled();
-  }
 
   function createMockMarkdownView(file?: TFile): MarkdownView {
     const view = {file} as MarkdownView;
@@ -81,7 +67,6 @@ describe('FileClassStateManager', () => {
       expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
-      consoleSpy.mockRestore();
       expectNoLogs();
     });
 
@@ -93,7 +78,6 @@ describe('FileClassStateManager', () => {
       expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
-      consoleSpy.mockRestore();
       expectNoLogs();
     });
 
@@ -106,7 +90,6 @@ describe('FileClassStateManager', () => {
       expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
-      consoleSpy.mockRestore();
       expectNoLogs();
     });
 
@@ -119,7 +102,6 @@ describe('FileClassStateManager', () => {
       expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('No file associated with the active view');
-      consoleSpy.mockRestore();
       expectNoLogs();
     });
 
@@ -133,7 +115,6 @@ describe('FileClassStateManager', () => {
       expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active view does not have a valid file');
-      consoleSpy.mockRestore();
       expectNoLogs();
     });
 
@@ -196,7 +177,6 @@ describe('FileClassStateManager', () => {
       const file = obsidianAdapter.createMockTFile('test.md');
       manager.handleModifyFileEvent(file);
       expect(spy).toHaveBeenCalledWith("File test.md modified without prior typing or create event");
-      spy.mockRestore();
       expect(mockFileClassChangedCallback).not.toHaveBeenCalled();
       expectNoLogs();
     });
@@ -257,7 +237,6 @@ describe('FileClassStateManager', () => {
       manager['fileModifiedMap'].set(oldPath, true);
       manager.handleRenameFileEvent(newFile, oldPath);
       expect(mockLogManager.addWarning).toHaveBeenCalledWith(`File class for ${oldPath} not found in fileClassMap`);
-      spy.mockRestore();
       expect(manager['fileClassMap'].has(oldPath)).toBe(false);
       expect(manager['fileClassMap'].get(newFile.path)).toBeUndefined();
       expect(mockLogManager.addDebug).not.toHaveBeenCalled();
@@ -304,7 +283,6 @@ describe('FileClassStateManager', () => {
       expect(logSpy).toHaveBeenCalledWith(
         `File class changed for ${file.path}: oldClass -> newClass`
       );
-      logSpy.mockRestore();
       expectNoLogs();
     });
 
@@ -319,8 +297,6 @@ describe('FileClassStateManager', () => {
       expect(manager['fileClassMap'].get(file.path)).toBe('sameClass');
       expect(logSpy).not.toHaveBeenCalled();
       expect(spy).toHaveBeenCalledWith("File test.md modified without prior typing or create event");
-      spy.mockRestore();
-      logSpy.mockRestore();
       expectNoLogs();
     });
   });
