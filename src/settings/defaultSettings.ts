@@ -20,4 +20,5 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
   propertyDefaultValueScripts: [],
   excludeFolders: [],
   autoMoveNoteToRightFolder: true,
+  debugMode: false
 };

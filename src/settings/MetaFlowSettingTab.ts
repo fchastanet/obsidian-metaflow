@@ -147,6 +147,17 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           });
       });
 
+    // debug mode setting
+    new Setting(generalDetails)
+      .setName('Debug mode')
+      .setDesc('Enable debug mode for verbose logging')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.debugMode)
+        .onChange(async (value) => {
+          this.plugin.settings.debugMode = value;
+          await this.plugin.saveSettings();
+        }));
+
     // Folder/FileClass Mappings - Collapsible
     const mappingsDetails = containerEl.createEl('details', {cls: 'setting-details'});
     mappingsDetails.open = false; // Collapsed by default

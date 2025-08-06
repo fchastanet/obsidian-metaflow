@@ -16,11 +16,13 @@ export interface Frontmatter {
 
 export class MetadataMenuAdapter {
   private app: App;
+  private settings: MetaFlowSettings
   private metadataMenuPlugin: MetadataMenuPluginInterface;
   private METADATA_MENU_PLUGIN_NAME = 'metadata-menu';
 
-  constructor(app: App) {
+  constructor(app: App, settings: MetaFlowSettings) {
     this.app = app;
+    this.settings = settings;
     this.metadataMenuPlugin = (this.app as any).plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
   }
 
@@ -99,7 +101,7 @@ export class MetadataMenuAdapter {
       // Insert fields from ancestors first, then the fileClass itself
       // The chain is already in the correct order (most basic ancestor first)
       for (const ancestorName of ancestorChain) {
-        console.debug(`Inserting missing fields from ancestor: ${ancestorName}`);
+        if (this.settings.debugMode) console.debug(`Inserting missing fields from ancestor: ${ancestorName}`);
         frontmatter = this.insertFileClassMissingFields(
           frontmatter,
           ancestorName, // Specific ancestor fileClass
@@ -107,7 +109,7 @@ export class MetadataMenuAdapter {
       }
 
       // Finally, insert fields from the main fileClass
-      console.debug(`Inserting missing fields from main fileClass: ${fileClassName}`);
+      if (this.settings.debugMode) console.debug(`Inserting missing fields from main fileClass: ${fileClassName}`);
       frontmatter = this.insertFileClassMissingFields(
         frontmatter,
         fileClassName, // Main fileClass
@@ -185,7 +187,7 @@ export class MetadataMenuAdapter {
       // Access MetadataMenu's fieldIndex.fileClassesAncestors
       const fieldIndex = (this.metadataMenuPlugin as any)?.fieldIndex;
       if (!fieldIndex?.fileClassesAncestors) {
-        console.log('MetadataMenu fieldIndex.fileClassesAncestors not available');
+        console.warn('MetadataMenu fieldIndex.fileClassesAncestors not available');
         return [];
       }
 

@@ -16,7 +16,7 @@ describe('FileClassStateManager additional event handlers', () => {
         getFileCache: jest.fn()
       }
     };
-    mockSettings = {enableAutoMetadataInsertion: true};
+    mockSettings = {enableAutoMetadataInsertion: true, debugMode: true};
     jest.spyOn(MetaFlowService.prototype, 'getFileClassFromMetadata')
       .mockImplementation(mockMetaFlowService.getFileClassFromMetadata);
     mockCallback = jest.fn();
@@ -25,6 +25,7 @@ describe('FileClassStateManager additional event handlers', () => {
       addWarning: jest.fn(),
       addError: jest.fn(),
       addInfo: jest.fn(),
+      addMessage: jest.fn(),
     };
     manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager, mockCallback);
   });
@@ -69,7 +70,7 @@ describe('FileClassStateManager additional event handlers', () => {
   });
 
   test('handleModifyFileEvent does nothing if fileModifiedMap not set', () => {
-    const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
     const file = createMockTFile('test.md');
     manager.handleModifyFileEvent(file);
     expect(spy).toHaveBeenCalledWith("File test.md modified without prior typing or create event");
@@ -146,6 +147,7 @@ describe('FileClassStateManager', () => {
   let mockMetaFlowService: any;
   let manager: FileClassStateManager;
   let mockSettings: any;
+  let mockFileClassChangedCallback: any;
 
   beforeEach(() => {
     const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
@@ -159,16 +161,19 @@ describe('FileClassStateManager', () => {
     };
     mockSettings = {
       enableAutoMetadataInsertion: true,
+      debugMode: true,
     };
-    const mockLogManager = {
+    const mockLogManager: LogManagerInterface = {
       addDebug: jest.fn(),
       addWarning: jest.fn(),
       addError: jest.fn(),
       addInfo: jest.fn(),
+      addMessage: jest.fn(),
     };
     jest.spyOn(MetaFlowService.prototype, 'getFileClassFromMetadata')
       .mockImplementation(mockMetaFlowService.getFileClassFromMetadata);
-    manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager);
+    mockFileClassChangedCallback = jest.fn();
+    manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager, mockFileClassChangedCallback);
   });
 
   afterEach(() => {
@@ -190,6 +195,7 @@ describe('FileClassStateManager', () => {
   test('constructor initializes fileClassMap and metaFlowService', () => {
     expect(manager['fileClassMap']).toBeInstanceOf(Map);
     expect(manager['metaFlowService']).toBeInstanceOf(MetaFlowService);
+    expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
   });
 
   describe('handleActiveLeafChange', () => {
@@ -197,6 +203,7 @@ describe('FileClassStateManager', () => {
       const spy = jest.spyOn(manager as any, 'registerFileClass');
       const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(null);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
       consoleSpy.mockRestore();
@@ -207,6 +214,7 @@ describe('FileClassStateManager', () => {
       const spy = jest.spyOn(manager as any, 'registerFileClass');
       const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
       consoleSpy.mockRestore();
@@ -218,6 +226,7 @@ describe('FileClassStateManager', () => {
       const spy = jest.spyOn(manager as any, 'registerFileClass');
       const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
       consoleSpy.mockRestore();
@@ -229,6 +238,7 @@ describe('FileClassStateManager', () => {
       const spy = jest.spyOn(manager as any, 'registerFileClass');
       const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('No file associated with the active view');
       consoleSpy.mockRestore();
@@ -241,6 +251,7 @@ describe('FileClassStateManager', () => {
       const spy = jest.spyOn(manager as any, 'registerFileClass');
       const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active view does not have a valid file');
       consoleSpy.mockRestore();
@@ -252,6 +263,7 @@ describe('FileClassStateManager', () => {
       const leaf = {view} as unknown as WorkspaceLeaf;
       const spy = jest.spyOn(manager as any, 'registerFileClass');
       manager.handleActiveLeafChange(leaf);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(spy).toHaveBeenCalledWith(file);
     });
   });
@@ -262,6 +274,7 @@ describe('FileClassStateManager', () => {
       mockApp.metadataCache.getFileCache.mockReturnValue({frontmatter: {fileClass: 'book'}});
       mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('book');
       (manager as any).registerFileClass(file);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(manager['fileClassMap'].get(file.path)).toBe('book');
     });
 
@@ -269,6 +282,7 @@ describe('FileClassStateManager', () => {
       const file = createMockTFile('test.md');
       mockApp.metadataCache.getFileCache.mockReturnValue(null);
       (manager as any).registerFileClass(file);
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(manager['fileClassMap'].get(file.path)).toBe('');
     });
   });
@@ -280,9 +294,10 @@ describe('FileClassStateManager', () => {
       // Set fileModifiedMap to true so the log will trigger
       manager['fileModifiedMap'].set(file.path, true);
       mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('newClass');
-      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => { });
+      const logSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
       // Provide file content as string, cache as third argument
       manager.handleMetadataChanged(file, '---\nfileClass: newClass\n---\n', {frontmatter: {fileClass: 'newClass'}});
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(1);
       expect(manager['fileClassMap'].get(file.path)).toBe('newClass');
       expect(logSpy).toHaveBeenCalledWith(
         `File class changed for ${file.path}: oldClass -> newClass`
@@ -294,9 +309,10 @@ describe('FileClassStateManager', () => {
       const file = createMockTFile('test.md');
       manager['fileClassMap'].set(file.path, 'sameClass');
       mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('sameClass');
-      const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
-      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => { });
+      const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
+      const logSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
       manager.handleMetadataChanged(file, '---\nfileClass: sameClass\n---\n', {frontmatter: {fileClass: 'sameClass'}});
+      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(manager['fileClassMap'].get(file.path)).toBe('sameClass');
       expect(logSpy).not.toHaveBeenCalled();
       expect(spy).toHaveBeenCalledWith("File test.md modified without prior typing or create event");

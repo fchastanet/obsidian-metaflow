@@ -1,10 +1,12 @@
 import {MetadataMenuAdapter} from './MetadataMenuAdapter';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {MetaFlowException} from '../MetaFlowException';
+import {MetaFlowSettings} from 'src/settings/types';
 
 describe('MetadataMenuAdapter', () => {
   let mockApp: any;
   let adapter: MetadataMenuAdapter;
+  let settings: MetaFlowSettings;
 
   beforeEach(() => {
     const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
@@ -14,24 +16,24 @@ describe('MetadataMenuAdapter', () => {
         plugins: {}
       }
     };
-    adapter = new MetadataMenuAdapter(mockApp);
+    settings = {...DEFAULT_SETTINGS, debugMode: true};
   });
 
   describe('isMetadataMenuAvailable', () => {
     test('returns false if integration setting is off', () => {
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
     });
 
     test('returns false if plugin is missing', () => {
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
     });
 
     test('returns false if plugin has no api', () => {
       mockApp.plugins.plugins['metadata-menu'] = {notApi: {}};
-      adapter = new MetadataMenuAdapter(mockApp);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
     });
@@ -39,14 +41,14 @@ describe('MetadataMenuAdapter', () => {
     test('returns false if plugin disabled', () => {
       mockApp.plugins.enabledPlugins.delete('metadata-menu');
       mockApp.plugins.plugins['metadata-menu'] = {api: {}, settings: {}, };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(false);
     });
 
     test('returns true if plugin and api are present and integration enabled', () => {
       mockApp.plugins.plugins['metadata-menu'] = {api: {}, settings: {}, };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.isMetadataMenuAvailable();
       expect(result).toBe(true);
     });
@@ -54,21 +56,22 @@ describe('MetadataMenuAdapter', () => {
 
   describe('getMetadataMenuPlugin', () => {
     test('throw MetaFlowException if not available', async () => {
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       expect.assertions(2);
       try {
-        await adapter.getMetadataMenuPlugin();
+        adapter.getMetadataMenuPlugin();
       } catch (e) {
         expect(e).toBeInstanceOf(MetaFlowException);
         expect(e.message).toBe('MetadataMenu integration is not enabled or plugin is not available');
       }
     });
 
-    test('returns plugin if available', async () => {
+    test('returns plugin if available', () => {
       const pluginObj = {api: {}, foo: 'bar', settings: {}};
       mockApp.plugins.plugins['metadata-menu'] = pluginObj;
-      adapter = new MetadataMenuAdapter(mockApp);
-      const result = await adapter.getMetadataMenuPlugin();
-      expect(result).toBe(pluginObj);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
+      const result = adapter.getMetadataMenuPlugin();
+      expect(result).toBe(mockApp.plugins.plugins['metadata-menu']);
     });
   });
 
@@ -85,7 +88,7 @@ describe('MetadataMenuAdapter', () => {
         settings: {},
         fieldIndex: {}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       expect(() => {
         const spy = jest.spyOn(console, 'log').mockImplementation(() => { });
@@ -108,7 +111,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const result = adapter.getAllFieldsFileClassesAssociation();
 
@@ -126,7 +129,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: {fileClassAlias: 'fileClass'}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const result = adapter.getFileClassFromMetadata(null);
       expect(result).toBe(null);
@@ -137,7 +140,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: {fileClassAlias: 'fileClass'}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const result = adapter.getFileClassFromMetadata('string');
       expect(result).toBe(null);
@@ -148,7 +151,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: {fileClassAlias: 'fileClass'}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const metadata = {fileClass: 'book', title: 'Test'};
       const result = adapter.getFileClassFromMetadata(metadata);
@@ -160,7 +163,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: {fileClassAlias: 'fileClass'}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const metadata = {title: 'Test'};
       const result = adapter.getFileClassFromMetadata(metadata);
@@ -170,6 +173,7 @@ describe('MetadataMenuAdapter', () => {
 
   describe('getFileClassAlias', () => {
     test('throws exception when plugin not available', () => {
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       expect(() => {
         adapter.getFileClassAlias();
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
@@ -180,7 +184,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: {}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const result = adapter.getFileClassAlias();
       expect(result).toBe('fileClass');
@@ -191,7 +195,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: {fileClassAlias: 'customFileClass'}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const result = adapter.getFileClassAlias();
       expect(result).toBe('customFileClass');
@@ -205,7 +209,7 @@ describe('MetadataMenuAdapter', () => {
         settings: {},
         fieldIndex: {}
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       expect(() => {
         adapter.getFileClassByName('book');
@@ -224,7 +228,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       expect(() => {
         adapter.getFileClassByName('book');
@@ -244,7 +248,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const result = adapter.getFileClassByName('book');
       expect(result).toBe(mockFields);
@@ -254,7 +258,7 @@ describe('MetadataMenuAdapter', () => {
   describe('insertMissingFields', () => {
     test('throws exception when MetadataMenu not available', () => {
       const frontmatter = {title: 'Test'};
-
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       expect(() => {
         adapter.insertMissingFields(frontmatter, 'book');
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
@@ -274,7 +278,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesAncestors: new Map()
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
@@ -307,7 +311,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesAncestors: mockAncestorsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
@@ -324,7 +328,7 @@ describe('MetadataMenuAdapter', () => {
   describe('insertFileClassMissingFields', () => {
     test('throws exception when MetadataMenu not available', () => {
       const frontmatter = {title: 'Test'};
-
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       expect(() => {
         adapter.insertFileClassMissingFields(frontmatter, 'book');
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
@@ -341,7 +345,7 @@ describe('MetadataMenuAdapter', () => {
         }
       };
       const frontmatter = {};
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
       const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
       expect(result).toEqual(frontmatter);
     });
@@ -359,7 +363,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
@@ -384,7 +388,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {
         title: 'Existing Title',
@@ -408,15 +412,18 @@ describe('MetadataMenuAdapter', () => {
         settings: {},
         // No fieldIndex
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Test'};
 
       expect(() => {
-        const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
+        const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         adapter.insertMissingFields(frontmatter, 'book');
         spy.mockRestore();
-        expect(spy).toHaveBeenCalledWith('No fileClass definitions found in MetadataMenu');
+        errorSpy.mockRestore();
+        expect(spy).toHaveBeenCalledWith('MetadataMenu fieldIndex.fileClassesFields not available');
+        expect(errorSpy).toHaveBeenCalledWith('No fileClass definitions found in MetadataMenu');
       }).toThrow('No fileClass definitions found in MetadataMenu');
     });
 
@@ -434,7 +441,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesAncestors: 'invalid-data' // Invalid data type
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {existing: 'value'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
@@ -470,7 +477,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesAncestors: mockAncestorsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
       const result = adapter.insertMissingFields(frontmatter, 'book');
@@ -506,7 +513,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesAncestors: mockAncestorsObject // Object, not Map
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {};
       const result = adapter.insertMissingFields(frontmatter, 'book');
@@ -530,7 +537,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const result = adapter.getAllFieldsFileClassesAssociation();
 
@@ -547,7 +554,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: null  // No settings
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       expect(() => {
         adapter.getFileClassAlias();
@@ -559,7 +566,7 @@ describe('MetadataMenuAdapter', () => {
         api: {},
         settings: 'not-an-object'  // Invalid settings
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       expect(() => {
         adapter.getFileClassAlias();
@@ -584,7 +591,7 @@ describe('MetadataMenuAdapter', () => {
           fileClassesFields: mockFieldsMap
         }
       };
-      adapter = new MetadataMenuAdapter(mockApp);
+      adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {};
       const result = adapter.insertFileClassMissingFields(frontmatter, 'book');

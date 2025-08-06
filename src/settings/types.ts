@@ -22,5 +22,6 @@ export interface MetaFlowSettings {
   propertyDefaultValueScripts: PropertyDefaultValueScript[];
   excludeFolders?: string[];
   autoMoveNoteToRightFolder: boolean;
+  debugMode: boolean;
 }
 
