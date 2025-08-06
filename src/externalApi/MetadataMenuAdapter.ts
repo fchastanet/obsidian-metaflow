@@ -2,6 +2,7 @@ import {App, TFile} from 'obsidian';
 import {MetaFlowSettings} from '../settings/types';
 import {MetadataMenuField, MetadataMenuPluginInterface} from './types.MetadataMenu';
 import {MetaFlowException} from '../MetaFlowException';
+import {LogManagerInterface} from 'src/managers/types';
 
 export interface FieldsFileClassAssociation {
   [fieldName: string]: {
@@ -45,7 +46,7 @@ export class MetadataMenuAdapter {
    */
   getMetadataMenuPlugin(): MetadataMenuPluginInterface {
     if (!this.isMetadataMenuAvailable()) {
-      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available');
+      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
     return (this.app as any).plugins.plugins[this.METADATA_MENU_PLUGIN_NAME];
   }
@@ -55,7 +56,7 @@ export class MetadataMenuAdapter {
     if (!this.metadataMenuPlugin.fieldIndex?.fileClassesFields ||
       typeof this.metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
     ) {
-      throw new MetaFlowException('No fileClass definitions found in MetadataMenu');
+      throw new MetaFlowException('No fileClass definitions found in MetadataMenu', 'warning');
     }
 
     const fileClassesFields = this.metadataMenuPlugin.fieldIndex.fileClassesFields;
@@ -88,7 +89,7 @@ export class MetadataMenuAdapter {
    */
   insertMissingFields(frontmatter: Frontmatter, fileClassName: string): Frontmatter {
     if (!this.isMetadataMenuAvailable()) {
-      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available');
+      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
 
     try {
@@ -121,7 +122,7 @@ export class MetadataMenuAdapter {
 
   insertFileClassMissingFields(frontmatter: Frontmatter, fileClassName: string): Frontmatter {
     if (!this.isMetadataMenuAvailable()) {
-      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available');
+      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
     // get metadataMenu fileClass fields configuration
     const fileClassFields = this.getFileClassFields(fileClassName);
@@ -139,7 +140,7 @@ export class MetadataMenuAdapter {
 
   private checkMetadataMenuAvailable() {
     if (!this.isMetadataMenuAvailable()) {
-      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available');
+      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
   }
 
@@ -148,7 +149,7 @@ export class MetadataMenuAdapter {
     if (!this.metadataMenuPlugin.fieldIndex?.fileClassesFields ||
       typeof this.metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
     ) {
-      throw new MetaFlowException('No fileClass definitions found in MetadataMenu');
+      throw new MetaFlowException('No fileClass definitions found in MetadataMenu', 'warning');
     }
     return this.metadataMenuPlugin.fieldIndex.fileClassesFields.get(fileClass) || [];
   }
@@ -158,7 +159,7 @@ export class MetadataMenuAdapter {
     if (!this.metadataMenuPlugin.fieldIndex?.fileClassesFields ||
       typeof this.metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
     ) {
-      throw new MetaFlowException('No fileClass definitions found in MetadataMenu');
+      throw new MetaFlowException('No fileClass definitions found in MetadataMenu', 'warning');
     }
     let allFields: Map<string, MetadataMenuField & {fileClasses?: string[]}> = new Map();
     this.metadataMenuPlugin.fieldIndex.fileClassesFields.forEach(
@@ -225,7 +226,7 @@ export class MetadataMenuAdapter {
   getFileClassAlias(): string {
     const settings = this.getMetadataMenuPlugin()?.settings;
     if (!settings || typeof settings !== 'object') {
-      throw new MetaFlowException('MetadataMenu settings not available');
+      throw new MetaFlowException('MetadataMenu settings not available', 'error');
     }
     return settings.fileClassAlias || 'fileClass';
   }
@@ -237,14 +238,14 @@ export class MetadataMenuAdapter {
     const fileClassesFields = this.getMetadataMenuPlugin()?.fieldIndex?.fileClassesFields;
 
     if (!fileClassesFields || !(fileClassesFields instanceof Map)) {
-      throw new MetaFlowException('MetadataMenu fileClassesFields settings not available');
+      throw new MetaFlowException('MetadataMenu fileClassesFields settings not available', 'error');
     }
 
     if (fileClassesFields.has(name)) {
       return fileClassesFields.get(name) || [];
     }
 
-    throw new MetaFlowException(`File class "${name}" not found in MetadataMenu`);
+    throw new MetaFlowException(`File class "${name}" not found in MetadataMenu`, 'warning');
   }
 
 }

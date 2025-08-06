@@ -4,6 +4,7 @@ describe('FileClassStateManager additional event handlers', () => {
   let manager: FileClassStateManager;
   let mockSettings: any;
   let mockCallback: jest.Mock;
+  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
@@ -19,7 +20,13 @@ describe('FileClassStateManager additional event handlers', () => {
     jest.spyOn(MetaFlowService.prototype, 'getFileClassFromMetadata')
       .mockImplementation(mockMetaFlowService.getFileClassFromMetadata);
     mockCallback = jest.fn();
-    manager = new FileClassStateManager(mockApp, mockSettings, mockCallback);
+    mockLogManager = {
+      addDebug: jest.fn(),
+      addWarning: jest.fn(),
+      addError: jest.fn(),
+      addInfo: jest.fn(),
+    };
+    manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager, mockCallback);
   });
 
   function createMockTFile(path: string): TFile {
@@ -114,7 +121,7 @@ describe('FileClassStateManager additional event handlers', () => {
     const newFile = createMockTFile('new.md');
     manager['fileModifiedMap'].set(oldPath, true);
     manager.handleRenameFileEvent(newFile, oldPath);
-    expect(spy).toHaveBeenCalledWith(`File class for ${oldPath} not found in fileClassMap`);
+    expect(mockLogManager.addWarning).toHaveBeenCalledWith(`File class for ${oldPath} not found in fileClassMap`);
     spy.mockRestore();
     expect(manager['fileClassMap'].has(oldPath)).toBe(false);
     expect(manager['fileClassMap'].get(newFile.path)).toBeUndefined();
@@ -125,6 +132,7 @@ describe('FileClassStateManager additional event handlers', () => {
 import {MetaFlowService} from "../services/MetaFlowService";
 import {FileClassStateManager} from "./FileClassStateManager";
 import {TFile, WorkspaceLeaf, MarkdownView} from "obsidian";
+import {LogManagerInterface} from "./types";
 
 // Mock obsidian modules
 jest.mock('obsidian', () => ({
@@ -152,9 +160,15 @@ describe('FileClassStateManager', () => {
     mockSettings = {
       enableAutoMetadataInsertion: true,
     };
+    const mockLogManager = {
+      addDebug: jest.fn(),
+      addWarning: jest.fn(),
+      addError: jest.fn(),
+      addInfo: jest.fn(),
+    };
     jest.spyOn(MetaFlowService.prototype, 'getFileClassFromMetadata')
       .mockImplementation(mockMetaFlowService.getFileClassFromMetadata);
-    manager = new FileClassStateManager(mockApp, mockSettings);
+    manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager);
   });
 
   afterEach(() => {
@@ -181,7 +195,7 @@ describe('FileClassStateManager', () => {
   describe('handleActiveLeafChange', () => {
     test('does nothing if leaf is null', () => {
       const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(null);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
@@ -191,7 +205,7 @@ describe('FileClassStateManager', () => {
     test('does nothing if leaf.view is null', () => {
       const leaf = {view: null} as unknown as WorkspaceLeaf;
       const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
@@ -202,7 +216,7 @@ describe('FileClassStateManager', () => {
       // Provide a plain object that is NOT an instance of MarkdownView
       const leaf = {view: {}} as unknown as WorkspaceLeaf;
       const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
@@ -213,7 +227,7 @@ describe('FileClassStateManager', () => {
       const view = createMockMarkdownView();
       const leaf = {view} as unknown as WorkspaceLeaf;
       const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('No file associated with the active view');
@@ -225,7 +239,7 @@ describe('FileClassStateManager', () => {
       const view = createMockMarkdownView({} as any);
       const leaf = {view} as unknown as WorkspaceLeaf;
       const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       manager.handleActiveLeafChange(leaf);
       expect(spy).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Active view does not have a valid file');

@@ -6,6 +6,7 @@ import {ScriptContextService} from "./ScriptContextService";
 import {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import {LogManagerInterface} from "src/managers/types";
 
 export class MetaFlowService {
   private app: App;
@@ -26,87 +27,103 @@ export class MetaFlowService {
     this.obsidianAdapter = new ObsidianAdapter(app, this.metaFlowSettings);
   }
 
-  async handleFileClassChanged(
+  handleFileClassChanged(
     file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
-  ): Promise<void> {
+    logManager: LogManagerInterface
+  ): void {
+    if (!this.metaFlowSettings.enableAutoMetadataInsertion) {
+      console.info('Auto metadata insertion is disabled');
+      return;
+    }
     try {
       this.checkIfAutomaticMetadataInsertionEnabled();
       this.checkIfMetadataInsertionApplicable(file);
     } catch (error) {
       if (error instanceof MetaFlowException) {
-        console.warn('MetaFlow:', error.message);
+        logManager.addMessage(`MetaFlow: ${error.message}`, error.noticeLevel);
         return;
       } else {
-        console.warn('Error checking file availability:', error);
+        logManager.addWarning(`Error checking file availability: ${error}`);
         return;
       }
     }
     if (newFileClass === oldFileClass) {
-      console.warn(`File class for "${file.name}" is already "${newFileClass}"`);
+      logManager.addWarning(`File class for "${file.name}" is already "${newFileClass}"`);
       return;
     }
 
-    // Step 1: Determine or validate fileClass if not available
-    let fileClass = newFileClass;
-    if (!fileClass || fileClass.trim() === '') {
-      // Try to deduce fileClass from folder/fileClass mapping
-      const deducedFileClass = this.deduceFileClassFromPath(file.path);
-      if (!deducedFileClass) {
-        throw new MetaFlowException(`No fileClass found for file "${file.name}" and no matching folder pattern.`);
-      }
-      if (!this.validateFileClassAgainstMapping(file.path, deducedFileClass)) {
-        throw new MetaFlowException(`FileClass "${deducedFileClass}" does not match any folder/fileClass mapping.`);
-      }
-      fileClass = deducedFileClass;
-    }
-
-    // Step 2: Validate fileClass exists in MetadataMenu, throw error if not found
-    this.metadataMenuAdapter.getFileClassByName(fileClass);
-
-    // Step 3: Insert missing metadata headers using MetadataAutoInserter
-    let updatedFrontmatter: any = cache?.frontmatter || {};
-    updatedFrontmatter = this.metadataMenuAdapter.insertMissingFields(updatedFrontmatter, fileClass);
-
-    // Step 4: sort properties if autoSort is enabled
-    if (this.metaFlowSettings.autoSort) {
-      updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
-    }
-
-    // Step 5: Add default values to properties
-    const enrichedFrontmatter = this.addDefaultValuesToProperties(
-      updatedFrontmatter || {},
-      file,
-      fileClass
-    );
-
-    setTimeout(async () => {
-      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-        // Remove all keys from frontmatter
-        Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
-        // Add keys back in desired order
-        Object.keys(enrichedFrontmatter).forEach(key => {
-          frontmatter[key] = enrichedFrontmatter[key];
-        });
-      }).then(() => {
-        // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
-        try {
-          const newFilePath = this.moveNoteToTheRightFolder(file, fileClass);
-          if (newFilePath) {
-            new Notice(`Moved note "${file.name}" with fileClass "${fileClass}" to ${newFilePath}.`);
-          }
-        } catch (error) {
-          console.error(`Error moving note to the right folder for file ${file.path}:`, error);
-          if (error instanceof MetaFlowException) {
-            new Notice(error.message);
-          }
+    try {
+      // Step 1: Determine or validate fileClass if not available
+      let fileClass = newFileClass;
+      if (!fileClass || fileClass.trim() === '') {
+        // Try to deduce fileClass from folder/fileClass mapping
+        const deducedFileClass = this.deduceFileClassFromPath(file.path);
+        if (!deducedFileClass) {
+          throw new MetaFlowException(`No fileClass found for file "${file.name}" and no matching folder pattern.`, 'warning');
         }
-      });
-    }, 500);
+        if (!this.validateFileClassAgainstMapping(file.path, deducedFileClass)) {
+          throw new MetaFlowException(`FileClass "${deducedFileClass}" does not match any folder/fileClass mapping.`, 'warning');
+        }
+        fileClass = deducedFileClass;
+      }
+
+      // Step 2: Validate fileClass exists in MetadataMenu, throw error if not found
+      this.metadataMenuAdapter.getFileClassByName(fileClass);
+
+      // Step 3: Insert missing metadata headers using MetadataAutoInserter
+      let updatedFrontmatter: any = cache?.frontmatter || {};
+      updatedFrontmatter = this.metadataMenuAdapter.insertMissingFields(updatedFrontmatter, fileClass);
+
+      // Step 4: sort properties if autoSort is enabled
+      if (this.metaFlowSettings.autoSort) {
+        updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
+      }
+
+      // Step 5: Add default values to properties
+      const enrichedFrontmatter = this.addDefaultValuesToProperties(
+        updatedFrontmatter || {},
+        file,
+        fileClass
+      );
+
+      setTimeout(async () => {
+        await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+          // Remove all keys from frontmatter
+          Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
+          // Add keys back in desired order
+          Object.keys(enrichedFrontmatter).forEach(key => {
+            frontmatter[key] = enrichedFrontmatter[key];
+          });
+        }).then(() => {
+          // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
+          try {
+            if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
+              const newFilePath = this.moveNoteToTheRightFolder(file, fileClass);
+              if (newFilePath) {
+                logManager.addInfo(`Moved note "${file.name}" with fileClass "${fileClass}" to ${newFilePath}.`);
+              }
+            }
+          } catch (error) {
+            const msg = (error instanceof MetaFlowException) ?
+              `Error moving note ${file.path} to the right folder: ${error.message}` :
+              `Error moving note ${file.path} to the right folder`;
+            console.error(msg, error);
+            logManager.addMessage(msg, error?.noticeLevel ?? 'error');
+          }
+        });
+      }, 500);
+    } catch (error) {
+      const msg = (error instanceof MetaFlowException) ?
+        `Error updating metadata properties: ${error.message}` :
+        `Error updating metadata properties`;
+      console.error(msg, error);
+      logManager.addMessage(msg, error?.noticeLevel ?? 'error');
+    }
   }
 
   checkIfAutomaticMetadataInsertionEnabled(): void {
     if (!this.metaFlowSettings.enableAutoMetadataInsertion) {
-      throw new MetaFlowException('Auto metadata insertion is disabled');
+      throw new MetaFlowException('Auto metadata insertion is disabled', 'info');
     }
   }
 
@@ -116,12 +133,12 @@ export class MetaFlowService {
 
     // Check if MetadataMenu plugin is available
     if (!this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-      throw new MetaFlowException('MetadataMenu plugin not available');
+      throw new MetaFlowException('MetadataMenu plugin not available', 'info');
     }
 
     // Check if Templater plugin is available (if integration is enabled)
     if (!this.templaterAdapter.isTemplaterAvailable()) {
-      throw new MetaFlowException('Templater plugin not available');
+      throw new MetaFlowException('Templater plugin not available', 'info');
     }
   }
 
@@ -129,19 +146,19 @@ export class MetaFlowService {
     // Exclude files in excluded folders
     const excludeFolders = (this.metaFlowSettings.excludeFolders || []);
     if (excludeFolders.some(folder => file.path.startsWith(folder + '/'))) {
-      throw new MetaFlowException(`File ${file.name} is in an excluded folder: ${file.path}`);
+      throw new MetaFlowException(`File ${file.name} is in an excluded folder: ${file.path}`, 'info');
     }
   }
 
   checkIfAutoMoveNoteToRightFolderEnabled(): void {
     if (!this.metaFlowSettings.autoMoveNoteToRightFolder) {
-      throw new MetaFlowException('Auto move note to right folder is disabled');
+      throw new MetaFlowException('Auto move note to right folder is disabled', 'info');
     }
   }
 
   checkIfValidFile(file: TFile): void {
     if (!file || !(file instanceof TFile)) {
-      throw new MetaFlowException('Invalid file provided for class change');
+      throw new MetaFlowException('Invalid file provided for class change', 'ignore');
     }
   }
 
@@ -166,10 +183,10 @@ export class MetaFlowService {
         // Try to deduce fileClass from folder/fileClass mapping
         fileClass = this.deduceFileClassFromPath(file.path);
         if (!fileClass) {
-          throw new MetaFlowException(`No fileClass found for file "${file.name}" and no matching folder pattern.`);
+          throw new MetaFlowException(`No fileClass found for file "${file.name}" and no matching folder pattern.`, 'warning');
         }
         if (!this.validateFileClassAgainstMapping(file.path, fileClass)) {
-          throw new MetaFlowException(`FileClass "${fileClass}" does not match any folder/fileClass mapping.`);
+          throw new MetaFlowException(`FileClass "${fileClass}" does not match any folder/fileClass mapping.`, 'warning');
         }
       }
 
@@ -194,7 +211,7 @@ export class MetaFlowService {
       return this.frontMatterService.serializeFrontmatter(enrichedFrontmatter, bodyContent);
     } catch (error) {
       console.error('Error in auto update metadata fields:', error);
-      throw new MetaFlowException(`Error updating metadata fields: ${error.message}`);
+      throw new MetaFlowException(`Error updating metadata fields: ${error.message}`, 'error');
     }
   }
 
@@ -218,17 +235,13 @@ export class MetaFlowService {
   private checkIfTargetFileExists(targetFolder: string, file: TFile): void {
     const targetFilePath = `${targetFolder}/${file.name}`;
     if (this.obsidianAdapter.isFileExists(targetFilePath)) {
-      throw new MetaFlowException(`Target file "${targetFilePath}" already exists`);
+      throw new MetaFlowException(`Target file "${targetFilePath}" already exists`, 'warning');
     }
   }
 
   public moveNoteToTheRightFolder(file: TFile, fileClass: string): string | null {
-    this.checkIfAutoMoveNoteToRightFolderEnabled();
     this.checkIfValidFile(file);
     this.checkIfExcluded(file);
-    if (!this.metaFlowSettings.autoMoveNoteToRightFolder) {
-      throw new MetaFlowException('Auto move note to right folder is disabled');
-    }
     const targetFolder = this.getTargetFolderForFileClass(fileClass);
     if (targetFolder) {
       if (targetFolder === file.parent?.path || '') {
@@ -241,7 +254,7 @@ export class MetaFlowService {
       return newFilePath;
 
     } else {
-      throw new MetaFlowException(`No target folder defined for fileClass "${fileClass}"`);
+      throw new MetaFlowException(`No target folder defined for fileClass "${fileClass}"`, 'warning');
     }
   }
 
@@ -282,8 +295,8 @@ export class MetaFlowService {
         })
       }, 500)
     } catch (error) {
-      console.error('Error in auto update metadata fields:', error);
-      throw new MetaFlowException(`Error updating metadata fields: ${error.message}`);
+      console.error('Error sorting metadata fields:', error);
+      throw new MetaFlowException(`Error sorting metadata fields: ${error.message}`, 'error');
     }
   }
 
@@ -333,7 +346,7 @@ export class MetaFlowService {
           enrichedFrontmatter[script.propertyName] = defaultValue;
         }
       } catch (error) {
-        throw new MetaFlowException(`Error executing script for property "${script.propertyName}": ${error.message}`);
+        throw new MetaFlowException(`Error executing script for property "${script.propertyName}": ${error.message}`, 'error');
       }
     }
 

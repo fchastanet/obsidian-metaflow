@@ -5,7 +5,6 @@
   - [1.2. 1.2 Metadata properties initialization](#12-12-metadata-properties-initialization)
   - [1.3. Sort metadata properties](#13-sort-metadata-properties)
   - [1.4. Move note to the right folder](#14-move-note-to-the-right-folder)
-  - [1.5. Mass-update metadata properties](#15-mass-update-metadata-properties)
   - [1.6. Toggle properties panel visibility](#16-toggle-properties-panel-visibility)
 - [2. Context menu](#2-context-menu)
   - [2.1. Update metadata in folder](#21-update-metadata-in-folder)
@@ -23,6 +22,7 @@
 
 ### 1.1. Update fileClass
 
+- enable auto-insert metadata properties in settings.
 - Open a note with frontmatter.
 - Run the 'Update metadata properties' command from the command palette.
 - Verify that the frontmatter is updated according to the plugin's rules (e.g., missing fields are added, values are updated).
@@ -57,14 +57,6 @@
 - Confirm the note is moved to the correct folder based on folder/fileClass mapping.
 - **Edge case:** Try moving a note when no mapping exists for its fileClass. Confirm no move occurs and a warning is shown.
 - **Edge case:** Move a note that is already in the correct folder. Ensure no duplicate or unnecessary move happens.
-
-### 1.5. Mass-update metadata properties
-
-- Select multiple notes or a folder.
-- Run the 'Mass-update metadata properties' command.
-- Ensure all notes are updated and missing metadata fields are inserted.
-- **Edge case:** Include notes in excluded folders. Confirm those notes are skipped.
-- **Edge case:** Select a folder with no notes. Ensure the command completes without error.
 
 ### 1.6. Toggle properties panel visibility
 

@@ -5,3 +5,20 @@
   height: 100px;
   background-size: 100px 100px;
 }
+
+.meta-flow-notice {
+  display: block;
+  padding: 5px;
+  text-align: center;
+  color: #000;
+  background-color: #fff;
+}
+
+.meta-flow-notice-title {
+  font-weight: bold;
+  border-bottom: 1px solid #f00;
+}
+
+.meta-flow-notice-content {
+  text-align: left;
+}

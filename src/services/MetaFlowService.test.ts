@@ -558,30 +558,6 @@ Content here`;
       expect((service as any).obsidianAdapter.moveNote).toHaveBeenCalledWith(file, 'Books/my-book.md');
     });
 
-    test('should not move note if autoMoveNoteToRightFolder is disabled', () => {
-      const settings = {
-        ...DEFAULT_SETTINGS,
-        autoMoveNoteToRightFolder: false,
-        folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true}
-        ]
-      };
-      const service = new MetaFlowService(mockApp, settings);
-      // Mock obsidianAdapter.moveNote as a jest mock function
-      (service as any).obsidianAdapter.moveNote = jest.fn();
-      const file = mockFile;
-      file.path = 'Books/my-book.md';
-      file.name = 'my-book.md';
-
-      try {
-        (service as any).moveNoteToTheRightFolder(file, 'book');
-      } catch (error) {
-        expect(error).toBeInstanceOf(MetaFlowException);
-        expect(error.message).toBe('Auto move note to right folder is disabled');
-      }
-      expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
-    });
-
     test('should not move note if no target folder is found', () => {
       const settings = {
         ...DEFAULT_SETTINGS,

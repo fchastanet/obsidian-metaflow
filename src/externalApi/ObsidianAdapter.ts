@@ -1,4 +1,4 @@
-import {App, TFile} from 'obsidian';
+import {App, Notice, TFile} from 'obsidian';
 import {MetaFlowSettings} from 'src/settings/types';
 
 export class ObsidianAdapter {
@@ -28,5 +28,9 @@ export class ObsidianAdapter {
 
   isFileExists(filePath: string): boolean {
     return !!this.app.vault.getAbstractFileByPath(filePath);
+  }
+
+  notice(message: string): Notice {
+    return new Notice(message);
   }
 }

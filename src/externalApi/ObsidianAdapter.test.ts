@@ -1,6 +1,9 @@
 import {ObsidianAdapter} from './ObsidianAdapter';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import {TFile} from 'obsidian';
+import {Notice, TFile} from 'obsidian';
+
+// Mock the entire obsidian module
+jest.mock('obsidian');
 
 describe('ObsidianAdapter', () => {
   let mockApp: any;
@@ -19,10 +22,13 @@ describe('ObsidianAdapter', () => {
   }
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+
     mockApp = {
       fileManager: {
         generateMarkdownLink: jest.fn((targetFile, sourcePath) => `[[${targetFile.path}|${sourcePath}]]`),
-        renameFile: jest.fn((file, newPath) => Promise.resolve({...file, path: newPath}))
+        renameFile: jest.fn((file, newPath) => Promise.resolve(undefined))
       }
     };
     adapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS);
@@ -46,7 +52,27 @@ describe('ObsidianAdapter', () => {
   test('moveNote should call app.fileManager.renameFile with correct args', async () => {
     const file = createMockTFile('old/path/note.md');
     const newPath = 'new/path/note.md';
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
     await adapter.moveNote(file, newPath);
     expect(mockApp.fileManager.renameFile).toHaveBeenCalledWith(file, newPath);
+    expect(consoleSpy).toHaveBeenCalledWith('Moving note old/path/note.md to new/path/note.md');
+    consoleSpy.mockRestore();
   });
+
+  test('moveNote should resolve without error and call renameFile', async () => {
+    const file = createMockTFile('old/path/note.md');
+    const newPath = 'new/path/note.md';
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+    await expect(adapter.moveNote(file, newPath)).resolves.toBeUndefined();
+    expect(mockApp.fileManager.renameFile).toHaveBeenCalledWith(file, newPath);
+    expect(consoleSpy).toHaveBeenCalledWith('Moving note old/path/note.md to new/path/note.md');
+    consoleSpy.mockRestore();
+  });
+
+  test('notice should call Notice with the correct message', () => {
+    const message = 'Test message';
+    adapter.notice(message);
+    expect(Notice).toHaveBeenCalledWith(message);
+  });
+
 });

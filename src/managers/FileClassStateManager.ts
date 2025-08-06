@@ -1,9 +1,10 @@
 import {App, CachedMetadata, MarkdownView, TAbstractFile, TFile, WorkspaceLeaf} from "obsidian";
 import {MetaFlowService} from "../services/MetaFlowService";
 import {MetaFlowSettings} from "../settings/types";
+import {LogManagerInterface} from "./types";
 
 export type FileClassChangedCallback = (
-  file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
+  file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string
 ) => Promise<void>;
 
 /**
@@ -14,6 +15,7 @@ export class FileClassStateManager {
   private metaFlowService: MetaFlowService;
   private settings: MetaFlowSettings;
   private fileClassChangedCallback?: FileClassChangedCallback;
+  private logManager: LogManagerInterface;
 
   private fileClassMap: Map<string, string>;
   private fileModifiedMap: Map<string, boolean>;
@@ -21,14 +23,17 @@ export class FileClassStateManager {
   constructor(
     app: App,
     settings: MetaFlowSettings,
+    logManager: LogManagerInterface,
     fileClassChangedCallback?: FileClassChangedCallback,
   ) {
-    this.fileClassMap = new Map<string, string>();
-    this.metaFlowService = new MetaFlowService(app, settings);
-    this.settings = settings;
     this.app = app;
-    this.fileModifiedMap = new Map<string, boolean>();
+    this.settings = settings;
+    this.logManager = logManager;
     this.fileClassChangedCallback = fileClassChangedCallback;
+
+    this.metaFlowService = new MetaFlowService(app, settings);
+    this.fileClassMap = new Map<string, string>();
+    this.fileModifiedMap = new Map<string, boolean>();
   }
 
   public handleActiveLeafChange(leaf: WorkspaceLeaf | null): void {
@@ -37,17 +42,17 @@ export class FileClassStateManager {
       return;
     }
     if (!leaf || !leaf.view || !(leaf.view instanceof MarkdownView)) {
-      console.warn('Active leaf is not a Markdown view or is null');
+      console.debug('Active leaf is not a Markdown view or is null');
       return;
     }
     const file = leaf?.view?.file;
     if (!file) {
-      console.warn('No file associated with the active view');
+      console.debug('No file associated with the active view');
       return;
     }
 
     if (!(file instanceof TFile)) {
-      console.warn('Active view does not have a valid file');
+      console.debug('Active view does not have a valid file');
       return;
     }
     this.registerFileClass(file);
@@ -158,7 +163,7 @@ export class FileClassStateManager {
       this.fileModifiedMap.set(file.path, true);
     }
     if (!this.fileClassMap.has(oldPath)) {
-      console.warn(`File class for ${oldPath} not found in fileClassMap`);
+      this.logManager.addWarning(`File class for ${oldPath} not found in fileClassMap`);
       return;
     }
     const oldFileClass = this.fileClassMap.get(oldPath) || '';
