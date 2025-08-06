@@ -28,9 +28,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: MetaFlowPlugin) {
     super(app, plugin);
     this.plugin = plugin;
-    this.metadataMenuAdapter = new MetadataMenuAdapter(app);
+    this.metadataMenuAdapter = new MetadataMenuAdapter(app, plugin.settings);
     this.templaterAdapter = new TemplaterAdapter(app, plugin.settings);
   }
+
 
   display(): void {
     const {containerEl} = this;
@@ -45,39 +46,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       text: 'Configure automated metadata workflow management including folder mappings, property scripts, and plugin integrations.'
     });
 
-    // General Settings - Collapsible
-    const generalDetails = containerEl.createEl('details', {cls: 'setting-details'});
-    generalDetails.open = false; // Collapsed by default
-    const generalSummary = generalDetails.createEl('summary', {cls: 'setting-summary'});
-    generalSummary.style.display = 'flex';
-    generalSummary.style.alignItems = 'center';
-    generalSummary.style.justifyContent = 'space-between';
-    generalSummary.style.cursor = 'pointer';
-
-    generalSummary.createEl('h3', {text: 'General Settings'});
-
-    const generalToggleDiv = generalSummary.createEl('div', {cls: 'setting-item-control'});
-    const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta'});
-    generalToggleButton.innerHTML = this.EXPAND_BUTTON;
-
-    // Prevent button click from triggering summary toggle
-    generalToggleButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      generalDetails.open = !generalDetails.open;
-    });
-
-    // Sort unknown properties setting
-    new Setting(generalDetails)
-      .setName('Sort unknown properties alphabetically')
-      .setDesc('Sort properties not in the custom order alphabetically at the end')
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.sortUnknownPropertiesLast)
-        .onChange(async (value) => {
-          this.plugin.settings.sortUnknownPropertiesLast = value;
-          await this.plugin.saveSettings();
-        }));
-
+    const generalDetails = this.createSection(containerEl, 'General Settings');
     // Hide properties section setting
     new Setting(generalDetails)
       .setName('Hide properties section in editor')
@@ -91,8 +60,42 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.metaFlowService.togglePropertiesVisibility(value);
         }));
 
-    // Auto-sort on view setting
+    // debug mode setting
     new Setting(generalDetails)
+      .setName('Debug mode')
+      .setDesc('Enable debug mode for verbose logging')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.debugMode)
+        .onChange(async (value) => {
+          this.plugin.settings.debugMode = value;
+          await this.plugin.saveSettings();
+        }));
+
+    const metadataInsertionDetails = this.createSection(containerEl, 'Metadata Insertion behavior');
+    // Auto metadata insertion setting
+    const updateDependentRadioButtons = () => {
+      autoSortSetting.components[0].setDisabled(!this.plugin.settings.autoMetadataInsertion);
+      autoSortSetting.controlEl.setAttribute('title', this.plugin.settings.autoMetadataInsertion ? '' : 'Disabled when auto-insert is off');
+      autoMoveNoteToRightFolderSetting.components[0].setDisabled(!this.plugin.settings.autoMetadataInsertion);
+      autoMoveNoteToRightFolderSetting.controlEl.setAttribute('title', this.plugin.settings.autoMetadataInsertion ? '' : 'Disabled when auto-insert is off');
+    };
+    new Setting(metadataInsertionDetails)
+      .setName('Auto-insert missing metadata fields')
+      .setDesc('Automatically insert missing metadata fields based on fileClass definitions')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoMetadataInsertion)
+        .onChange(async (value) => {
+          this.plugin.settings.autoMetadataInsertion = value;
+          if (!this.plugin.settings.autoMetadataInsertion) {
+            this.plugin.settings.autoSort = false;
+            this.plugin.settings.autoMoveNoteToRightFolder = false;
+          }
+          updateDependentRadioButtons();
+          await this.plugin.saveSettings();
+        }));
+
+    // Auto-sort on view setting
+    const autoSortSetting = new Setting(metadataInsertionDetails)
       .setName('Auto-sort metadata properties')
       .setDesc('Automatically sort metadata properties when updating metadata')
       .addToggle(toggle => toggle
@@ -102,19 +105,19 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
-    // Auto metadata insertion setting
-    new Setting(generalDetails)
-      .setName('Auto-insert missing metadata fields')
-      .setDesc('Automatically insert missing metadata fields based on fileClass definitions')
+    // Sort unknown properties setting
+    new Setting(metadataInsertionDetails)
+      .setName('Sort unknown properties alphabetically')
+      .setDesc('Sort properties not in the custom order alphabetically at the end')
       .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.enableAutoMetadataInsertion)
+        .setValue(this.plugin.settings.sortUnknownPropertiesLast)
         .onChange(async (value) => {
-          this.plugin.settings.enableAutoMetadataInsertion = value;
+          this.plugin.settings.sortUnknownPropertiesLast = value;
           await this.plugin.saveSettings();
         }));
 
     // Auto-move note to right folder setting
-    new Setting(generalDetails)
+    const autoMoveNoteToRightFolderSetting = new Setting(metadataInsertionDetails)
       .setName('Auto-move note to the right folder')
       .setDesc('Automatically move note to the correct folder based on Folder/FileClass mapping when updating metadata')
       .addToggle(toggle => toggle
@@ -123,8 +126,11 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.autoMoveNoteToRightFolder = value;
           await this.plugin.saveSettings();
         }));
+
+    updateDependentRadioButtons();
+
     // Exclude folders setting (multiple rows with folder suggest)
-    const excludeFoldersContainer = generalDetails.createDiv();
+    const excludeFoldersContainer = metadataInsertionDetails.createDiv();
     excludeFoldersContainer.createEl('div', {text: 'Exclude folders', cls: 'setting-item-name'});
     excludeFoldersContainer.createEl('div', {text: 'Folders to exclude from metadata update commands. Add one per row.', cls: 'setting-item-description'});
 
@@ -147,39 +153,8 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           });
       });
 
-    // debug mode setting
-    new Setting(generalDetails)
-      .setName('Debug mode')
-      .setDesc('Enable debug mode for verbose logging')
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.debugMode)
-        .onChange(async (value) => {
-          this.plugin.settings.debugMode = value;
-          await this.plugin.saveSettings();
-        }));
-
     // Folder/FileClass Mappings - Collapsible
-    const mappingsDetails = containerEl.createEl('details', {cls: 'setting-details'});
-    mappingsDetails.open = false; // Collapsed by default
-    const mappingsSummary = mappingsDetails.createEl('summary', {cls: 'setting-summary'});
-    mappingsSummary.style.display = 'flex';
-    mappingsSummary.style.alignItems = 'center';
-    mappingsSummary.style.justifyContent = 'space-between';
-    mappingsSummary.style.cursor = 'pointer';
-
-    mappingsSummary.createEl('h3', {text: 'Folder/FileClass Mappings'});
-
-    const mappingsToggleDiv = mappingsSummary.createEl('div', {cls: 'setting-item-control'});
-    const mappingsToggleButton = mappingsToggleDiv.createEl('button', {cls: 'mod-cta'});
-    mappingsToggleButton.innerHTML = this.EXPAND_BUTTON;
-
-    // Prevent button click from triggering summary toggle
-    mappingsToggleButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      mappingsDetails.open = !mappingsDetails.open;
-    });
-
+    const mappingsDetails = this.createSection(containerEl, 'Folder/FileClass Mappings');
     const mappingsDesc = mappingsDetails.createEl('p');
     mappingsDesc.innerHTML = 'Map folder patterns to MetadataMenu fileClasses. Uses the same pattern matching as Templater plugin. Patterns are evaluated in order, with the first match being used.';
 
@@ -221,27 +196,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }));
 
     // Property Default Value Scripts - Collapsible
-    const scriptsDetails = containerEl.createEl('details', {cls: 'setting-details'});
-    scriptsDetails.open = false; // Collapsed by default
-    const scriptsSummary = scriptsDetails.createEl('summary', {cls: 'setting-summary'});
-    scriptsSummary.style.display = 'flex';
-    scriptsSummary.style.alignItems = 'center';
-    scriptsSummary.style.justifyContent = 'space-between';
-    scriptsSummary.style.cursor = 'pointer';
-
-    scriptsSummary.createEl('h3', {text: 'Property Default Value Scripts'});
-
-    const scriptsToggleDiv = scriptsSummary.createEl('div', {cls: 'setting-item-control'});
-    const scriptsToggleButton = scriptsToggleDiv.createEl('button', {cls: 'mod-cta'});
-    scriptsToggleButton.innerHTML = this.EXPAND_BUTTON;
-
-    // Prevent button click from triggering summary toggle
-    scriptsToggleButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      scriptsDetails.open = !scriptsDetails.open;
-    });
-
+    const scriptsDetails = this.createSection(containerEl, 'Property Default Value Scripts');
     const scriptsDesc = scriptsDetails.createEl('p');
     scriptsDesc.innerHTML = 'Define JavaScript scripts to generate default values for properties. Scripts have access to: <code>fileClass</code>, <code>file</code>, <code>metadata</code>, <code>prompt</code>, <code>date</code>, <code>generateMarkdownLink</code>, <code>detectLanguage</code>.';
 
@@ -284,27 +239,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }));
 
     // Simulation Testing Section - Collapsible
-    this.simulationDetails = containerEl.createEl('details', {cls: 'setting-details'});
-    this.simulationDetails.open = false; // Collapsed by default
-    const simulationSummary = this.simulationDetails.createEl('summary', {cls: 'setting-summary'});
-    simulationSummary.style.display = 'flex';
-    simulationSummary.style.alignItems = 'center';
-    simulationSummary.style.justifyContent = 'space-between';
-    simulationSummary.style.cursor = 'pointer';
-
-    simulationSummary.createEl('h3', {text: '🧪 Simulation & Testing'});
-
-    const simulationToggleDiv = simulationSummary.createEl('div', {cls: 'setting-item-control'});
-    const simulationToggleButton = simulationToggleDiv.createEl('button', {cls: 'mod-cta'});
-    simulationToggleButton.innerHTML = this.EXPAND_BUTTON;
-
-    // Prevent button click from triggering summary toggle
-    simulationToggleButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.simulationDetails.open = !this.simulationDetails.open;
-    });
-
+    this.simulationDetails = this.createSection(containerEl, '🧪 Simulation & Testing');
     const simulationDesc = this.simulationDetails.createEl('p');
     simulationDesc.innerHTML = 'Test your MetaFlow configuration by simulating the <code>processContent</code> method with sample frontmatter and different fileClasses.';
 
@@ -429,6 +364,33 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     </div>`;
   }
 
+  private createSection(
+    containerEl: HTMLElement, title: string
+  ): HTMLDetailsElement {
+    // General Settings - Collapsible
+    const section = containerEl.createEl('details', {cls: 'setting-details'});
+    section.open = false; // Collapsed by default
+    const summary = section.createEl('summary', {cls: 'setting-summary'});
+    summary.style.display = 'flex';
+    summary.style.alignItems = 'center';
+    summary.style.justifyContent = 'space-between';
+    summary.style.cursor = 'pointer';
+
+    summary.createEl('h3', {text: title});
+
+    const generalToggleDiv = summary.createEl('div', {cls: 'setting-item-control'});
+    const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta'});
+    generalToggleButton.innerHTML = this.EXPAND_BUTTON;
+
+    // Prevent button click from triggering summary toggle
+    generalToggleButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      section.open = !section.open;
+    });
+
+    return section;
+  }
   private addFolderRow(excludeFoldersContainer: HTMLDivElement, folder: string, idx: number): void {
     const row = new Setting(excludeFoldersContainer)
       .addSearch(search => {

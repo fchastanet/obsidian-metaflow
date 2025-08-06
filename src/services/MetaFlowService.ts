@@ -21,7 +21,7 @@ export class MetaFlowService {
     this.app = app;
     this.metaFlowSettings = metaFlowSettings;
     this.scriptContextService = new ScriptContextService(app, this.metaFlowSettings);
-    this.metadataMenuAdapter = new MetadataMenuAdapter(app);
+    this.metadataMenuAdapter = new MetadataMenuAdapter(app, this.metaFlowSettings);
     this.frontMatterService = new FrontMatterService();
     this.templaterAdapter = new TemplaterAdapter(app, this.metaFlowSettings);
     this.obsidianAdapter = new ObsidianAdapter(app, this.metaFlowSettings);
@@ -31,7 +31,7 @@ export class MetaFlowService {
     file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
     logManager: LogManagerInterface
   ): void {
-    if (!this.metaFlowSettings.enableAutoMetadataInsertion) {
+    if (!this.metaFlowSettings.autoMetadataInsertion) {
       console.info('Auto metadata insertion is disabled');
       return;
     }
@@ -122,7 +122,7 @@ export class MetaFlowService {
   }
 
   checkIfAutomaticMetadataInsertionEnabled(): void {
-    if (!this.metaFlowSettings.enableAutoMetadataInsertion) {
+    if (!this.metaFlowSettings.autoMetadataInsertion) {
       throw new MetaFlowException('Auto metadata insertion is disabled', 'info');
     }
   }

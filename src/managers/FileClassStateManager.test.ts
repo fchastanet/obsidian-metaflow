@@ -16,7 +16,7 @@ describe('FileClassStateManager additional event handlers', () => {
         getFileCache: jest.fn()
       }
     };
-    mockSettings = {enableAutoMetadataInsertion: true, debugMode: true};
+    mockSettings = {autoMetadataInsertion: true, debugMode: true};
     jest.spyOn(MetaFlowService.prototype, 'getFileClassFromMetadata')
       .mockImplementation(mockMetaFlowService.getFileClassFromMetadata);
     mockCallback = jest.fn();
@@ -160,7 +160,7 @@ describe('FileClassStateManager', () => {
       }
     };
     mockSettings = {
-      enableAutoMetadataInsertion: true,
+      autoMetadataInsertion: true,
       debugMode: true,
     };
     const mockLogManager: LogManagerInterface = {

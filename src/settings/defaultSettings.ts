@@ -7,7 +7,7 @@ import {MetaFlowSettings} from "./types";
 export const DEFAULT_SETTINGS: MetaFlowSettings = {
   autoSort: true,
   sortUnknownPropertiesLast: true,
-  enableAutoMetadataInsertion: true,
+  autoMetadataInsertion: true,
   insertMissingFieldsOnSort: true,
   hidePropertiesInEditor: false,
   folderFileClassMappings: [

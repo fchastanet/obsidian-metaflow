@@ -35,7 +35,7 @@ export default class MetaFlowPlugin extends Plugin {
     this.fileClassStateManager = new FileClassStateManager(
       this.app, this.settings, logManager,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
-        if (this.settings.enableAutoMetadataInsertion) {
+        if (this.settings.autoMetadataInsertion) {
           this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, logManager);
         }
       }

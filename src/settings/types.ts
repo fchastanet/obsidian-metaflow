@@ -16,7 +16,7 @@ export interface MetaFlowSettings {
   hidePropertiesInEditor: boolean;
   autoSort: boolean;
   sortUnknownPropertiesLast: boolean;
-  enableAutoMetadataInsertion: boolean;
+  autoMetadataInsertion: boolean;
   insertMissingFieldsOnSort: boolean;
   folderFileClassMappings: FolderFileClassMapping[];
   propertyDefaultValueScripts: PropertyDefaultValueScript[];

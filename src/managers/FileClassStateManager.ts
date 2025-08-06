@@ -38,7 +38,7 @@ export class FileClassStateManager {
 
   public handleActiveLeafChange(leaf: WorkspaceLeaf | null): void {
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleActiveLeafChange`, leaf);
-    if (!this.settings.enableAutoMetadataInsertion) {
+    if (!this.settings.autoMetadataInsertion) {
       return;
     }
     if (!leaf || !leaf.view || !(leaf.view instanceof MarkdownView)) {
