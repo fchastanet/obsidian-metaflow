@@ -171,10 +171,18 @@ export class TemplaterAdapter {
     return this.formatDateFallback(yesterday, format);
   }
 
+  private isValidMdFile(file: any): file is TFile {
+    return file instanceof TFile && file.extension === 'md';
+  }
+
   /**
    * deduce parent file
    */
   getParentFile(currentFile: TFile): string | null {
+    const lastActiveFile = (this.app.workspace as any)?.lastActiveFile;
+    if (lastActiveFile && this.isValidMdFile(lastActiveFile) && lastActiveFile.path !== currentFile.path) {
+      return lastActiveFile.path;
+    }
     const activeFile = this.app.workspace.getActiveFile();
     let parentFile = null;
     if (currentFile?.path === activeFile?.path) {

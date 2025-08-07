@@ -240,6 +240,20 @@ describe('TemplaterAdapter', () => {
         expect(spy).toHaveBeenCalledWith('Parent file is the same as current file, cannot deduce parent file');
         expectNoLogs();
       });
+
+      test('returns last active file in priority', () => {
+        const currentFile = ObsidianAdapter.createMockTFile('file.md');
+        const lastActiveFile = ObsidianAdapter.createMockTFile('otherFile.md');
+        mockApp.workspace = {
+          lastActiveFile,
+        };
+        mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(currentFile);
+        const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
+        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true});
+        const result = adapter.getParentFile(currentFile);
+        expect(result).toBe(lastActiveFile.path);
+        expect(spy).not.toHaveBeenCalled();
+      });
     });
   });
 });
