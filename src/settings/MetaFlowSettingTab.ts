@@ -1229,7 +1229,7 @@ This is sample content for testing.`
 
         // Create a mock file object for simulation
         const obsidianAdapter = new ObsidianAdapter(this.app, this.plugin.settings);
-        const mockFile = obsidianAdapter.createMockTFile('folder/simulation-test.md');
+        const mockFile = ObsidianAdapter.createMockTFile('folder/simulation-test.md');
 
         // Create a MetaFlowService instance with current settings
         const metaFlowService = new MetaFlowService(this.app, this.plugin.settings);

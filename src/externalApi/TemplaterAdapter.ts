@@ -1,6 +1,6 @@
 import {App, TFile} from 'obsidian';
-import {LogManagerInterface} from 'src/managers/types';
 import {MetaFlowSettings} from 'src/settings/types';
+import {ObsidianAdapter} from './ObsidianAdapter';
 
 export interface FolderTemplate {
   folder: string;
@@ -24,12 +24,14 @@ export class TemplaterAdapter {
     [x: string]: any;
     prompt(title: string): Promise<string>
   };
+  private obsidianAdapter: ObsidianAdapter;
   private TEMPLATER_PLUGIN_NAME = 'templater-obsidian';
 
   constructor(app: App, settings: MetaFlowSettings) {
     this.app = app;
     this.settings = settings;
     this.templater = (this.app as any).plugins?.plugins?.[this.TEMPLATER_PLUGIN_NAME] || null;
+    this.obsidianAdapter = new ObsidianAdapter(app, settings);
   }
 
   getTemplaterSettings(): TemplaterSettingsInterface {
@@ -172,28 +174,28 @@ export class TemplaterAdapter {
   /**
    * deduce parent file
    */
-  getParentFile(currentFile: TFile, logManager: LogManagerInterface): string | null {
+  getParentFile(currentFile: TFile): string | null {
     const activeFile = this.app.workspace.getActiveFile();
     let parentFile = null;
     if (currentFile?.path === activeFile?.path) {
-      if (!this.templater?.file?.find_tfile) {
-        logManager.addWarning('Templater file.find_tfile method not available, cannot deduce parent file');
-        return null;
-      }
       // currentFile is actually active file
       // deduce parent link from previous edited file
       const parentFilePath = (this.app.workspace as any)?.recentFileTracker?.lastOpenFiles?.[1];
       if (parentFilePath) {
-        parentFile = this.templater.file.find_tfile(parentFilePath);
+        parentFile = this.obsidianAdapter.getAbstractFileByPath(parentFilePath);
+        if (!parentFile || !(parentFile instanceof TFile)) {
+          if (this.settings.debugMode) console.debug('Parent file not found in recent files, using active file as parent');
+          parentFile = null;
+        }
       }
     } else {
       parentFile = activeFile;
     }
-    if (parentFile.path === currentFile.path) {
+    if (parentFile?.path === currentFile.path) {
       if (this.settings.debugMode) console.debug('Parent file is the same as current file, cannot deduce parent file');
       return null;
     }
 
-    return parentFile;
+    return parentFile?.path || null;
   }
 }

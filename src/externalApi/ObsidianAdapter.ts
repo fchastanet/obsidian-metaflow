@@ -1,4 +1,4 @@
-import {App, Notice, TFile} from 'obsidian';
+import {App, Notice, TAbstractFile, TFile} from 'obsidian';
 import {MetaFlowSettings} from '../settings/types';
 
 export class ObsidianAdapter {
@@ -30,11 +30,15 @@ export class ObsidianAdapter {
     return !!this.app.vault.getAbstractFileByPath(filePath);
   }
 
+  getAbstractFileByPath(filePath: string): TAbstractFile | null {
+    return this.app.vault.getAbstractFileByPath(filePath);
+  }
+
   notice(message: string): Notice {
     return new Notice(message);
   }
 
-  createMockTFile(path: string): TFile {
+  static createMockTFile(path: string): TFile {
     const file = {
       path,
       name: path.split('/').pop() || path,

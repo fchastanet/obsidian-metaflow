@@ -91,6 +91,26 @@ export class ScriptContextService {
     return 'English';
   }
 
+  private getFile(file: any): TFile {
+    if (!file) {
+      throw new Error('File is required');
+    }
+    if (file instanceof TFile) {
+      return file;
+    }
+    if (typeof file !== 'string') {
+      throw new Error('Invalid targetFile type, expected TFile or string');
+    }
+    file = this.obsidianAdapter.getAbstractFileByPath(file);
+    if (!file) {
+      throw new Error(`Target file not found: ${file}`);
+    }
+    if (!(file instanceof TFile)) {
+      throw new Error(`Target file is not a standard file: ${file}`);
+    }
+    return file;
+  }
+
   /**
    * Get all available utility functions for script context
    */
@@ -108,11 +128,14 @@ export class ScriptContextService {
       formatDate: this.templaterAdapter.formatDate.bind(this.templaterAdapter),
       tomorrow: this.templaterAdapter.tomorrow.bind(this.templaterAdapter),
       yesterday: this.templaterAdapter.yesterday.bind(this.templaterAdapter),
-      generateMarkdownLink: this.obsidianAdapter.generateMarkdownLink.bind(this.obsidianAdapter),
+      generateMarkdownLink: (targetFile: any) => {
+        targetFile = this.getFile(targetFile);
+        return this.obsidianAdapter.generateMarkdownLink(targetFile, file);
+      },
       detectLanguage: this.detectLanguage.bind(this),
       prompt: this.templaterAdapter.prompt.bind(this.templaterAdapter),
-      getParentFile: (file: TFile): string => {
-        return this.templaterAdapter.getParentFile(file, logManager) || '';
+      getParentFile: (): string => {
+        return this.templaterAdapter.getParentFile(file) || '';
       },
     };
   }

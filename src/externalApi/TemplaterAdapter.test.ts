@@ -1,6 +1,6 @@
 import {TemplaterAdapter} from './TemplaterAdapter';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import {expectNoLogs, mockLogManager} from '../__mocks__/logManager';
+import {expectNoLogs} from '../__mocks__/logManager';
 import {ObsidianAdapter} from './ObsidianAdapter';
 
 describe('TemplaterAdapter', () => {
@@ -16,7 +16,10 @@ describe('TemplaterAdapter', () => {
       },
       fileManager: {
         generateMarkdownLink: jest.fn((file, path) => `[[${file.name}]]`)
-      }
+      },
+      vault: {
+        getAbstractFileByPath: jest.fn(),
+      },
     };
 
     templaterAdapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS);
@@ -176,67 +179,63 @@ describe('TemplaterAdapter', () => {
         jest.restoreAllMocks();
         jest.clearAllMocks();
       });
-      test('returns null and logs warning if find_tfile is missing', () => {
-        const currentFile = obsidianAdapter.createMockTFile('file.md');
-        const activeFile = obsidianAdapter.createMockTFile('file.md');
-        mockApp.workspace = {
-          getActiveFile: () => activeFile,
-          recentFileTracker: {lastOpenFiles: ['file.md', 'parent.md']}
-        };
-        mockApp.plugins.plugins['templater-obsidian'] = {file: {}};
-        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
-        const result = adapter.getParentFile(currentFile, mockLogManager);
-        expect(result).toBeNull();
-        expect(mockLogManager.addWarning).toHaveBeenCalledWith(
-          'Templater file.find_tfile method not available, cannot deduce parent file'
-        );
-        expect(mockLogManager.addWarning).toHaveBeenCalledWith('Templater file.find_tfile method not available, cannot deduce parent file');
-      });
 
       test('returns parent file from recentFileTracker if find_tfile is available', () => {
-        const currentFile = obsidianAdapter.createMockTFile('file.md');
-        const activeFile = obsidianAdapter.createMockTFile('file.md');
-        const parentFileObj = obsidianAdapter.createMockTFile('parent.md');
+        const currentFile = ObsidianAdapter.createMockTFile('file.md');
+        const activeFile = ObsidianAdapter.createMockTFile('file.md');
+        const parentFileObj = ObsidianAdapter.createMockTFile('parent.md');
         mockApp.workspace = {
           getActiveFile: () => activeFile,
           recentFileTracker: {lastOpenFiles: ['file.md', 'parent.md']}
         };
-        mockApp.plugins.plugins['templater-obsidian'] = {
-          file: {find_tfile: jest.fn().mockReturnValue(parentFileObj)}
-        };
+        mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(parentFileObj);
         const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
-        const result = adapter.getParentFile(currentFile, mockLogManager);
-        expect(result).toBe(parentFileObj);
-        expect(mockApp.plugins.plugins['templater-obsidian'].file.find_tfile).toHaveBeenCalledWith('parent.md');
+        const result = adapter.getParentFile(currentFile);
+        expect(result).toBe(parentFileObj.path);
+        expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith('parent.md');
         expectNoLogs();
       });
 
       test('returns activeFile if currentFile is not activeFile', () => {
-        const currentFile = obsidianAdapter.createMockTFile('file.md');
-        const activeFile = obsidianAdapter.createMockTFile('active.md');
+        const currentFile = ObsidianAdapter.createMockTFile('file.md');
+        const activeFile = ObsidianAdapter.createMockTFile('active.md');
         mockApp.workspace = {
           getActiveFile: () => activeFile
         };
         mockApp.plugins.plugins['templater-obsidian'] = {};
         const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS});
-        const result = adapter.getParentFile(currentFile, mockLogManager);
-        expect(result).toBe(activeFile);
+        const result = adapter.getParentFile(currentFile);
+        expect(result).toBe(activeFile.path);
         expectNoLogs();
       });
 
       test('returns null if parentFile path is same as currentFile path', () => {
-        const currentFile = obsidianAdapter.createMockTFile('file.md');
-        const activeFile = obsidianAdapter.createMockTFile('file.md');
+        const currentFile = ObsidianAdapter.createMockTFile('file.md');
+        const activeFile = ObsidianAdapter.createMockTFile('file.md');
         mockApp.workspace = {
           getActiveFile: () => activeFile,
           recentFileTracker: {lastOpenFiles: ['file.md', 'parent.md']}
         };
-        mockApp.plugins.plugins['templater-obsidian'] = {
-          file: {find_tfile: jest.fn().mockReturnValue(currentFile)}
-        };
+        mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
         const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
         const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true});
-        const result = adapter.getParentFile(currentFile, mockLogManager);
+        const result = adapter.getParentFile(currentFile);
+        expect(result).toBeNull();
+        expect(spy).toHaveBeenCalledWith('Parent file not found in recent files, using active file as parent');
+        expectNoLogs();
+      });
+
+      test('returns null if parentFile path is found but same as currentFile', () => {
+        const currentFile = ObsidianAdapter.createMockTFile('file.md');
+        const activeFile = ObsidianAdapter.createMockTFile('file.md');
+        mockApp.workspace = {
+          getActiveFile: () => activeFile,
+          recentFileTracker: {lastOpenFiles: ['file.md', 'parent.md']}
+        };
+        mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(currentFile);
+        const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
+        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true});
+        const result = adapter.getParentFile(currentFile);
         expect(result).toBeNull();
         expect(spy).toHaveBeenCalledWith('Parent file is the same as current file, cannot deduce parent file');
         expectNoLogs();

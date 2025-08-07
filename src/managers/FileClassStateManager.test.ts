@@ -119,7 +119,7 @@ describe('FileClassStateManager', () => {
     });
 
     test('calls registerFileClass if valid', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       const view = createMockMarkdownView(file);
       const leaf = {view} as unknown as WorkspaceLeaf;
       const spy = jest.spyOn(manager as any, 'registerFileClass');
@@ -132,7 +132,7 @@ describe('FileClassStateManager', () => {
 
   describe('handleCreateFileEvent', () => {
     test('handleCreateFileEvent sets fileModifiedMap for TFile', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       manager.handleCreateFileEvent(file);
       expect(manager['fileModifiedMap'].get(file.path)).toBe(true);
       expectNoLogs();
@@ -148,7 +148,7 @@ describe('FileClassStateManager', () => {
   describe('handleModifyFileEvent', () => {
 
     test('handleModifyFileEvent calls callback if fileClass changes', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       manager['fileModifiedMap'].set(file.path, true);
       manager['fileClassMap'].set(file.path, 'oldClass');
       mockApp.metadataCache.getFileCache.mockReturnValue({frontmatter: {fileClass: 'newClass'}});
@@ -165,7 +165,7 @@ describe('FileClassStateManager', () => {
     });
 
     test('handleModifyFileEvent does nothing if saving', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       (file as any).saving = true;
       manager.handleModifyFileEvent(file);
       expect(mockFileClassChangedCallback).not.toHaveBeenCalled();
@@ -174,7 +174,7 @@ describe('FileClassStateManager', () => {
 
     test('handleModifyFileEvent does nothing if fileModifiedMap not set', () => {
       const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       manager.handleModifyFileEvent(file);
       expect(spy).toHaveBeenCalledWith("File test.md modified without prior typing or create event");
       expect(mockFileClassChangedCallback).not.toHaveBeenCalled();
@@ -185,7 +185,7 @@ describe('FileClassStateManager', () => {
   describe('handleDeleteFileEvent', () => {
 
     test('handleDeleteFileEvent removes file from maps', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       manager['fileModifiedMap'].set(file.path, true);
       manager['fileClassMap'].set(file.path, 'class');
       manager.handleDeleteFileEvent(file);
@@ -205,7 +205,7 @@ describe('FileClassStateManager', () => {
 
     test('handleRenameFileEvent moves fileClass and fileModifiedMap', () => {
       const oldPath = 'old.md';
-      const newFile = obsidianAdapter.createMockTFile('new.md');
+      const newFile = ObsidianAdapter.createMockTFile('new.md');
       manager['fileModifiedMap'].set(oldPath, true);
       manager['fileClassMap'].set(oldPath, 'class');
       manager.handleRenameFileEvent(newFile, oldPath);
@@ -223,7 +223,7 @@ describe('FileClassStateManager', () => {
     });
 
     test('handleRenameFileEvent does nothing if oldPath not in fileModifiedMap', () => {
-      const newFile = obsidianAdapter.createMockTFile('new.md');
+      const newFile = ObsidianAdapter.createMockTFile('new.md');
       manager.handleRenameFileEvent(newFile, 'old.md');
       expect(manager['fileModifiedMap'].has('old.md')).toBe(false);
       expect(manager['fileModifiedMap'].get(newFile.path)).toBeUndefined();
@@ -233,7 +233,7 @@ describe('FileClassStateManager', () => {
     test('handleRenameFileEvent does nothing if oldPath not in fileClassMap', () => {
       const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
       const oldPath = 'old.md';
-      const newFile = obsidianAdapter.createMockTFile('new.md');
+      const newFile = ObsidianAdapter.createMockTFile('new.md');
       manager['fileModifiedMap'].set(oldPath, true);
       manager.handleRenameFileEvent(newFile, oldPath);
       expect(mockLogManager.addWarning).toHaveBeenCalledWith(`File class for ${oldPath} not found in fileClassMap`);
@@ -249,7 +249,7 @@ describe('FileClassStateManager', () => {
 
   describe('registerFileClass', () => {
     test('sets fileClass from metadata if present', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       mockApp.metadataCache.getFileCache.mockReturnValue({frontmatter: {fileClass: 'book'}});
       mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('book');
       (manager as any).registerFileClass(file);
@@ -259,7 +259,7 @@ describe('FileClassStateManager', () => {
     });
 
     test('sets fileClass to empty string if no fileCache', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       mockApp.metadataCache.getFileCache.mockReturnValue(null);
       (manager as any).registerFileClass(file);
       expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
@@ -270,7 +270,7 @@ describe('FileClassStateManager', () => {
 
   describe('handleMetadataChanged', () => {
     test('updates fileClassMap and logs change if fileClass changed', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       manager['fileClassMap'].set(file.path, 'oldClass');
       // Set fileModifiedMap to true so the log will trigger
       manager['fileModifiedMap'].set(file.path, true);
@@ -287,7 +287,7 @@ describe('FileClassStateManager', () => {
     });
 
     test('updates fileClassMap and does not log if fileClass unchanged', () => {
-      const file = obsidianAdapter.createMockTFile('test.md');
+      const file = ObsidianAdapter.createMockTFile('test.md');
       manager['fileClassMap'].set(file.path, 'sameClass');
       mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('sameClass');
       const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });

@@ -1,12 +1,8 @@
 import {ScriptContextService} from './ScriptContextService';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import {TFile} from '../__mocks__/obsidian';
 import {expectNoLogs, mockLogManager} from '../__mocks__/logManager';
-
-// Mock Obsidian modules
-jest.mock('obsidian', () => ({
-  TFile: jest.fn()
-}));
+import {TFile} from 'obsidian';
+import {ObsidianAdapter as OriginalObsidianAdapter} from '../externalApi/ObsidianAdapter';
 
 // Mock the adapters
 jest.mock('../externalApi/TemplaterAdapter', () => ({
@@ -20,11 +16,6 @@ jest.mock('../externalApi/TemplaterAdapter', () => ({
   }))
 }));
 
-jest.mock('../externalApi/ObsidianAdapter', () => ({
-  ObsidianAdapter: jest.fn().mockImplementation(() => ({
-    generateMarkdownLink: jest.fn((file: any) => `[[${file.name}]]`)
-  }))
-}));
 
 describe('ScriptContextService', () => {
   let mockApp: any;
@@ -38,9 +29,24 @@ describe('ScriptContextService', () => {
       },
       fileManager: {
         generateMarkdownLink: jest.fn((file, path) => `[[${file.name}]]`)
+      },
+      vault: {
+        getAbstractFileByPath: jest.fn((path: string) => OriginalObsidianAdapter.createMockTFile(path)),
+        getMarkdownFiles: jest.fn(() => [])
       }
     };
 
+    jest.mock('../externalApi/ObsidianAdapter', () => {
+      return {
+        ObsidianAdapter: jest.fn().mockImplementation(() => ({
+          generateMarkdownLink: jest.fn((file: any) => `[[${file.name}]]`),
+          getAbstractFileByPath: jest.fn((path: string) => {
+            return OriginalObsidianAdapter.createMockTFile(path);
+          }),
+          createMockTFile: OriginalObsidianAdapter.createMockTFile
+        }))
+      };
+    });
     scriptContextService = new ScriptContextService(mockApp, DEFAULT_SETTINGS);
   });
   afterEach(() => {
@@ -163,8 +169,20 @@ describe('ScriptContextService', () => {
     });
 
     test('should provide working generateMarkdownLink function', () => {
-      const mockFile = {name: 'test.md', path: 'folder/test.md'} as any;
-      const linkTarget = {name: 'target.md'} as any;
+      const mockFile = OriginalObsidianAdapter.createMockTFile('folder/test.md');
+      const linkTarget = OriginalObsidianAdapter.createMockTFile('folder/target.md');
+      const fileClass = 'article';
+      const metadata = {title: 'Test'};
+
+      const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
+
+      expect(context.generateMarkdownLink(linkTarget)).toBe('[[target.md]]');
+      expectNoLogs();
+    });
+
+    test('generateMarkdownLink with file path', () => {
+      const mockFile = OriginalObsidianAdapter.createMockTFile('folder/test.md');
+      const linkTarget = 'folder/target.md';
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
@@ -247,7 +265,7 @@ describe('ScriptContextService', () => {
   describe('Markdown Link Generation through Context', () => {
     test('should generate markdown link through context', () => {
       const mockFile = {name: 'source.md', path: 'folder/source.md'} as any;
-      const targetFile = {name: 'target.md', path: 'folder/target.md'} as any;
+      const targetFile = OriginalObsidianAdapter.createMockTFile('folder/target.md');
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
@@ -260,15 +278,15 @@ describe('ScriptContextService', () => {
     });
 
     test('should handle markdown link generation with different file types', () => {
-      const mockFile = {name: 'source.md', path: 'folder/source.md'} as any;
+      const mockFile = OriginalObsidianAdapter.createMockTFile('folder/source.md');
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
       const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
       // Test with different target files
-      const pdfFile = {name: 'document.pdf', path: 'files/document.pdf'} as any;
-      const imageFile = {name: 'image.png', path: 'images/image.png'} as any;
+      const pdfFile = OriginalObsidianAdapter.createMockTFile('files/document.pdf');
+      const imageFile = OriginalObsidianAdapter.createMockTFile('images/image.png');
 
       expect(context.generateMarkdownLink(pdfFile)).toBe('[[document.pdf]]');
       expect(context.generateMarkdownLink(imageFile)).toBe('[[image.png]]');
@@ -326,7 +344,7 @@ describe('ScriptContextService', () => {
 
   describe('Integration with Adapters', () => {
     test('should properly bind adapter methods', () => {
-      const mockFile = {name: 'test.md', path: 'folder/test.md'} as any;
+      const mockFile = OriginalObsidianAdapter.createMockTFile('folder/test.md');
       const fileClass = 'article';
       const metadata = {title: 'Test'};
 
@@ -339,7 +357,7 @@ describe('ScriptContextService', () => {
       expect(() => context.yesterday()).not.toThrow();
       expect(() => context.formatDate(new Date(), 'YYYY-MM-DD')).not.toThrow();
       expect(() => context.detectLanguage('test')).not.toThrow();
-      expect(() => context.generateMarkdownLink({name: 'test.md'})).not.toThrow();
+      expect(() => context.generateMarkdownLink(mockFile)).not.toThrow();
       expect(() => context.getParentFile(mockFile)).not.toThrow();
       expectNoLogs();
     });
