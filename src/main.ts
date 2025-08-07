@@ -183,7 +183,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  private moveNoteToTheRightFolder(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
+  private async moveNoteToTheRightFolder(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
     const content = editor.getValue();
     const file = view.file;
 
@@ -197,7 +197,7 @@ export default class MetaFlowPlugin extends Plugin {
 
       const fileClass = this.metaFlowService.getFileClassFromContent(content);
       if (fileClass) {
-        this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+        await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
       } else {
         logManager.addWarning('No file class found');
       }
@@ -286,12 +286,12 @@ export default class MetaFlowPlugin extends Plugin {
                 noticeManager.addInfo(msg);
               }
             }
-          }).bind(this)).then((content) => {
+          }).bind(this)).then(async (content) => {
             const fileClass = this.metaFlowService.getFileClassFromContent(content);
             if (fileClass) {
               try {
                 if (this.settings.autoMoveNoteToRightFolder) {
-                  this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+                  await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
                 }
               } catch (error) {
                 modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);

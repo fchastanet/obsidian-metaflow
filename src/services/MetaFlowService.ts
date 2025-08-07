@@ -1,4 +1,4 @@
-import {App, CachedMetadata, Notice, TFile} from "obsidian";
+import {App, CachedMetadata, Notice, TFile, TFolder} from "obsidian";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {FrontMatterService} from "./FrontMatterService";
 import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
@@ -95,11 +95,11 @@ export class MetaFlowService {
           Object.keys(enrichedFrontmatter).forEach(key => {
             frontmatter[key] = enrichedFrontmatter[key];
           });
-        }).then(() => {
+        }).then(async () => {
           // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
           try {
             if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
-              const newFilePath = this.moveNoteToTheRightFolder(file, fileClass);
+              const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
               if (newFilePath) {
                 logManager.addInfo(`Moved note "${file.name}" with fileClass "${fileClass}" to ${newFilePath}.`);
               }
@@ -241,7 +241,14 @@ export class MetaFlowService {
     }
   }
 
-  public moveNoteToTheRightFolder(file: TFile, fileClass: string): string | null {
+  private async createFolderIfNeeded(folder: string): Promise<TFolder> {
+    if (!this.obsidianAdapter.isFolderExists(folder)) {
+      return await this.obsidianAdapter.createFolder(folder);
+    }
+    return this.app.vault.getAbstractFileByPath(folder) as TFolder;
+  }
+
+  public async moveNoteToTheRightFolder(file: TFile, fileClass: string): Promise<string | null> {
     this.checkIfValidFile(file);
     this.checkIfExcluded(file);
     const targetFolder = this.getTargetFolderForFileClass(fileClass);
@@ -250,6 +257,7 @@ export class MetaFlowService {
         console.info(`Note "${file.name}" is already in the right folder: ${targetFolder}`);
         return null;
       }
+      await this.createFolderIfNeeded(targetFolder);
       this.checkIfTargetFileExists(targetFolder, file);
       const newFilePath = `${targetFolder}/${file.name}`;
       this.obsidianAdapter.moveNote(file, newFilePath);

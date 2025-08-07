@@ -26,7 +26,8 @@ import {LogManagerInterface} from 'src/managers/types';
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
   Notice: jest.fn(),
-  TFile: jest.fn()
+  TFile: jest.fn(),
+  TFolder: jest.fn(),
 }));
 
 describe('MetaFlowService', () => {
@@ -57,6 +58,14 @@ describe('MetaFlowService', () => {
             return mockFile;
           }
           return null;
+        }),
+        createFolder: jest.fn().mockImplementation((path) => {
+          return {
+            path,
+            name: path.split('/').pop() || path,
+            vault: mockApp.vault,
+            children: [],
+          };
         }),
       },
       fileManager: {
@@ -550,7 +559,7 @@ Content here`;
   });
 
   describe('moveNoteToTheRightFolder', () => {
-    test('should move note to the right folder when autoMoveNoteToRightFolder is enabled and mapping exists', () => {
+    test('should move note to the right folder when autoMoveNoteToRightFolder is enabled and mapping exists', async () => {
       const settings = {
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
@@ -565,11 +574,11 @@ Content here`;
       const file = mockFile;
       file.path = 'Books/my-book.md';
       file.name = 'my-book.md';
-      service.moveNoteToTheRightFolder(file, 'book');
+      await service.moveNoteToTheRightFolder(file, 'book');
       expect((service as any).obsidianAdapter.moveNote).toHaveBeenCalledWith(file, 'Books/my-book.md');
     });
 
-    test('should not move note if no target folder is found', () => {
+    test('should not move note if no target folder is found', async () => {
       const settings = {
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
@@ -586,7 +595,7 @@ Content here`;
       file.name = 'my-book.md';
 
       try {
-        (service as any).moveNoteToTheRightFolder(file, 'book');
+        await (service as any).moveNoteToTheRightFolder(file, 'book');
       } catch (error) {
         expect(error).toBeInstanceOf(MetaFlowException);
         expect(error.message).toBe('No target folder defined for fileClass "book"');
@@ -595,7 +604,7 @@ Content here`;
       expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
     });
 
-    test('should not move note if target file exists', () => {
+    test('should not move note if target file exists', async () => {
       const settings = {
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
@@ -613,8 +622,9 @@ Content here`;
       file.name = 'my-book.md';
 
       try {
-        (service as any).moveNoteToTheRightFolder(file, 'book');
+        await (service as any).moveNoteToTheRightFolder(file, 'book');
       } catch (error) {
+        console.error(error);
         expect(error).toBeInstanceOf(MetaFlowException);
         expect(error.message).toBe('Target file "Books/my-book.md" already exists');
       }

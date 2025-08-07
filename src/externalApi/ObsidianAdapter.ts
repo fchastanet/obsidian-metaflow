@@ -1,4 +1,4 @@
-import {App, Notice, TAbstractFile, TFile} from 'obsidian';
+import {App, Notice, TAbstractFile, TFile, TFolder} from 'obsidian';
 import {MetaFlowSettings} from '../settings/types';
 
 export class ObsidianAdapter {
@@ -27,7 +27,17 @@ export class ObsidianAdapter {
   }
 
   isFileExists(filePath: string): boolean {
-    return !!this.app.vault.getAbstractFileByPath(filePath);
+    const file = this.app.vault.getAbstractFileByPath(filePath);
+    return !!file && file instanceof TFile;
+  }
+
+  isFolderExists(filePath: string): boolean {
+    const folder = this.app.vault.getAbstractFileByPath(filePath);
+    return !!folder && folder instanceof TFolder;
+  }
+
+  async createFolder(folderPath: string): Promise<TFolder> {
+    return await this.app.vault.createFolder(folderPath);
   }
 
   getAbstractFileByPath(filePath: string): TAbstractFile | null {
