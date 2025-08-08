@@ -82,14 +82,14 @@ export class MetadataMenuAdapter {
   }
 
   /**
-   * Insert missing metadata fields
-   * This method adds missing fields to the frontmatter variable
+   * sync metadata fields
+   * This method adds missing fields and remove obsolete empty fields to the frontmatter variable
    * supports inserting fields from fileClass ancestors in the correct order:
    * 1. Most basic ancestor fields first (e.g., "default-basic")
    * 2. More specific ancestor fields (e.g., "default")
    * 3. Finally the main fileClass fields (e.g., "book")
    */
-  insertMissingFields(frontmatter: Frontmatter, fileClassName: string, logManager: LogManagerInterface): Frontmatter {
+  syncFields(frontmatter: Frontmatter, fileClassName: string, logManager: LogManagerInterface): Frontmatter {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
@@ -97,47 +97,40 @@ export class MetadataMenuAdapter {
     try {
       // Get the ancestor chain for this fileClass
       const ancestorChain = this.getFileClassAncestorChain(fileClassName, logManager);
+      const allFields: string[] = [];
 
-      // Insert fields from ancestors first, then the fileClass itself
+      // Step 1: Get all fields for the fileClass and its ancestors
       // The chain is already in the correct order (most basic ancestor first)
       for (const ancestorName of ancestorChain) {
         if (this.settings.debugMode) console.debug(`Inserting missing fields from ancestor: ${ancestorName}`);
-        frontmatter = this.insertFileClassMissingFields(
-          frontmatter,
-          ancestorName, // Specific ancestor fileClass
-        );
+        // get metadataMenu fileClass fields configuration
+        const fileClassFields = this.getFileClassFields(ancestorName);
+        allFields.push(...fileClassFields.map(field => field.name));
       }
 
-      // Finally, insert fields from the main fileClass
-      if (this.settings.debugMode) console.debug(`Inserting missing fields from main fileClass: ${fileClassName}`);
-      frontmatter = this.insertFileClassMissingFields(
-        frontmatter,
-        fileClassName, // Main fileClass
-      );
+      // Step 2: Remove empty properties that are not part of the new fileClass
+      const fieldsToRemove = Object.keys(frontmatter).filter(key => {
+        // Check if the field is not in the new fileClass fields
+        return !allFields.some(field => field === key) && (
+          frontmatter[key] === undefined || frontmatter[key] === null || frontmatter[key] === ''
+        );
+      });
+      for (const fieldToRemove of fieldsToRemove) {
+        delete frontmatter[fieldToRemove];
+      }
+
+      // Step 3: Add missing fields from the ancestor chain
+      for (const fieldName of allFields) {
+        if (!(fieldName in frontmatter)) {
+          frontmatter[fieldName] = null; // Initialize missing fields with undefined
+        }
+      }
 
       return frontmatter;
     } catch (error) {
       console.error('Error inserting missing fields:', error);
       throw error; // Re-throw error so the caller can handle it
     }
-  }
-
-  insertFileClassMissingFields(frontmatter: Frontmatter, fileClassName: string): Frontmatter {
-    if (!this.isMetadataMenuAvailable()) {
-      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
-    }
-    // get metadataMenu fileClass fields configuration
-    const fileClassFields = this.getFileClassFields(fileClassName);
-    if (fileClassFields && fileClassFields.length > 0) {
-      // Insert each field into the frontmatter
-      for (const field of fileClassFields) {
-        if (field.name && !frontmatter[field.name]) {
-          frontmatter[field.name] = null;
-        }
-      }
-    }
-
-    return frontmatter;
   }
 
   private checkMetadataMenuAvailable() {
@@ -188,7 +181,7 @@ export class MetadataMenuAdapter {
       const fieldIndex = (this.metadataMenuPlugin as any)?.fieldIndex;
       if (!fieldIndex?.fileClassesAncestors) {
         logManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
-        return [];
+        return [fileClassName];
       }
 
       const fileClassesAncestors = fieldIndex.fileClassesAncestors;
@@ -205,6 +198,7 @@ export class MetadataMenuAdapter {
       // We want to insert in order: "default-basic" (most basic) → "default" → "book" (most specific)
       // So we need to reverse the ancestors array to get most basic first
       const orderedAncestors = ancestors.slice().reverse();
+      orderedAncestors.push(fileClassName); // Add the main fileClass at the end
 
       return orderedAncestors;
 

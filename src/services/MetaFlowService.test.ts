@@ -100,7 +100,7 @@ describe('MetaFlowService', () => {
         name: 'default',
         fields: []
       }),
-      insertMissingFields: jest.fn().mockImplementation((frontmatter) => frontmatter),
+      syncFields: jest.fn().mockImplementation((frontmatter) => frontmatter),
       getFileClassFromMetadata: realMetadataMenuAdapter.getFileClassFromMetadata.bind(realMetadataMenuAdapter), // Use real implementation
       getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
     };
@@ -191,7 +191,7 @@ Content here`;
         fileClass: 'book',
         title: 'Test Book'
       };
-      expect(mockMetadataMenuAdapter.insertMissingFields).toHaveBeenCalledWith(expectedFrontmatter, 'book', mockLogManager);
+      expect(mockMetadataMenuAdapter.syncFields).toHaveBeenCalledWith(expectedFrontmatter, 'book', mockLogManager);
       expect(typeof result).toBe('string');
       expect(result).toContain('fileClass: book');
       expect(mockLogManager.addError).not.toHaveBeenCalled();
@@ -219,7 +219,7 @@ Content here`;
       const expectedFrontmatter = {
         title: 'Test Note'
       };
-      expect(mockMetadataMenuAdapter.insertMissingFields).
+      expect(mockMetadataMenuAdapter.syncFields).
         toHaveBeenCalledWith(expectedFrontmatter, 'note', mockLogManager);
       expect(mockLogManager.addError).not.toHaveBeenCalled();
     });
@@ -712,4 +712,49 @@ Content here`;
       expect(service.getFileClassFromMetadata([])).toBe(null);
     });
   });
+
+  describe('MetaFlowService.updateFrontmatter', () => {
+    let service: MetaFlowService;
+    let file: any;
+    let processFrontMatterMock: jest.Mock;
+    beforeEach(() => {
+      service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+      file = {name: 'test.md'};
+      processFrontMatterMock = jest.fn();
+      mockApp.fileManager.processFrontMatter = processFrontMatterMock;
+    });
+
+    test('should update frontmatter with new keys and values', async () => {
+      const enrichedFrontmatter = {a: 1, b: 2};
+      processFrontMatterMock.mockImplementation((fileArg, updater) => {
+        const frontmatter = {old: 'value', empty1: null, empty2: undefined, empty3: ''};
+        updater(frontmatter);
+        expect(frontmatter).toEqual({a: 1, b: 2, old: 'value', empty1: null, empty2: undefined, empty3: ''});
+      });
+      await (service as any).updateFrontmatter(file, {a: 1, b: 2}, false);
+      expect(processFrontMatterMock).toHaveBeenCalledWith(file, expect.any(Function));
+    });
+
+    test('should delete empty keys if deleteEmptyKeys is true', async () => {
+      processFrontMatterMock.mockImplementation((fileArg, updater) => {
+        const frontmatter = {a: '', b: null, c: undefined, d: 'keep'};
+        updater(frontmatter);
+        expect(frontmatter).toEqual({d: 'keep'});
+      });
+      await (service as any).updateFrontmatter(file, {d: 'keep'}, true);
+    });
+
+    test('should add keys in desired order', async () => {
+      const enrichedFrontmatter = {z: 1, a: 2};
+      processFrontMatterMock.mockImplementation((fileArg, updater) => {
+        const frontmatter = {x: 0};
+        updater(frontmatter);
+        // The keys should be in the order of enrichedFrontmatter
+        expect(Object.keys(frontmatter)).toEqual(['x', 'z', 'a']);
+        expect(frontmatter).toEqual({x: 0, z: 1, a: 2});
+      });
+      await (service as any).updateFrontmatter(file, enrichedFrontmatter, false);
+    });
+  });
+
 });

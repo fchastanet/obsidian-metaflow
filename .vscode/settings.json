@@ -64,7 +64,8 @@
     "chatFileEditWithContextAndDiffAndHistoryAndSuggestionsAndCodeReview": true
   },
   "github.copilot.nextEditSuggestions.enabled": true,
-  "github.copilot.chat.agent.terminal.allowList": {
+  "chat.tools.autoApprove": true,
+  "github.copilot.chat.tools.terminal.autoApprove": {
     "/^npm test .*$/": true,
     "/^npm run test .*$/": true
   },

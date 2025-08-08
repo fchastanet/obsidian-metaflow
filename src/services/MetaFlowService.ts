@@ -70,9 +70,9 @@ export class MetaFlowService {
       // Step 2: Validate fileClass exists in MetadataMenu, throw error if not found
       this.metadataMenuAdapter.getFileClassByName(fileClass);
 
-      // Step 3: Insert missing metadata headers using MetadataAutoInserter
+      // Step 3: Synchronize frontmatter with new/obsolete fileClass's fields
       let updatedFrontmatter: any = cache?.frontmatter || {};
-      updatedFrontmatter = this.metadataMenuAdapter.insertMissingFields(updatedFrontmatter, fileClass, logManager);
+      updatedFrontmatter = this.metadataMenuAdapter.syncFields(updatedFrontmatter, fileClass, logManager);
 
       // Step 4: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
@@ -88,14 +88,7 @@ export class MetaFlowService {
       );
 
       setTimeout(async () => {
-        await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-          // Remove all keys from frontmatter
-          Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
-          // Add keys back in desired order
-          Object.keys(enrichedFrontmatter).forEach(key => {
-            frontmatter[key] = enrichedFrontmatter[key];
-          });
-        }).then(async () => {
+        this.updateFrontmatter(file, enrichedFrontmatter, true).then(async () => {
           // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
           try {
             if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
@@ -194,8 +187,8 @@ export class MetaFlowService {
       // Step 3: Validate fileClass exists in MetadataMenu, throw error if not found
       this.metadataMenuAdapter.getFileClassByName(fileClass);
 
-      // Step 4: Insert missing metadata headers using MetadataAutoInserter
-      let updatedFrontmatter: any = this.metadataMenuAdapter.insertMissingFields(frontmatter, fileClass, logManager);
+      // Step 4: Synchronize frontmatter with new/obsolete fileClass's fields
+      let updatedFrontmatter: any = this.metadataMenuAdapter.syncFields(frontmatter, fileClass, logManager);
       // Step 5: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
@@ -277,6 +270,25 @@ export class MetaFlowService {
     return null;
   }
 
+  private async updateFrontmatter(file: TFile, enrichedFrontmatter: any, deleteEmptyKeys: boolean): Promise<void> {
+    return this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+      // Remove all keys from frontmatter
+      Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
+      // Remove all empty keys from frontmatter
+      if (deleteEmptyKeys) {
+        Object.keys(frontmatter).forEach(key => {
+          if (frontmatter[key] === undefined || frontmatter[key] === null || frontmatter[key] === '') {
+            delete frontmatter[key];
+          }
+        });
+      }
+      // Add keys back in desired order
+      Object.keys(enrichedFrontmatter).forEach(key => {
+        frontmatter[key] = enrichedFrontmatter[key];
+      });
+    });
+  }
+
   public processSortContent(content: string, file: TFile): void {
     this.checkIfValidFile(file);
     this.checkIfExcluded(file);
@@ -295,14 +307,7 @@ export class MetaFlowService {
       enrichedFrontmatter = this.sortProperties(enrichedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
 
       setTimeout(async () => {
-        await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-          // Remove all keys from frontmatter
-          Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
-          // Add keys back in desired order
-          Object.keys(enrichedFrontmatter).forEach(key => {
-            frontmatter[key] = enrichedFrontmatter[key];
-          });
-        })
+        await this.updateFrontmatter(file, enrichedFrontmatter, false);
       }, 500)
     } catch (error) {
       console.error('Error sorting metadata fields:', error);

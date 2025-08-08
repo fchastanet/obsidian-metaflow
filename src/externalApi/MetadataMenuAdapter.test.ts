@@ -273,12 +273,12 @@ describe('MetadataMenuAdapter', () => {
     });
   });
 
-  describe('insertMissingFields', () => {
+  describe('syncFields', () => {
     test('throws exception when MetadataMenu not available', () => {
       const frontmatter = {title: 'Test'};
       adapter = new MetadataMenuAdapter(mockApp, settings);
       expect(() => {
-        adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+        adapter.syncFields(frontmatter, 'book', mockLogManager);
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
       expectNoLogs();
     });
@@ -300,7 +300,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
-      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+      const result = adapter.syncFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         title: 'Existing Title',  // Existing field preserved
@@ -312,30 +312,23 @@ describe('MetadataMenuAdapter', () => {
     });
 
     test('inserts fields from ancestors first, then main fileClass', () => {
-      const ancestorFields = [{name: 'id'}, {name: 'created'}];
-      const bookFields = [{name: 'title'}, {name: 'author'}];
-
-      const mockFieldsMap = new Map([
-        ['default', ancestorFields],
-        ['book', bookFields]
-      ]);
-
-      const mockAncestorsMap = new Map([
-        ['book', ['default']]
-      ]);
-
       mockApp.plugins.plugins['metadata-menu'] = {
         api: {},
         settings: {},
         fieldIndex: {
-          fileClassesFields: mockFieldsMap,
-          fileClassesAncestors: mockAncestorsMap
+          fileClassesFields: new Map([
+            ['default', [{name: 'id'}, {name: 'created'}]],
+            ['book', [{name: 'title'}, {name: 'author'}]]
+          ]),
+          fileClassesAncestors: new Map([
+            ['book', ['default']]
+          ]),
         }
       };
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
-      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+      const result = adapter.syncFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         title: 'Existing Title',  // Existing field preserved
@@ -345,94 +338,45 @@ describe('MetadataMenuAdapter', () => {
       });
       expectNoLogs();
     });
-  });
 
-  describe('insertFileClassMissingFields', () => {
-    test('throws exception when MetadataMenu not available', () => {
-      const frontmatter = {title: 'Test'};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
-      expect(() => {
-        adapter.insertFileClassMissingFields(frontmatter, 'book');
-      }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
-      expectNoLogs();
-    });
-
-    test('no exception when no fields found for fileClass', () => {
-      const mockFieldsMap = new Map();
-
+    test('inserts fields from ancestors and remove obsolete fields', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
         api: {},
         settings: {},
         fieldIndex: {
-          fileClassesFields: mockFieldsMap
-        }
-      };
-      const frontmatter = {};
-      adapter = new MetadataMenuAdapter(mockApp, settings);
-      const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
-      expect(result).toEqual(frontmatter);
-      expectNoLogs();
-    });
-
-    test('inserts missing fields only', () => {
-      const mockFields = [{name: 'title'}, {name: 'author'}, {name: 'date'}];
-      const mockFieldsMap = new Map([
-        ['book', mockFields]
-      ]);
-
-      mockApp.plugins.plugins['metadata-menu'] = {
-        api: {},
-        settings: {},
-        fieldIndex: {
-          fileClassesFields: mockFieldsMap
-        }
-      };
-      adapter = new MetadataMenuAdapter(mockApp, settings);
-
-      const frontmatter = {title: 'Existing Title'};
-      const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
-
-      expect(result).toEqual({
-        title: 'Existing Title',  // Existing field preserved
-        author: null,             // Missing field added
-        date: null                // Missing field added
-      });
-      expectNoLogs();
-    });
-
-    test('preserves existing fields', () => {
-      const mockFields = [{name: 'title'}, {name: 'author'}];
-      const mockFieldsMap = new Map([
-        ['book', mockFields]
-      ]);
-
-      mockApp.plugins.plugins['metadata-menu'] = {
-        api: {},
-        settings: {},
-        fieldIndex: {
-          fileClassesFields: mockFieldsMap
+          fileClassesFields: new Map([
+            ['default', [{name: 'id'}, {name: 'created'}]],
+            ['book', [{name: 'title'}, {name: 'author'}]]
+          ]),
+          fileClassesAncestors: new Map([
+            ['book', ['default']]
+          ]),
         }
       };
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {
         title: 'Existing Title',
-        author: 'Existing Author',
-        extraField: 'Extra Value'
+        obsoleteField1: null,
+        obsoleteField2: undefined,
+        obsoleteField3: '',
+        fieldKept: 'value'
       };
-      const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
+      const result = adapter.syncFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
-        title: 'Existing Title',   // Preserved
-        author: 'Existing Author', // Preserved
-        extraField: 'Extra Value'  // Preserved
+        title: 'Existing Title',  // Existing field preserved
+        id: null,                 // From ancestor
+        fieldKept: 'value',
+        created: null,            // From ancestor
+        author: null              // From main fileClass
       });
       expectNoLogs();
     });
   });
 
   describe('Edge Cases and Error Handling', () => {
-    test('insertMissingFields throws exception when fieldIndex missing', () => {
+    test('syncFields throws exception when fieldIndex missing', () => {
       mockApp.plugins.plugins['metadata-menu'] = {
         api: {},
         settings: {},
@@ -445,7 +389,7 @@ describe('MetadataMenuAdapter', () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
       expect(() => {
-        adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+        adapter.syncFields(frontmatter, 'book', mockLogManager);
       }).toThrow('No fileClass definitions found in MetadataMenu');
       expect(spy).not.toHaveBeenCalled();
       expect(errorSpy).toHaveBeenCalledWith('Error inserting missing fields:', expect.any(Error));
@@ -454,7 +398,7 @@ describe('MetadataMenuAdapter', () => {
       );
     });
 
-    test('insertMissingFields handles ancestor chain errors gracefully', () => {
+    test('syncFields handles ancestor chain errors gracefully', () => {
       const mockFields = [{name: 'title'}];
       const mockFieldsMap = new Map([
         ['book', mockFields]
@@ -471,7 +415,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {existing: 'value'};
-      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+      const result = adapter.syncFields(frontmatter, 'book', mockLogManager);
 
       // Should still process the main fileClass even if ancestors fail
       expect(result).toEqual({
@@ -484,7 +428,7 @@ describe('MetadataMenuAdapter', () => {
       );
     });
 
-    test('insertMissingFields handles multiple ancestor levels correctly', () => {
+    test('syncFields handles multiple ancestor levels correctly', () => {
       const basicFields = [{name: 'id'}];
       const defaultFields = [{name: 'created'}, {name: 'updated'}];
       const bookFields = [{name: 'title'}, {name: 'author'}];
@@ -511,7 +455,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {title: 'Existing Title'};
-      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+      const result = adapter.syncFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         title: 'Existing Title',  // Existing field preserved
@@ -526,7 +470,7 @@ describe('MetadataMenuAdapter', () => {
       );
     });
 
-    test('insertMissingFields works with object-based ancestors (not Map)', () => {
+    test('syncFields works with object-based ancestors (not Map)', () => {
       const defaultFields = [{name: 'created'}];
       const bookFields = [{name: 'title'}];
 
@@ -551,7 +495,7 @@ describe('MetadataMenuAdapter', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
       const frontmatter = {};
-      const result = adapter.insertMissingFields(frontmatter, 'book', mockLogManager);
+      const result = adapter.syncFields(frontmatter, 'book', mockLogManager);
 
       expect(result).toEqual({
         created: null,  // From ancestor
@@ -616,40 +560,6 @@ describe('MetadataMenuAdapter', () => {
       expect(() => {
         adapter.getFileClassAlias();
       }).toThrow('MetadataMenu integration is not enabled or plugin is not available');
-      expect(mockLogManager.addWarning).toHaveBeenCalledWith(
-        'MetadataMenu fieldIndex.fileClassesAncestors not available'
-      );
-    });
-
-    test('insertFileClassMissingFields handles fields without names', () => {
-      const mockFields = [
-        {name: 'title'},
-        {name: ''}, // Empty name
-        {name: null}, // Null name
-        {name: 'author'}
-      ];
-      const mockFieldsMap = new Map([
-        ['book', mockFields]
-      ]);
-
-      mockApp.plugins.plugins['metadata-menu'] = {
-        api: {},
-        settings: {},
-        fieldIndex: {
-          fileClassesFields: mockFieldsMap
-        }
-      };
-      adapter = new MetadataMenuAdapter(mockApp, settings);
-
-      const frontmatter = {};
-      const result = adapter.insertFileClassMissingFields(frontmatter, 'book');
-
-      // Should only add fields with valid names
-      expect(result).toEqual({
-        title: null,
-        author: null
-        // Empty and null names should be skipped
-      });
       expect(mockLogManager.addWarning).toHaveBeenCalledWith(
         'MetadataMenu fieldIndex.fileClassesAncestors not available'
       );
