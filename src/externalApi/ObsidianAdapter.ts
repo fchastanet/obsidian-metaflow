@@ -1,4 +1,4 @@
-import {App, Notice, TAbstractFile, TFile, TFolder} from 'obsidian';
+import {App, normalizePath, Notice, TAbstractFile, TFile, TFolder} from 'obsidian';
 import {MetaFlowSettings} from '../settings/types';
 
 export class ObsidianAdapter {
@@ -42,6 +42,17 @@ export class ObsidianAdapter {
 
   getAbstractFileByPath(filePath: string): TAbstractFile | null {
     return this.app.vault.getAbstractFileByPath(filePath);
+  }
+
+  normalizePath(filePath: string): string {
+    return normalizePath(filePath);
+  }
+
+  folderPrefix(filePath: string): string {
+    const normalizedPath = normalizePath(filePath);
+    // remove first slash as first character if any
+    const folderPath = normalizedPath.replace(/^\//, '');
+    return folderPath + '/';
   }
 
   notice(message: string): Notice {

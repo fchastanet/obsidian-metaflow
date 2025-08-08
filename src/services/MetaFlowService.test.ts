@@ -1,4 +1,4 @@
-import {FileStats, Plugin, TFile} from 'obsidian';
+import {FileStats, normalizePath, Plugin, TFile} from 'obsidian';
 
 // Declare mock variables that will be initialized in beforeEach
 let mockMetadataMenuAdapter: any;
@@ -28,6 +28,7 @@ jest.mock('obsidian', () => ({
   Notice: jest.fn(),
   TFile: jest.fn(),
   TFolder: jest.fn(),
+  normalizePath: jest.fn().mockImplementation((path: string) => path.replace(/\\/g, '/')),
 }));
 
 describe('MetaFlowService', () => {

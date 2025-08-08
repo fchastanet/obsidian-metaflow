@@ -88,23 +88,22 @@ export class MetaFlowService {
       );
 
       setTimeout(async () => {
-        this.updateFrontmatter(file, enrichedFrontmatter, true).then(async () => {
-          // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
-          try {
-            if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
-              const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
-              if (newFilePath) {
-                logManager.addInfo(`Moved note "${file.name}" with fileClass "${fileClass}" to ${newFilePath}.`);
-              }
+        await this.updateFrontmatter(file, enrichedFrontmatter, true)
+        // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
+        try {
+          if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
+            const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
+            if (newFilePath) {
+              logManager.addInfo(`Moved note "${file.name}" with fileClass "${fileClass}" to ${newFilePath}.`);
             }
-          } catch (error) {
-            const msg = (error instanceof MetaFlowException) ?
-              `Error moving note ${file.path} to the right folder: ${error.message}` :
-              `Error moving note ${file.path} to the right folder`;
-            console.error(msg, error);
-            logManager.addMessage(msg, error?.noticeLevel ?? 'error');
           }
-        });
+        } catch (error) {
+          const msg = (error instanceof MetaFlowException) ?
+            `Error moving note ${file.path} to the right folder: ${error.message}` :
+            `Error moving note ${file.path} to the right folder`;
+          console.error(msg, error);
+          logManager.addMessage(msg, error?.noticeLevel ?? 'error');
+        }
       }, 500);
     } catch (error) {
       const msg = (error instanceof MetaFlowException) ?
@@ -139,7 +138,7 @@ export class MetaFlowService {
   checkIfExcluded(file: TFile): void {
     // Exclude files in excluded folders
     const excludeFolders = (this.metaFlowSettings.excludeFolders || []);
-    if (excludeFolders.some(folder => file.path.startsWith(folder + '/'))) {
+    if (excludeFolders.some(folder => file.path.startsWith(this.obsidianAdapter.folderPrefix(folder)))) {
       throw new MetaFlowException(`File ${file.name} is in an excluded folder: ${file.path}`, 'info');
     }
   }
@@ -383,11 +382,10 @@ export class MetaFlowService {
    * Deduce fileClass from folder path using the mapping settings
    */
   private deduceFileClassFromPath(filePath: string): string | null {
+    const cleanFilePath = this.obsidianAdapter.normalizePath(filePath);
     for (const mapping of this.metaFlowSettings.folderFileClassMappings) {
-      // Remove trailing and leading slashes
-      let cleanFolder = mapping.folder.replace(/\/$/, '').replace(/^\//, '');
-      cleanFolder = (cleanFolder !== '') ? cleanFolder + '/' : '';
-      if (filePath.startsWith(cleanFolder)) {
+      const folderPrefix = this.obsidianAdapter.folderPrefix(mapping.folder);
+      if (folderPrefix === '/' || cleanFilePath.startsWith(folderPrefix)) {
         return mapping.fileClass;
       }
     }

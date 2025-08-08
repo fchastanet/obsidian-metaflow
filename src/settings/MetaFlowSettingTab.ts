@@ -19,6 +19,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   plugin: MetaFlowPlugin;
   metadataMenuAdapter: MetadataMenuAdapter;
   templaterAdapter: TemplaterAdapter;
+  obsidianAdapter: ObsidianAdapter;
   simulationDetails: HTMLDetailsElement;
   simulationContainer: HTMLElement;
   metadataMenuStatus: HTMLElement;
@@ -32,6 +33,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     this.plugin = plugin;
     this.metadataMenuAdapter = new MetadataMenuAdapter(app, plugin.settings);
     this.templaterAdapter = new TemplaterAdapter(app, plugin.settings);
+    this.obsidianAdapter = new ObsidianAdapter(app, plugin.settings);
   }
 
 
@@ -42,15 +44,13 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     containerEl.createDiv({cls: 'metaflow-settings-icon'});
-    containerEl.createEl('h1', {text: 'MetaFlow Settings'});
-
+    containerEl.createEl('p', {text: 'MetaFlow Settings', cls: 'metaflow-settings-title'});
     containerEl.createEl('p', {
       text: 'Configure automated metadata workflow management including folder mappings, property scripts, and plugin integrations.'
     });
 
-    const generalDetails = this.createSection(containerEl, 'General Settings');
     // Hide properties section setting
-    new Setting(generalDetails)
+    new Setting(containerEl)
       .setName('Hide properties section in editor')
       .setDesc('Hide the properties section from the file editor view for a cleaner writing experience')
       .addToggle(toggle => toggle
@@ -63,7 +63,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }));
 
     // debug mode setting
-    new Setting(generalDetails)
+    new Setting(containerEl)
       .setName('Debug mode')
       .setDesc('Enable debug mode for verbose logging')
       .addToggle(toggle => toggle
@@ -73,7 +73,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
-    const metadataInsertionDetails = this.createSection(containerEl, 'Metadata Insertion behavior');
+    const metadataInsertionDetails = this.createSection(containerEl, 'Metadata insertion behavior');
     // Auto metadata insertion setting
     const updateDependentRadioButtons = () => {
       autoSortSetting.components[0].setDisabled(!this.plugin.settings.autoMetadataInsertion);
@@ -155,10 +155,9 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           });
       });
 
-    // Folder/FileClass Mappings - Collapsible
-    const mappingsDetails = this.createSection(containerEl, 'Folder/FileClass Mappings');
-    const mappingsDesc = mappingsDetails.createEl('p');
-    mappingsDesc.innerHTML = 'Map folder patterns to MetadataMenu fileClasses. Uses the same pattern matching as Templater plugin. Patterns are evaluated in order, with the first match being used.';
+    // Folder/fileClass mappings - Collapsible
+    const mappingsDetails = this.createSection(containerEl, 'Folder/fileClass mappings');
+    mappingsDetails.createEl('p', {text: 'Map folder patterns to MetadataMenu fileClasses. Uses the same pattern matching as Templater plugin. Patterns are evaluated in order, with the first match being used.'});
 
     // Auto-populate from Templater button
     const templaterImportSetting = new Setting(mappingsDetails)
@@ -197,8 +196,8 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.displayFolderMappings(mappingsContainer);
         }));
 
-    // Property Default Value Scripts - Collapsible
-    const scriptsDetails = this.createSection(containerEl, 'Property Default Value Scripts');
+    // Property default value scripts - Collapsible
+    const scriptsDetails = this.createSection(containerEl, 'Property default value scripts');
     const scriptsDesc = scriptsDetails.createEl('p');
     scriptsDesc.innerHTML = 'Define JavaScript scripts to generate default values for properties. Scripts have access to: <code>fileClass</code>, <code>file</code>, <code>metadata</code>, <code>prompt</code>, <code>date</code>, <code>generateMarkdownLink</code>, <code>detectLanguage</code>.';
 
@@ -242,28 +241,15 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
     // Simulation Testing Section - Collapsible
     this.simulationDetails = this.createSection(containerEl, '🧪 Simulation & Testing');
-    const simulationDesc = this.simulationDetails.createEl('p');
-    simulationDesc.innerHTML = 'Test your MetaFlow configuration by simulating the <code>processContent</code> method with sample frontmatter and different fileClasses.';
+    this.simulationDetails.createEl('p', {text: 'Test your MetaFlow configuration by simulating the <code>processContent</code> method with sample frontmatter and different fileClasses.'});
 
     // Create container for simulation
     this.simulationContainer = this.simulationDetails.createEl('div');
     this.displaySimulationSection();
 
     // Export/Import Settings Section - Collapsible
-    const exportImportDetails = containerEl.createEl('details', {cls: 'setting-details'});
-    exportImportDetails.open = false;
-    const exportImportSummary = exportImportDetails.createEl('summary', {cls: 'setting-summary'});
-    exportImportSummary.style.display = 'flex';
-    exportImportSummary.style.alignItems = 'center';
-    exportImportSummary.style.justifyContent = 'space-between';
-    exportImportSummary.style.cursor = 'pointer';
-    exportImportSummary.createEl('h3', {text: 'Export/Import Settings'});
-    const exportImportToggleDiv = exportImportSummary.createEl('div', {cls: 'setting-item-control'});
-    const exportImportToggleButton = exportImportToggleDiv.createEl('button', {cls: 'mod-cta'});
-    exportImportToggleButton.innerHTML = this.EXPAND_BUTTON;
-    exportImportToggleButton.addEventListener('click', (e) => {e.stopPropagation();});
-    const exportImportDesc = exportImportDetails.createEl('p');
-    exportImportDesc.innerHTML = 'Export your MetaFlow settings as a JSON file or import settings from a JSON file.';
+    const exportImportDetails = this.createSection(containerEl, 'Export/Import');
+    exportImportDetails.createEl('p', {text: 'Export your MetaFlow settings as a JSON file or import settings from a JSON file.'});
     // Export button
     new Setting(exportImportDetails)
       .setName('Export Settings')
@@ -317,15 +303,15 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       });
 
     // Add some help text
-    containerEl.createEl('h3', {text: 'Usage'});
+    containerEl.createEl('p', {text: 'Usage', cls: 'metaflow-settings-section-header'});
     containerEl.createEl('p', {text: 'Use the command palette to:'});
     const list = containerEl.createEl('ul');
+    list.createEl('li', {text: 'Update metadata properties - Add missing fields from fileClass (if automatic option disabled)'});
     list.createEl('li', {text: 'Sort metadata properties - Sort current note'});
-    list.createEl('li', {text: 'Sort metadata properties in all notes - Sort entire vault'});
-    list.createEl('li', {text: 'Insert missing metadata fields - Add missing fields from fileClass'});
-    list.createEl('li', {text: 'Sort and insert missing metadata - Combined operation'});
+    list.createEl('li', {text: 'Move the note to the right folder - depending on the fileClass'});
     list.createEl('li', {text: 'Auto Update metadata fields - Complete metadata processing with default values'});
-
+    list.createEl('li', {text: 'Mass-update metadata properties - Apply changes to all notes'});
+    list.createEl('li', {text: 'Toggle properties panel visibility on editor'});
     containerEl.createEl('p', {text: 'Properties will be sorted according to the order specified above. Unknown properties will be sorted alphabetically and placed at the end if the option is enabled.'});
 
     // plugins status
@@ -334,13 +320,13 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     this.updatePluginsStatus();
 
     // Add MetaFlow plugin support information
-    const pluginSupport = containerEl.createDiv({cls: 'vt-support', });
+    const pluginSupport = containerEl.createDiv({cls: 'vt-support'});
     // cspell:words colour FFDD00
-    pluginSupport.innerHTML = `<h3>Enjoying MetaFlow?</h3>
+    pluginSupport.innerHTML = `<p class="metaflow-settings-section-header">Enjoying MetaFlow?</p>
       <div class="setting-item-description">If you like this Plugin, consider donating to support continued development:</div>
-      <div class="buttons">
+      <div class="metaflow-settings-buttons">
         <a href="https://www.buymeacoffee.com/fchastanetl"
-          style="padding: 0"
+          class="metaflow-settings-btn-coffee"
           target="_blank" rel="noopener"
           title="buy me a coffee to support my work"
         >
@@ -348,12 +334,12 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         </a>
         <a
           href="https://github.com/fchastanet/obsidian-metaflow"
-          style="height: 50px;background-color: #BD5FFF;"
+          class="metaflow-settings-btn-github"
           target="_blank" rel="noopener"
           title="Give me a star on Github"
         >
           <img height="30" border="0" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png">
-          <span style="color: #ffffff;">Star on GitHub</span>
+          <span class="metaflow-settings-btn-github-label">Star on GitHub</span>
         </a>
       </div>
       <div class="bug-report">
@@ -366,6 +352,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     </div>`;
   }
 
+
   private createSection(
     containerEl: HTMLElement, title: string
   ): HTMLDetailsElement {
@@ -373,12 +360,9 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     const section = containerEl.createEl('details', {cls: 'setting-details'});
     section.open = false; // Collapsed by default
     const summary = section.createEl('summary', {cls: 'setting-summary'});
-    summary.style.display = 'flex';
-    summary.style.alignItems = 'center';
-    summary.style.justifyContent = 'space-between';
-    summary.style.cursor = 'pointer';
+    summary.classList.add('metaflow-settings-summary');
 
-    summary.createEl('h3', {text: title});
+    summary.createEl('p', {text: title, cls: 'metaflow-settings-section-header'});
 
     const generalToggleDiv = summary.createEl('div', {cls: 'setting-item-control'});
     const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta'});
@@ -403,7 +387,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
             if (!Array.isArray(this.plugin.settings.excludeFolders)) {
               this.plugin.settings.excludeFolders = [];
             }
-            this.plugin.settings.excludeFolders[idx] = value;
+            this.plugin.settings.excludeFolders[idx] = this.obsidianAdapter.normalizePath(value);
             await this.plugin.saveSettings();
           });
         // Add folder suggestions
@@ -539,33 +523,31 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
       // Add drag and drop functionality
       mappingDiv.draggable = true;
-      mappingDiv.style.cursor = 'grab';
+      mappingDiv.classList.add('metaflow-settings-mapping-grab');
       mappingDiv.setAttribute('data-index', index.toString());
 
       // Add visual feedback for drag operations
       mappingDiv.addEventListener('dragstart', (e) => {
-        mappingDiv.style.opacity = '0.5';
-        mappingDiv.style.cursor = 'grabbing';
+        mappingDiv.classList.add('metaflow-settings-mapping-dragging');
         e.dataTransfer?.setData('text/plain', index.toString());
       });
 
       mappingDiv.addEventListener('dragend', () => {
-        mappingDiv.style.opacity = '1';
-        mappingDiv.style.cursor = 'grab';
+        mappingDiv.classList.remove('metaflow-settings-mapping-dragging');
       });
 
       mappingDiv.addEventListener('dragover', (e) => {
         e.preventDefault();
-        mappingDiv.style.borderTop = '2px solid var(--interactive-accent)';
+        mappingDiv.classList.add('metaflow-settings-mapping-dragover');
       });
 
       mappingDiv.addEventListener('dragleave', () => {
-        mappingDiv.style.borderTop = '';
+        mappingDiv.classList.remove('metaflow-settings-mapping-dragover');
       });
 
       mappingDiv.addEventListener('drop', async (e) => {
         e.preventDefault();
-        mappingDiv.style.borderTop = '';
+        mappingDiv.classList.remove('metaflow-settings-mapping-dragover');
 
         const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
         const targetIndex = index;
@@ -582,30 +564,25 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       });
 
       const mappingControl = mappingDiv.createEl('div', {cls: 'setting-item-control'});
-      mappingControl.style.justifyContent = 'space-between';
+      mappingControl.classList.add('metaflow-settings-mapping-control');
 
       // Order controls
       const orderDiv = mappingControl.createEl('div', {cls: 'setting-item-order'});
-      orderDiv.style.display = 'flex';
-      orderDiv.style.alignItems = 'center';
-      orderDiv.style.marginBottom = '5px';
+      orderDiv.classList.add('metaflow-settings-mapping-order');
 
       const upButton = orderDiv.createEl('button', {text: '↑'});
-      upButton.style.marginRight = '5px';
+      upButton.classList.add('metaflow-settings-mapping-up');
       upButton.disabled = index === 0;
 
       const downButton = orderDiv.createEl('button', {text: '↓'});
-      downButton.style.marginRight = '10px';
+      downButton.classList.add('metaflow-settings-mapping-down');
       downButton.disabled = index === this.plugin.settings.folderFileClassMappings.length - 1;
 
       orderDiv.createEl('span', {text: `Order: ${index + 1}`});
 
       // Control row
       const controlRow = mappingControl.createEl('div');
-      controlRow.style.display = 'flex';
-      controlRow.style.alignItems = 'center';
-      controlRow.style.gap = '10px';
-      controlRow.style.flexGrow = '1';
+      controlRow.classList.add('metaflow-settings-mapping-control-row');
 
       // Folder pattern input
       const folderInput = controlRow.createEl('input', {
@@ -615,10 +592,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       });
       // Add folder suggestions
       new FolderSuggest(this.app, folderInput);
-      folderInput.style.flexGrow = '1';
+      folderInput.classList.add('metaflow-settings-mapping-folder-input');
 
       folderInput.addEventListener('input', async () => {
-        mapping.folder = folderInput.value;
+        mapping.folder = this.obsidianAdapter.normalizePath(folderInput.value);
         await this.plugin.saveSettings();
       });
 
@@ -641,7 +618,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       if (fileClasses.length > 0) {
         // Create select dropdown when fileClasses are available
         const fileClassSelect = controlRow.createEl('select');
-        fileClassSelect.style.width = '150px';
+        fileClassSelect.classList.add('metaflow-settings-mapping-fileclass-select');
 
         // Add default option
         fileClassSelect.createEl('option', {value: '', text: 'Select fileClass...'});
@@ -667,7 +644,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           placeholder: 'FileClass name',
           value: mapping.fileClass
         });
-        fileClassInput.style.width = '150px';
+        fileClassInput.classList.add('metaflow-settings-mapping-fileclass-input');
         fileClassControl = fileClassInput;
       }
 
@@ -689,11 +666,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
       // Delete button
       const deleteButton = controlRow.createEl('button', {text: '🗑️ Delete'});
-      deleteButton.style.backgroundColor = '#e74c3c';
-      deleteButton.style.color = 'white';
-      deleteButton.style.border = 'none';
-      deleteButton.style.padding = '5px 10px';
-      deleteButton.style.cursor = 'pointer';
+      deleteButton.classList.add('metaflow-settings-mapping-delete');
 
       // Event listeners
       upButton.addEventListener('click', async () => {
@@ -744,39 +717,35 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
     orderedProperties.forEach((script, index) => {
       const scriptDiv = container.createEl('div', {cls: 'setting-item'});
-      scriptDiv.style.border = '1px solid #ccc';
-      scriptDiv.style.padding = '10px';
-      scriptDiv.style.marginBottom = '10px';
+      scriptDiv.classList.add('metaflow-settings-script');
 
       // Add drag and drop functionality
       scriptDiv.draggable = true;
-      scriptDiv.style.cursor = 'grab';
+      scriptDiv.classList.add('metaflow-settings-script-grab');
       scriptDiv.setAttribute('data-index', index.toString());
 
       // Add visual feedback for drag operations
       scriptDiv.addEventListener('dragstart', (e) => {
-        scriptDiv.style.opacity = '0.5';
-        scriptDiv.style.cursor = 'grabbing';
+        scriptDiv.classList.add('metaflow-settings-script-dragging');
         e.dataTransfer?.setData('text/plain', index.toString());
       });
 
       scriptDiv.addEventListener('dragend', () => {
-        scriptDiv.style.opacity = '1';
-        scriptDiv.style.cursor = 'grab';
+        scriptDiv.classList.remove('metaflow-settings-script-dragging');
       });
 
       scriptDiv.addEventListener('dragover', (e) => {
         e.preventDefault();
-        scriptDiv.style.borderTop = '3px solid var(--interactive-accent)';
+        scriptDiv.classList.add('metaflow-settings-script-dragover');
       });
 
       scriptDiv.addEventListener('dragleave', () => {
-        scriptDiv.style.borderTop = '1px solid #ccc';
+        scriptDiv.classList.remove('metaflow-settings-script-dragover');
       });
 
       scriptDiv.addEventListener('drop', async (e) => {
         e.preventDefault();
-        scriptDiv.style.borderTop = '1px solid #ccc';
+        scriptDiv.classList.remove('metaflow-settings-script-dragover');
 
         const draggedDisplayIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
         const targetDisplayIndex = index;
@@ -805,59 +774,40 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
       // Create read-only view
       const readOnlyDiv = scriptDiv.createEl('div', {cls: 'property-script-readonly'});
-      readOnlyDiv.style.display = 'flex';
-      readOnlyDiv.style.alignItems = 'center';
-      readOnlyDiv.style.gap = '10px';
-      readOnlyDiv.style.padding = '5px';
-      readOnlyDiv.style.borderRadius = '3px';
-      readOnlyDiv.style.width = '100%';
+      readOnlyDiv.classList.add('metaflow-settings-script-readonly');
 
       // Order display (moved to left)
       const orderSpan = readOnlyDiv.createEl('span');
       orderSpan.textContent = `#${index + 1}`;
-      orderSpan.style.color = 'var(--text-muted)';
-      orderSpan.style.fontSize = '12px';
-      orderSpan.style.minWidth = '30px';
+      orderSpan.classList.add('metaflow-settings-script-order');
 
       // Property name
       const propertySpan = readOnlyDiv.createEl('span');
       propertySpan.textContent = script.propertyName || 'Unnamed Property';
-      propertySpan.style.fontWeight = 'bold';
-      propertySpan.style.minWidth = '150px';
+      propertySpan.classList.add('metaflow-settings-script-property');
 
       // Script preview (extended to 100 characters)
       const scriptPreview = readOnlyDiv.createEl('span');
       const scriptPreviewText = script.script.replace(/\n/g, ' ').substring(0, 100);
       scriptPreview.textContent = scriptPreviewText + (script.script.length > 100 ? '...' : '');
-      scriptPreview.style.color = 'var(--text-muted)';
-      scriptPreview.style.fontFamily = 'monospace';
-      scriptPreview.style.fontSize = '12px';
-      scriptPreview.style.flexGrow = '1';
+      scriptPreview.classList.add('metaflow-settings-script-preview');
 
       // Enabled toggle
       const enabledLabelPreview = readOnlyDiv.createEl('label');
-      enabledLabelPreview.style.minWidth = '77px';
+      enabledLabelPreview.classList.add('metaflow-settings-script-enabled-label');
       const enabledTogglePreview = enabledLabelPreview.createEl('input', {type: 'checkbox'});
       enabledTogglePreview.checked = script.enabled;
-      enabledTogglePreview.style.marginRight = '5px';
+      enabledTogglePreview.classList.add('metaflow-settings-script-enabled-toggle');
       enabledLabelPreview.appendChild(document.createTextNode('Enabled'));
 
       // Edit button (aligned to right)
       const editButton = readOnlyDiv.createEl('button', {text: '✏️ Edit'});
-      editButton.style.backgroundColor = 'var(--interactive-accent)';
-      editButton.style.color = 'white';
-      editButton.style.border = 'none';
-      editButton.style.padding = '3px 8px';
-      editButton.style.cursor = 'pointer';
-      editButton.style.borderRadius = '3px';
-      editButton.style.fontSize = '11px';
+      editButton.classList.add('metaflow-settings-script-edit-btn');
 
       // Create edit view (hidden by default)
       const editDiv = scriptDiv.createEl('div', {cls: 'property-script-edit'});
-      editDiv.style.display = 'none';
-      editDiv.style.flexDirection = 'column';
-      editDiv.style.gap = '10px';
-      editDiv.style.width = '100%';
+      editDiv.classList.add('metaflow-settings-script-edit');
+      editDiv.classList.add('metaflow-settings-hide');
 
       // Store original values for cancel functionality
       let originalPropertyName = script.propertyName;
@@ -866,9 +816,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
       // Property name input
       const propertyRow = editDiv.createEl('div');
-      propertyRow.style.display = 'flex';
-      propertyRow.style.alignItems = 'center';
-      propertyRow.style.gap = '10px';
+      propertyRow.classList.add('metaflow-settings-script-property-row');
 
       propertyRow.createEl('label', {text: 'Property:'});
       const propertyInput = propertyRow.createEl('input', {
@@ -876,13 +824,13 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         placeholder: 'Property name (e.g., title, author)',
         value: script.propertyName
       });
-      propertyInput.style.flexGrow = '1';
+      propertyInput.classList.add('metaflow-settings-script-property-input');
 
       // Enabled toggle
       const enabledLabel = propertyRow.createEl('label');
       const enabledToggle = enabledLabel.createEl('input', {type: 'checkbox'});
       enabledToggle.checked = script.enabled;
-      enabledToggle.style.marginRight = '5px';
+      enabledToggle.classList.add('metaflow-settings-script-enabled-toggle');
       enabledLabel.appendChild(document.createTextNode('Enabled'));
 
       // Order controls
@@ -897,14 +845,22 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       }
       scriptLabel += ':';
       scriptRow.createEl('label', {text: scriptLabel});
+
+      // Add help button for completions
+      const helpButton = scriptRow.createEl('button', {text: '🛈 Help'});
+      helpButton.classList.add('metaflow-settings-script-help-btn');
+      helpButton.addEventListener('click', async () => {
+        // Import and open the modal
+        // @ts-ignore
+        const mod = await import('./CompletionsHelpModal');
+        new mod.CompletionsHelpModal(this.app, completions).open();
+      });
+
       const scriptTextarea = scriptRow.createEl('textarea', {
         placeholder: 'return "default value";',
       });
       scriptTextarea.value = script.script;
-      scriptTextarea.style.width = '100%';
-      scriptTextarea.style.height = '100px';
-      scriptTextarea.style.marginTop = '5px';
-      scriptTextarea.style.fontFamily = 'monospace';
+      scriptTextarea.classList.add('metaflow-settings-script-textarea');
       const completions: Ace.Ace.ValueCompletion[] = [
         {value: 'file', score: 1, meta: 'TFile', docHTML: 'the obsidian TFile object currently being edited'},
         {value: 'fileClass', score: 2, meta: 'string', docHTML: 'the deduced or forced fileClass for the current file'},
@@ -936,24 +892,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           score: 1,
           meta: `Metadata`,
           docHTML: `Metadata field: ${field.name}.<br>Type: ${field.type}.<br>Description: ${(field as any)?.tooltip || 'No description available.'}`,
-        });
-      });
-
-      // Add help button for completions
-      const helpButton = scriptRow.createEl('button', {text: '🛈 Help'});
-      helpButton.style.marginLeft = '10px';
-      helpButton.style.backgroundColor = 'var(--background-modifier-border)';
-      helpButton.style.color = 'var(--text-normal)';
-      helpButton.style.border = 'none';
-      helpButton.style.padding = '3px 8px';
-      helpButton.style.cursor = 'pointer';
-      helpButton.style.borderRadius = '3px';
-      helpButton.style.fontSize = '12px';
-      helpButton.addEventListener('click', () => {
-        // Import and open the modal
-        // @ts-ignore
-        import('./CompletionsHelpModal').then(mod => {
-          new mod.CompletionsHelpModal(this.app, completions).open();
         });
       });
 
@@ -1001,57 +939,36 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       }
       // Button row
       const buttonRow = editDiv.createEl('div');
-      buttonRow.style.display = 'flex';
-      buttonRow.style.gap = '10px';
-      buttonRow.style.justifyContent = 'flex-end';
+      buttonRow.classList.add('metaflow-settings-script-btn-row');
 
       // Delete button
       const deleteButton = buttonRow.createEl('button', {text: '🗑️ Delete'});
-      deleteButton.style.backgroundColor = '#e74c3c';
-      deleteButton.style.color = 'white';
-      deleteButton.style.border = 'none';
-      deleteButton.style.padding = '5px 15px';
-      deleteButton.style.cursor = 'pointer';
-      deleteButton.style.borderRadius = '3px';
+      deleteButton.classList.add('metaflow-settings-script-delete-btn');
 
       // Add a spacer
       const spacer = buttonRow.createDiv();
-      spacer.style.flexGrow = '1';
+      spacer.classList.add('metaflow-settings-script-btn-spacer');
 
       // OK button
       const okButton = buttonRow.createEl('button', {text: '✅ OK'});
-      okButton.style.backgroundColor = 'var(--interactive-accent)';
-      okButton.style.color = 'white';
-      okButton.style.border = 'none';
-      okButton.style.padding = '5px 15px';
-      okButton.style.cursor = 'pointer';
-      okButton.style.borderRadius = '3px';
+      okButton.classList.add('metaflow-settings-script-ok-btn');
 
       // Cancel button
       const cancelButton = buttonRow.createEl('button', {text: '❌ Cancel'});
-      cancelButton.style.backgroundColor = 'var(--background-modifier-border)';
-      cancelButton.style.color = 'var(--text-normal)';
-      cancelButton.style.border = 'none';
-      cancelButton.style.padding = '5px 15px';
-      cancelButton.style.cursor = 'pointer';
-      cancelButton.style.borderRadius = '3px';
+      cancelButton.classList.add('metaflow-settings-script-cancel-btn');
 
       // Toggle between read-only and edit mode
       const toggleEditMode = (editMode: boolean) => {
         if (editMode) {
-          readOnlyDiv.style.display = 'none';
-          editDiv.style.display = 'flex';
+          readOnlyDiv.classList.add('metaflow-settings-hide');
+          editDiv.classList.remove('metaflow-settings-hide');
           scriptDiv.draggable = false;
-          scriptDiv.style.cursor = 'default';
-          // Store current values as originals when entering edit mode
-          originalPropertyName = script.propertyName;
-          originalScript = script.script;
-          originalEnabled = script.enabled;
+          scriptDiv.classList.remove('metaflow-settings-script-grab');
         } else {
-          readOnlyDiv.style.display = 'flex';
-          editDiv.style.display = 'none';
+          readOnlyDiv.classList.remove('metaflow-settings-hide');
+          editDiv.classList.add('metaflow-settings-hide');
           scriptDiv.draggable = true;
-          scriptDiv.style.cursor = 'grab';
+          scriptDiv.classList.add('metaflow-settings-script-grab');
         }
       };
 
@@ -1100,10 +1017,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
   private displaySimulationSection(): void {
     if (!this.metadataMenuAdapter.isMetadataMenuAvailable() || !this.templaterAdapter.isTemplaterAvailable()) {
-      this.simulationDetails.style.display = 'none';
+      this.simulationDetails.setAttr('style', 'display: none');
       return;
     }
-    this.simulationDetails.style.display = 'block';
+    this.simulationDetails.setAttr('style', 'display: block');
     this.simulationContainer.empty();
 
     // FileClass selection
@@ -1141,57 +1058,40 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     });
 
     // Input frontmatter
-    const inputContainer = this.simulationContainer.createEl('div', {cls: 'setting-item'});
-    inputContainer.createEl('h4', {text: 'Input Frontmatter'});
-    inputContainer.createEl('p', {text: 'Enter sample frontmatter content to test with your configuration:'});
-
-    const inputTextarea = inputContainer.createEl('textarea', {
-      placeholder: `---
+    const sampleSetting = new Setting(this.simulationContainer)
+      .setName('Frontmatter content sample')
+      .setDesc('Enter frontmatter content sample to test with your configuration');
+    sampleSetting.addTextArea(textarea => {
+      textarea.inputEl.placeholder = `---
 title: Sample Title
 author:
 date:
 tags: []
----
+----
 
-This is sample content for testing.`
+This is sample content for testing.`;
+      textarea.inputEl.classList.add('metaflow-settings-simulation-textarea');
     });
-    inputTextarea.style.width = '100%';
-    inputTextarea.style.height = '150px';
-    inputTextarea.style.fontFamily = 'monospace';
-    inputTextarea.style.fontSize = '12px';
+    const inputTextarea = sampleSetting.settingEl.querySelector('textarea') as HTMLTextAreaElement;
 
     // Run simulation button
     const simulationButtonContainer = this.simulationContainer.createEl('div', {cls: 'setting-item'});
     const simulateButton = simulationButtonContainer.createEl('button', {text: '🚀 Run Simulation'});
-    simulateButton.style.backgroundColor = 'var(--interactive-accent)';
-    simulateButton.style.color = 'white';
-    simulateButton.style.border = 'none';
-    simulateButton.style.padding = '10px 20px';
-    simulateButton.style.cursor = 'pointer';
-    simulateButton.style.borderRadius = '5px';
-    simulateButton.style.marginTop = '10px';
-    simulateButton.style.marginBottom = '10px';
+    simulateButton.classList.add('metaflow-settings-simulation-btn');
 
     // Status message
     const statusDiv = simulationButtonContainer.createEl('div');
-    statusDiv.style.marginTop = '10px';
-    statusDiv.style.padding = '10px';
-    statusDiv.style.borderRadius = '5px';
-    statusDiv.style.flexGrow = '1';
-    statusDiv.style.display = 'none';
+    statusDiv.classList.add('metaflow-settings-simulation-status');
+    statusDiv.classList.add('metaflow-settings-hide');
 
     // Output container
     const outputContainer = this.simulationContainer.createEl('div', {cls: 'setting-item'});
-    outputContainer.createEl('h4', {text: 'Simulation Output'});
+    outputContainer.createEl('p', {text: 'Simulation Output'});
 
     const outputTextarea = outputContainer.createEl('textarea', {
       placeholder: 'Simulation results will appear here...'
     });
-    outputTextarea.style.width = '100%';
-    outputTextarea.style.height = '200px';
-    outputTextarea.style.fontFamily = 'monospace';
-    outputTextarea.style.fontSize = '12px';
-    outputTextarea.style.backgroundColor = 'var(--background-secondary)';
+    outputTextarea.classList.add('metaflow-settings-simulation-output');
     outputTextarea.readOnly = true;
 
     // Event listener for simulation
@@ -1278,29 +1178,10 @@ The simulation will:
   }
 
   private showStatus(statusDiv: HTMLElement, message: string, type: 'success' | 'error' | 'info'): void {
-    statusDiv.style.display = 'block';
     statusDiv.textContent = message;
-
-    // Reset classes
-    statusDiv.className = '';
-
-    switch (type) {
-      case 'success':
-        statusDiv.style.backgroundColor = '#d4edda';
-        statusDiv.style.color = '#155724';
-        statusDiv.style.border = '1px solid #c3e6cb';
-        break;
-      case 'error':
-        statusDiv.style.backgroundColor = '#f8d7da';
-        statusDiv.style.color = '#721c24';
-        statusDiv.style.border = '1px solid #f5c6cb';
-        break;
-      case 'info':
-        statusDiv.style.backgroundColor = '#d1ecf1';
-        statusDiv.style.color = '#0c5460';
-        statusDiv.style.border = '1px solid #bee5eb';
-        break;
-    }
+    statusDiv.className = 'metaflow-settings-simulation-status';
+    statusDiv.classList.remove('success', 'error', 'info', 'metaflow-settings-hide');
+    statusDiv.classList.add(type);
   }
 
   private updateMetadataMenuButtonState(): void {
