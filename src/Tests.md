@@ -82,6 +82,7 @@
 
 ### 3.1. Auto-update metadata properties
 
+- enable auto-insert metadata properties in settings.
 - Create or modify a note.
 - Save the note and check if metadata properties are automatically updated (e.g., missing fields inserted, sorted).
 - **Edge case:** Create a note in an excluded folder. Confirm auto-update does not run.

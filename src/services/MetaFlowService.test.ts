@@ -601,6 +601,7 @@ Content here`;
         ]
       };
       const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const spyInfo = jest.spyOn(console, 'info').mockImplementation(() => { });
       const service = new MetaFlowService(mockApp, settings);
       // Mock obsidianAdapter.moveNote as a jest mock function
       (service as any).obsidianAdapter.moveNote = jest.fn();
@@ -614,6 +615,7 @@ Content here`;
         expect(error).toBeInstanceOf(MetaFlowException);
         expect(error.message).toBe('No target folder defined for fileClass "book"');
       }
+      expect(spyInfo).toHaveBeenCalledWith('Auto-move for the folder "Books" is disabled');
       spy.mockRestore();
       expect((service as any).obsidianAdapter.moveNote).not.toHaveBeenCalled();
     });
@@ -638,7 +640,6 @@ Content here`;
       try {
         await (service as any).moveNoteToTheRightFolder(file, 'book');
       } catch (error) {
-        console.error(error);
         expect(error).toBeInstanceOf(MetaFlowException);
         expect(error.message).toBe('Target file "Books/my-book.md" already exists');
       }
@@ -657,9 +658,12 @@ Content here`;
           {folder: 'Articles2', fileClass: 'article', moveToFolder: true},
         ]
       };
+      const spy = jest.spyOn(console, 'info').mockImplementation(() => { });
       const service = new MetaFlowService(mockApp, settings);
       expect((service as any).getTargetFolderForFileClass('book')).toBe('Books');
       expect((service as any).getTargetFolderForFileClass('article')).toBe('Articles2');
+      expect(spy).toHaveBeenCalledWith('Auto-move for the folder "Books" is disabled');
+      spy.mockRestore();
     });
 
     test('should return null if no mapping exists for fileClass', () => {

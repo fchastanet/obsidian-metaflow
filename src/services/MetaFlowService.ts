@@ -3,7 +3,7 @@ import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {FrontMatterService} from "./FrontMatterService";
 import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
 import {ScriptContextService} from "./ScriptContextService";
-import {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
+import {FolderFileClassMapping, MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {LogManagerInterface} from "../managers/types";
@@ -259,8 +259,18 @@ export class MetaFlowService {
       return newFilePath;
 
     } else {
+      const targetFolderMapping = this.getTargetFolderMappingForFileClass(fileClass);
+      if (targetFolderMapping?.moveToFolder === false) {
+        console.info(`Auto-move for the folder "${targetFolderMapping.folder}" is disabled`);
+        return null;
+      }
       throw new MetaFlowException(`No target folder defined for fileClass "${fileClass}"`, 'warning');
     }
+  }
+
+  private getTargetFolderMappingForFileClass(fileClass: string): FolderFileClassMapping | null {
+    return this.metaFlowSettings.folderFileClassMappings.find(
+      mapping => mapping.fileClass === fileClass) || null;
   }
 
   private getTargetFolderForFileClass(fileClass: string): string | null {
