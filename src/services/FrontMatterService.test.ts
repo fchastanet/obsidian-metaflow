@@ -24,10 +24,16 @@ describe('FrontMatterService', () => {
     test('returns null for invalid YAML', () => {
       const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const raw = `title: "My Note"\nfileClass: [unclosed`;
-      const result = service.parseRawFrontmatter(raw);
-      expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));
-      spy.mockRestore();
-      expect(result).toBeNull();
+
+      try {
+        expect.assertions(3);
+        service.parseRawFrontmatter(raw);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toContain('unexpected end of the stream within a flow collection (3:1)');
+        expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));
+        spy.mockRestore();
+      }
     });
 
     test('parses YAML with null values', () => {
@@ -92,14 +98,15 @@ describe('FrontMatterService', () => {
     it('should return empty frontmatter for malformed YAML', () => {
       const content = `---\ntitle: Test\ndate: [unclosed\n---\nBody`;
       const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
-      const result = service.parseFrontmatter(content);
-      expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));
-      spy.mockRestore();
-      expect(result).toEqual({
-        content: "",
-        metadata: {},
-        restOfContent: content
-      });
+      try {
+        expect.assertions(3);
+        service.parseFrontmatter(content);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toContain('unexpected end of the stream within a flow collection (3:1)');
+        expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));
+        spy.mockRestore();
+      }
     });
   });
 

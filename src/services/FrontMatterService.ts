@@ -69,7 +69,7 @@ export class FrontMatterService {
       }
     } catch (error) {
       console.error('Error parsing YAML frontmatter:', error);
-      return null;
+      throw error;
     }
     return {};
   }
