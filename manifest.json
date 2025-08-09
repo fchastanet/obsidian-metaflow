@@ -5,7 +5,7 @@
   "minAppVersion": "1.8.0",
   "description": "Automated metadata workflow management - sort properties, insert missing fields, and execute custom default value scripts with MetadataMenu and Templater integration",
   "author": "François Chastanet",
-  "authorUrl": "https://github.com/fchastanet/obsidian-metaflow",
+  "authorUrl": "https://github.com/fchastanet",
   "fundingUrl": "https://coff.ee/fchastanetl",
   "isDesktopOnly": false
 }
