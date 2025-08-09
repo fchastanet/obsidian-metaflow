@@ -21,12 +21,14 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        if: ${{ hashFiles('package.json') != '' }}
+        if: ${{ hashFiles('package-lock.json') != '' }}
         run: npm install
 
       - name: Build the plugin
-        if: ${{ hashFiles('package.json') != '' }}
         run: npm run build
+
+      - name: Test the plugin
+        run: npm run test
 
       - name: Extract version from manifest.json
         id: get_version
