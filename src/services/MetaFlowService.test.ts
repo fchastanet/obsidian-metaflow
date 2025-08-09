@@ -176,7 +176,20 @@ describe('MetaFlowService', () => {
         expect(error).toBeInstanceOf(MetaFlowException);
         expect(error.message).toBe('MetadataMenu plugin not available');
       }
-      // The command should handle the error gracefully
+    });
+
+    test('should fail if file is not md file', async () => {
+      expect.assertions(2);
+      try {
+        mockFile.extension = 'jpg';
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
+        metaFlowService.processContent('', mockFile, mockLogManager);
+        expect(spy).toHaveBeenCalledWith('Error updating metadata fields: File test.md is not a markdown file');
+        spy.mockRestore();
+      } catch (error) {
+        expect(error).toBeInstanceOf(MetaFlowException);
+        expect(error.message).toBe('File test.md is not a markdown file');
+      }
     });
 
     test('should process file with existing fileClass', async () => {

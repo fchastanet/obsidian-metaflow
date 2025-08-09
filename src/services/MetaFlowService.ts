@@ -153,6 +153,9 @@ export class MetaFlowService {
     if (!file || !(file instanceof TFile)) {
       throw new MetaFlowException('Invalid file provided for class change', 'ignore');
     }
+    if (file.extension !== 'md') {
+      throw new MetaFlowException(`File ${file.name} is not a markdown file`, 'ignore');
+    }
   }
 
   processContent(content: string, file: TFile, logManager: LogManagerInterface): string {

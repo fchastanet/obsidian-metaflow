@@ -241,7 +241,7 @@ export default class MetaFlowPlugin extends Plugin {
     const excludeFolders = (this.settings.excludeFolders || []);
     const filteredFiles = files.filter(file => {
       return !excludeFolders.some(folder => file.path.startsWith(this.obsidianAdapter.folderPrefix(folder)));
-    });
+    }).filter(file => file.extension === 'md');
     let totalFiles = filteredFiles.length;
     if (totalFiles === 0) {
       noticeManager.addWarning('No files to update - all files are excluded or no markdown files found.');

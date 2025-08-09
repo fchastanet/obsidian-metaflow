@@ -38,7 +38,7 @@
 - Run the 'Update metadata properties' command.
 - Check the metadata properties are correctly initialized with default values automatically computed.
 - the file should not be moved to the right folder.
-- **Edge case:** Run the command on a note with no frontmatter. Confirm that the command does not fail and no properties are added.
+- **Edge case:** Run the command on a note with no frontmatter. Confirm that the command does not fail and no properties are added (except if the note is in a mapped folder, then fileClass is initialized with the mapped fileClass).
 - **Edge case:** Run the command on a note with existing metadata properties. Ensure that only missing properties are added and existing ones are not overwritten.
 - **Edge case:** note in a configured folder, fileClass should be deduced from the folder, and metadata properties should be initialized accordingly.
 
@@ -71,8 +71,10 @@
 ### 2.1. Update metadata in folder
 
 - Right-click a folder in the file explorer.
+- in Metadata-Menu settings, add a new property
+- in MetaFlow, add default value for this new property
 - Select 'Update metadata in folder' from the context menu.
-- Verify all notes in the folder are updated with correct metadata.
+- Verify all notes in the folder are updated with correct metadata (new property should have been added with the default value).
 - **Edge case:** Right-click an excluded folder. Confirm no notes are updated and a warning is shown.
 - **Edge case:** Folder contains non-note files. Ensure only notes are processed.
 
