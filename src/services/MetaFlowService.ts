@@ -236,11 +236,11 @@ export class MetaFlowService {
     }
   }
 
-  private async createFolderIfNeeded(folder: string): Promise<TFolder> {
+  private async createFolderIfNeeded(folder: string): Promise<TFolder | null> {
     if (!this.obsidianAdapter.isFolderExists(folder)) {
       return await this.obsidianAdapter.createFolder(folder);
     }
-    return this.app.vault.getAbstractFileByPath(folder) as TFolder;
+    return this.app.vault.getFolderByPath(folder);
   }
 
   public async moveNoteToTheRightFolder(file: TFile, fileClass: string): Promise<string | null> {

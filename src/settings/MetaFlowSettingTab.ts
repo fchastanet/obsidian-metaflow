@@ -26,7 +26,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   templaterStatus: HTMLElement;
   metadataMenuImportButton: HTMLButtonElement;
   templaterImportButton: HTMLButtonElement;
-  EXPAND_BUTTON: string = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-chevrons-up-down"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>';
 
   constructor(app: App, plugin: MetaFlowPlugin) {
     super(app, plugin);
@@ -198,8 +197,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
     // Property default value scripts - Collapsible
     const scriptsDetails = this.createSection(containerEl, 'Property default value scripts');
-    const scriptsDesc = scriptsDetails.createEl('p');
-    scriptsDesc.innerHTML = 'Define JavaScript scripts to generate default values for properties. Scripts have access to: <code>fileClass</code>, <code>file</code>, <code>metadata</code>, <code>prompt</code>, <code>date</code>, <code>generateMarkdownLink</code>, <code>detectLanguage</code>.';
+    scriptsDetails.createEl('p', {text: 'Define JavaScript scripts to generate default values for metadata properties.'});
 
     // Auto-populate from MetadataMenu button
     const metadataMenuImportSetting = new Setting(scriptsDetails)
@@ -290,10 +288,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
                   const importedSettings = JSON.parse(e.target.result);
                   Object.assign(this.plugin.settings, importedSettings);
                   await this.plugin.saveSettings();
-                  new (window as any).Notice('Settings imported successfully!');
+                  new window.Notice('Settings imported successfully!');
                   this.display();
                 } catch (err) {
-                  new (window as any).Notice('Failed to import settings: Invalid JSON', 5000);
+                  new window.Notice('Failed to import settings: Invalid JSON', 5000);
                 }
               };
               reader.readAsText(file);
@@ -321,35 +319,58 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
     // Add MetaFlow plugin support information
     const pluginSupport = containerEl.createDiv({cls: 'vt-support'});
-    // cspell:words colour FFDD00
-    pluginSupport.innerHTML = `<p class="metaflow-settings-section-header">Enjoying MetaFlow?</p>
-      <div class="setting-item-description">If you like this Plugin, consider donating to support continued development:</div>
-      <div class="metaflow-settings-buttons">
-        <a href="https://www.buymeacoffee.com/fchastanetl"
-          class="metaflow-settings-btn-coffee"
-          target="_blank" rel="noopener"
-          title="buy me a coffee to support my work"
-        >
-          <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=fchastanetl&button_colour=BD5FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" />
-        </a>
-        <a
-          href="https://github.com/fchastanet/obsidian-metaflow"
-          class="metaflow-settings-btn-github"
-          target="_blank" rel="noopener"
-          title="Give me a star on Github"
-        >
-          <img height="30" border="0" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png">
-          <span class="metaflow-settings-btn-github-label">Star on GitHub</span>
-        </a>
-      </div>
-      <div class="bug-report">
-        Facing issues or have suggestions?
-        <a
-          href="https://github.com/fchastanet/obsidian-metaflow/issues/"
-          target="_blank" rel="noopener"
-          title="Submit a report" target="_blank">Submit a report</a>.
-      </div>
-    </div>`;
+    // Section header
+    pluginSupport.createEl('p', {text: 'Enjoying MetaFlow?', cls: 'metaflow-settings-section-header'});
+    // Description
+    pluginSupport.createEl('div', {text: 'If you like this Plugin, consider donating to support continued development:', cls: 'setting-item-description'});
+    // Buttons row
+    const buttonsDiv = pluginSupport.createDiv({cls: 'metaflow-settings-buttons'});
+    // Buy me a coffee button
+    const coffeeA = buttonsDiv.createEl('a', {
+      href: 'https://www.buymeacoffee.com/fchastanetl',
+      cls: 'metaflow-settings-btn-coffee',
+      attr: {
+        target: '_blank',
+        rel: 'noopener',
+        title: 'buy me a coffee to support my work'
+      }
+    });
+    coffeeA.createEl('img', {
+      attr: {
+        src: 'https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=fchastanetl&button_colour=BD5FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00'
+      }
+    });
+    // GitHub star button
+    const githubA = buttonsDiv.createEl('a', {
+      href: 'https://github.com/fchastanet/obsidian-metaflow',
+      cls: 'metaflow-settings-btn-github',
+      attr: {
+        target: '_blank',
+        rel: 'noopener',
+        title: 'Give me a star on Github'
+      }
+    });
+    githubA.createEl('img', {
+      attr: {
+        height: '30',
+        border: '0',
+        src: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'
+      }
+    });
+    githubA.createEl('span', {text: 'Star on GitHub', cls: 'metaflow-settings-btn-github-label'});
+    // Bug report
+    const bugDiv = pluginSupport.createDiv({cls: 'bug-report'});
+    bugDiv.appendText('Facing issues or have suggestions? ');
+    const bugA = bugDiv.createEl('a', {
+      href: 'https://github.com/fchastanet/obsidian-metaflow/issues/',
+      attr: {
+        target: '_blank',
+        rel: 'noopener',
+        title: 'Submit a report'
+      }
+    });
+    bugA.setText('Submit a report');
+    bugDiv.appendText('.');
   }
 
 
@@ -365,8 +386,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     summary.createEl('p', {text: title, cls: 'metaflow-settings-section-header'});
 
     const generalToggleDiv = summary.createEl('div', {cls: 'setting-item-control'});
-    const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta'});
-    generalToggleButton.innerHTML = this.EXPAND_BUTTON;
+    const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta metaflow-settings-toggle-button'});
 
     // Prevent button click from triggering summary toggle
     generalToggleButton.addEventListener('click', (e) => {
@@ -891,7 +911,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           value: field.name,
           score: 1,
           meta: `Metadata`,
-          docHTML: `Metadata field: ${field.name}.<br>Type: ${field.type}.<br>Description: ${(field as any)?.tooltip || 'No description available.'}`,
+          docHTML: `Metadata field: ${field.name}.<br>Type: ${field.type}.<br>Description: ${field?.tooltip || 'No description available.'}`,
         });
       });
 
@@ -1036,7 +1056,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       // Get available fileClasses from MetadataMenu
       if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
         try {
-          const metadataMenuPlugin = (this.app as any).plugins?.plugins?.['metadata-menu'];
+          const metadataMenuPlugin = this.app.plugins?.plugins?.['metadata-menu'];
           if (metadataMenuPlugin?.fieldIndex?.fileClassesFields) {
             const fileClasses = Array.from(metadataMenuPlugin.fieldIndex.fileClassesFields.keys()).sort();
             fileClasses.forEach(fileClass => {

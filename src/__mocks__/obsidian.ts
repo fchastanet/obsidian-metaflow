@@ -29,21 +29,6 @@ export class TAbstractFile {
   }
 }
 
-export function createTFile(path: string): TFile {
-  const file = {
-    path,
-    name: path.split('/').pop() || path,
-    stat: {ctime: 0, mtime: 0, size: 0},
-    basename: path.split('/').pop()?.split('.')[0] || path,
-    extension: path.split('.').pop() || 'md',
-    vault: {} as any,
-    parent: {} as any,
-  } as TFile;
-  Object.setPrototypeOf(file, TFile.prototype);
-  return file;
-}
-
-
 export const Notice = jest.fn().mockImplementation((message: string) => ({
   message
 }));

@@ -23,16 +23,16 @@ export class MetadataMenuAdapter {
   constructor(app: App, settings: MetaFlowSettings) {
     this.app = app;
     this.settings = settings;
-    this.metadataMenuPlugin = (this.app as any).plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
+    this.metadataMenuPlugin = this.app.plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
   }
 
   /**
    * Check if MetadataMenu integration is available
    */
   isMetadataMenuAvailable(): boolean {
-    const metadataMenuPlugin = (this.app as any).plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
+    const metadataMenuPlugin = this.app.plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
     if (
-      (this.app as any)?.plugins?.enabledPlugins?.has(this.METADATA_MENU_PLUGIN_NAME) &&
+      this.app.plugins?.enabledPlugins?.has(this.METADATA_MENU_PLUGIN_NAME) &&
       metadataMenuPlugin?.api &&
       typeof metadataMenuPlugin.api === 'object' &&
       metadataMenuPlugin?.settings &&
@@ -50,7 +50,7 @@ export class MetadataMenuAdapter {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
-    return (this.app as any).plugins.plugins[this.METADATA_MENU_PLUGIN_NAME];
+    return this.app?.plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
   }
 
   getAllFieldsFileClassesAssociation(): FieldsFileClassAssociation {
@@ -178,7 +178,7 @@ export class MetadataMenuAdapter {
   private getFileClassAncestorChain(fileClassName: string, logManager: LogManagerInterface): string[] {
     try {
       // Access MetadataMenu's fieldIndex.fileClassesAncestors
-      const fieldIndex = (this.metadataMenuPlugin as any)?.fieldIndex;
+      const fieldIndex = this.metadataMenuPlugin.fieldIndex;
       if (!fieldIndex?.fileClassesAncestors) {
         logManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
         return [fileClassName];

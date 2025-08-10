@@ -28,30 +28,23 @@ export class ProgressModal extends Modal {
     this.processFinished = false;
     this.cancelCallback = cancelCallback;
 
+
     const progressBlock = this.contentEl.createEl('div');
-    progressBlock.style.display = 'flex';
-    progressBlock.style.alignItems = 'center';
-    progressBlock.style.columnGap = '10px';
+    progressBlock.classList.add('progress-modal-progress-block');
     this.progressBar = new ProgressBarComponent(progressBlock);
     this.progressBar.setValue(0);
     const progressBar: HTMLElement = progressBlock.getElementsByClassName('setting-progress-bar')[0] as HTMLElement;
-    progressBar.style.flexGrow = '1';
+    progressBar.classList.add('progress-modal-progress-bar');
 
     this.progressText = progressBlock.createEl('span', {text: ''});
 
     this.currentItem = this.contentEl.createEl('span', {text: ''});
-    this.currentItem.style.marginLeft = '10px';
+    this.currentItem.classList.add('progress-modal-current-item');
     this.numberErrorsText = this.contentEl.createEl('span', {text: ''});
-    this.numberErrorsText.style.marginLeft = '10px';
-    this.numberErrorsText.style.color = 'red';
+    this.numberErrorsText.classList.add('progress-modal-number-errors');
 
     this.results = this.contentEl.createEl('ul');
-    this.results.style.height = "300px";
-    this.results.style.overflowY = "auto";
-    this.results.style.overflowX = "hidden";
-    this.results.style.width = '100%';
-    this.results.style.backgroundColor = '#fff';
-    (this.results.style as any).scrollbarWidth = 'thin';
+    this.results.classList.add('progress-modal-results');
 
     this.cancelButton = this.contentEl.createEl('button', {text: 'Cancel'});
     this.cancelButton.classList.add('mod-cta');
@@ -87,14 +80,12 @@ export class ProgressModal extends Modal {
   addError(error: string) {
     this.errorCount++;
     this.numberErrorsText.setText(`${this.errorCount} errors`);
-    const errorItem = this.results.createEl('li', {text: error});
-    errorItem.style.color = 'red';
+    const errorItem = this.results.createEl('li', {text: error, cls: 'progress-modal-error-item'});
     this.results.scrollTop = this.results.scrollHeight;
   }
 
   addInfo(info: string) {
-    const infoItem = this.results.createEl('li', {text: info});
-    infoItem.style.color = 'blue';
+    const infoItem = this.results.createEl('li', {text: info, cls: 'progress-modal-info-item'});
     this.results.scrollTop = this.results.scrollHeight;
   }
 

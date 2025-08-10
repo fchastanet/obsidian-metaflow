@@ -1,4 +1,4 @@
-import {App, normalizePath, Notice, TAbstractFile, TFile, TFolder} from 'obsidian';
+import {App, FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
 import {MetaFlowSettings} from '../settings/types';
 
 export class ObsidianAdapter {
@@ -63,14 +63,18 @@ export class ObsidianAdapter {
     const file = {
       path,
       name: path.split('/').pop() || path,
-      stat: {} as any,
+      stat: {} as FileStats,
       basename: path.split('/').pop() || path,
       extension: 'md',
-      vault: {} as any,
-      parent: {} as any,
-    } as TFile;
+      vault: {} as Vault,
+      parent: {} as TFolder,
+    };
     Object.setPrototypeOf(file, TFile.prototype);
-    return file;
+    // Ensure the returned object is actually a TFile instance
+    if (file instanceof TFile) {
+      return file;
+    }
+    throw new Error('Failed to create a mock TFile');
   }
 
 }

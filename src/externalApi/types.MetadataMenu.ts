@@ -9,6 +9,7 @@ export interface MetadataMenuField {
   };
   isRequired?: boolean;
   defaultValue?: any;
+  tooltip?: string;
 }
 
 export interface MetaMenuSettings {

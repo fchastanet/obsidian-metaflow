@@ -30,7 +30,7 @@ export class TemplaterAdapter {
   constructor(app: App, settings: MetaFlowSettings) {
     this.app = app;
     this.settings = settings;
-    this.templater = (this.app as any).plugins?.plugins?.[this.TEMPLATER_PLUGIN_NAME] || null;
+    this.templater = this.app.plugins?.plugins?.[this.TEMPLATER_PLUGIN_NAME] || null;
     this.obsidianAdapter = new ObsidianAdapter(app, settings);
   }
 
@@ -53,7 +53,7 @@ export class TemplaterAdapter {
   }
 
   isTemplaterAvailable(): boolean {
-    return (this.app as any)?.plugins?.enabledPlugins?.has(this.TEMPLATER_PLUGIN_NAME)
+    return (this.app.plugins?.enabledPlugins?.has(this.TEMPLATER_PLUGIN_NAME) || false)
       && this.templater !== null
       && typeof this.templater === 'object';
   }
@@ -124,7 +124,7 @@ export class TemplaterAdapter {
    * if moment is not available fallback on minimal support
    */
   formatDate(date: Date, format?: string): any {
-    const moment = (window as any).moment;
+    const moment = window.moment;
     if (moment) {
       return format ? moment(date).format(format) : moment(date).toISOString();
     }
@@ -134,7 +134,7 @@ export class TemplaterAdapter {
   }
 
   now(format?: string): string {
-    const moment = (window as any).moment;
+    const moment = window.moment;
     if (moment) {
       const now = moment();
       return format ? now.format(format) : now.toISOString();
@@ -146,7 +146,7 @@ export class TemplaterAdapter {
   }
 
   tomorrow(format?: string): string {
-    const moment = (window as any).moment;
+    const moment = window.moment;
     if (moment) {
       const tomorrow = moment().add(1, 'days');
       return format ? tomorrow.format(format) : tomorrow.toISOString();
@@ -159,7 +159,7 @@ export class TemplaterAdapter {
   }
 
   yesterday(format?: string): string {
-    const moment = (window as any).moment;
+    const moment = window.moment;
     if (moment) {
       const yesterday = moment().subtract(1, 'days');
       return format ? yesterday.format(format) : yesterday.toISOString();
@@ -179,7 +179,7 @@ export class TemplaterAdapter {
    * deduce parent file
    */
   getParentFile(currentFile: TFile): string | null {
-    const lastActiveFile = (this.app.workspace as any)?.lastActiveFile;
+    const lastActiveFile = this.app.workspace?.lastActiveFile;
     if (lastActiveFile && this.isValidMdFile(lastActiveFile) && lastActiveFile.path !== currentFile.path) {
       return lastActiveFile.path;
     }
@@ -188,7 +188,7 @@ export class TemplaterAdapter {
     if (currentFile?.path === activeFile?.path) {
       // currentFile is actually active file
       // deduce parent link from previous edited file
-      const parentFilePath = (this.app.workspace as any)?.recentFileTracker?.lastOpenFiles?.[1];
+      const parentFilePath = this.app.workspace?.recentFileTracker?.lastOpenFiles?.[1];
       if (parentFilePath) {
         parentFile = this.obsidianAdapter.getAbstractFileByPath(parentFilePath);
         if (!parentFile || !(parentFile instanceof TFile)) {

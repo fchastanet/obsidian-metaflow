@@ -127,7 +127,7 @@ export class FileClassStateManager {
 
   public handleModifyFileEvent(file: TAbstractFile) {
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleModifyFileEvent for ${file.path}`, file);
-    if (!(file instanceof TFile) || (file as any).saving) {
+    if (!(file instanceof TFile) || file.saving) {
       return;
     }
     if (!this.fileModifiedMap.get(file.path)) {
