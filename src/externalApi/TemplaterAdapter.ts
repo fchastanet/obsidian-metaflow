@@ -17,45 +17,55 @@ export interface TemplaterSettingsInterface {
   file_templates: FileTemplate[];
 }
 
+interface TemplaterInterface {
+  [x: string]: any;
+  prompt(title: string): Promise<string>;
+  settings: TemplaterSettingsInterface;
+}
+
 export class TemplaterAdapter {
   private app: App;
   private settings: MetaFlowSettings;
-  private templater: {
-    [x: string]: any;
-    prompt(title: string): Promise<string>
-  };
   private obsidianAdapter: ObsidianAdapter;
   private TEMPLATER_PLUGIN_NAME = 'templater-obsidian';
 
   constructor(app: App, settings: MetaFlowSettings) {
     this.app = app;
     this.settings = settings;
-    this.templater = this.app.plugins?.plugins?.[this.TEMPLATER_PLUGIN_NAME] || null;
     this.obsidianAdapter = new ObsidianAdapter(app, settings);
   }
 
+  private getTemplater(): TemplaterInterface | null {
+    return this.app.plugins?.plugins?.[this.TEMPLATER_PLUGIN_NAME] || null;
+  }
+
   getTemplaterSettings(): TemplaterSettingsInterface {
-    if (!this.templater) {
+    const templater = this.getTemplater();
+    if (!templater) {
       return {
         folder_templates: [],
         file_templates: [],
       };
     }
-    return this.templater.settings;
+    return templater.settings;
   }
 
   getFolderTemplatesMapping(): FolderTemplate[] {
     if (!this.isTemplaterAvailable()) {
       return [];
     }
-
-    return this.templater.settings.folder_templates || [];
+    const templater = this.getTemplater();
+    if (!templater) {
+      return [];
+    }
+    return templater.settings.folder_templates || [];
   }
 
   isTemplaterAvailable(): boolean {
+    const templater = this.getTemplater();
     return (this.app.plugins?.enabledPlugins?.has(this.TEMPLATER_PLUGIN_NAME) || false)
-      && this.templater !== null
-      && typeof this.templater === 'object';
+      && templater !== null
+      && typeof templater === 'object';
   }
 
   /**
@@ -102,7 +112,11 @@ export class TemplaterAdapter {
     if (!this.isTemplaterAvailable()) {
       return defaultValue;
     }
-    return this.templater.prompt(message);
+    const templater = this.getTemplater();
+    if (!templater) {
+      return defaultValue;
+    }
+    return templater.prompt(message);
   }
 
   private formatDateFallback(date: Date, format?: string) {

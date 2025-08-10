@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
 }
+
 .completions-help-value {
   font-size: 13px;
   background: var(--background-secondary);
@@ -11,6 +12,7 @@
   border-radius: 3px;
   margin-bottom: 2px;
 }
+
 .completions-help-doc {
   font-size: 12px;
   color: var(--text-muted);
@@ -22,22 +24,28 @@
   align-items: center;
   column-gap: 10px;
 }
+
 .progress-modal-progress-bar {
   flex-grow: 1;
 }
+
 .progress-modal-current-item {
   margin-left: 10px;
 }
+
 .progress-modal-number-errors {
   margin-left: 10px;
   color: var(--text-error);
 }
+
 .progress-modal-info-item {
   color: var(--text-success);
 }
+
 .progress-modal-error-item {
   color: var(--text-error);
 }
+
 .progress-modal-results {
   height: 300px;
   overflow-y: auto;
@@ -89,22 +97,7 @@
   gap: 10px;
   margin-top: 10px;
 }
-.metaflow-settings-btn-coffee {
-  padding: 0;
-}
-.metaflow-settings-btn-github {
-  height: 50px;
-  background-color: #BD5FFF;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0 10px;
-  border-radius: 4px;
-  text-decoration: none;
-}
-.metaflow-settings-btn-github-label {
-  color: #fff;
-}
+
 .metaflow-settings-summary {
   display: flex;
   align-items: center;
@@ -116,41 +109,51 @@
 .metaflow-settings-mapping-grab {
   cursor: grab;
 }
+
 .metaflow-settings-mapping-dragging {
   opacity: 0.5;
   cursor: grabbing;
 }
+
 .metaflow-settings-mapping-dragover {
   border-top: 2px solid var(--interactive-accent);
 }
+
 .metaflow-settings-mapping-control {
   display: flex;
   justify-content: space-between;
 }
+
 .metaflow-settings-mapping-control-row {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-grow: 1;
 }
+
 .metaflow-settings-mapping-order {
   display: flex;
   align-items: center;
   margin-bottom: 5px;
 }
+
 .metaflow-settings-mapping-up {
   margin-right: 5px;
 }
+
 .metaflow-settings-mapping-down {
   margin-right: 10px;
 }
+
 .metaflow-settings-mapping-folder-input {
   flex-grow: 1;
 }
+
 .metaflow-settings-mapping-fileclass-select,
 .metaflow-settings-mapping-fileclass-input {
   width: 150px;
 }
+
 .metaflow-settings-mapping-delete {
   background-color: #e74c3c;
   color: white;
@@ -166,16 +169,20 @@
   padding: 10px;
   margin-bottom: 10px;
 }
+
 .metaflow-settings-script-grab {
   cursor: grab;
 }
+
 .metaflow-settings-script-dragging {
   opacity: 0.5;
   cursor: grabbing;
 }
+
 .metaflow-settings-script-dragover {
   border-top: 3px solid var(--interactive-accent);
 }
+
 .metaflow-settings-script-readonly {
   display: flex;
   align-items: center;
@@ -184,27 +191,33 @@
   border-radius: 3px;
   width: 100%;
 }
+
 .metaflow-settings-script-order {
   color: var(--text-muted);
   font-size: 12px;
   min-width: 30px;
 }
+
 .metaflow-settings-script-property {
   font-weight: bold;
   min-width: 150px;
 }
+
 .metaflow-settings-script-preview {
   color: var(--text-muted);
   font-family: monospace;
   font-size: 12px;
   flex-grow: 1;
 }
+
 .metaflow-settings-script-enabled-label {
   min-width: 78px;
 }
+
 .metaflow-settings-script-enabled-toggle {
   margin-right: 5px;
 }
+
 .metaflow-settings-script-edit-btn {
   background-color: var(--interactive-accent);
   color: white;
@@ -214,25 +227,30 @@
   border-radius: 3px;
   font-size: 11px;
 }
+
 .metaflow-settings-script-edit {
   flex-direction: column;
   gap: 10px;
   width: 100%;
 }
+
 .metaflow-settings-script-property-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .metaflow-settings-script-property-input {
   flex-grow: 1;
 }
+
 .metaflow-settings-script-textarea {
   width: 100%;
   height: 100px;
   margin-top: 5px;
   font-family: monospace;
 }
+
 .metaflow-settings-script-help-btn {
   margin-left: 10px;
   background-color: var(--background-modifier-border);
@@ -243,11 +261,13 @@
   border-radius: 3px;
   font-size: 12px;
 }
+
 .metaflow-settings-script-btn-row {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
 }
+
 .metaflow-settings-script-delete-btn {
   background-color: #e74c3c;
   color: white;
@@ -256,9 +276,11 @@
   cursor: pointer;
   border-radius: 3px;
 }
+
 .metaflow-settings-script-btn-spacer {
   flex-grow: 1;
 }
+
 .metaflow-settings-script-ok-btn {
   background-color: var(--interactive-accent);
   color: white;
@@ -267,6 +289,7 @@
   cursor: pointer;
   border-radius: 3px;
 }
+
 .metaflow-settings-script-cancel-btn {
   background-color: var(--background-modifier-border);
   color: var(--text-normal);
@@ -283,6 +306,7 @@
   font-family: monospace;
   font-size: 12px;
 }
+
 .metaflow-settings-simulation-btn {
   background-color: var(--interactive-accent);
   color: white;
@@ -293,27 +317,32 @@
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
 .metaflow-settings-simulation-status {
   margin-top: 10px;
   padding: 10px;
   border-radius: 5px;
   flex-grow: 1;
 }
+
 .metaflow-settings-simulation-status.success {
   background-color: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
+
 .metaflow-settings-simulation-status.error {
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
+
 .metaflow-settings-simulation-status.info {
   background-color: #d1ecf1;
   color: #0c5460;
   border: 1px solid #bee5eb;
 }
+
 .metaflow-settings-simulation-output {
   width: 100%;
   height: 200px;
@@ -334,6 +363,28 @@
   content: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%221%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22svg-icon%20lucide-chevrons-up-down%22%3E%3Cpath%20d%3D%22m7%2015%205%205%205-5%22%3E%3C%2Fpath%3E%3Cpath%20d%3D%22m7%209%205-5%205%205%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E");
   width: 24px;
   height: 24px;
+}
+
+/* -------------------------------------------------- */
+/* Settings Support                                   */
+/* -------------------------------------------------- */
+.metaflow-settings-btn-coffee {
+  padding: 0;
+}
+
+.metaflow-settings-btn-github {
+  height: 50px;
+  background-color: #BD5FFF;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.metaflow-settings-btn-github-label {
+  color: #fff;
 }
 
 /* -------------------------------------------------- */
