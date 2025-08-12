@@ -128,6 +128,13 @@ export class FileClassStateManager {
     }
   }
 
+  private isManualEditEvent(vu: ViewUpdate): boolean {
+    return vu.docChanged && vu.transactions.some(tr => {
+      const event = tr.annotation && tr.annotation(Transaction.userEvent);
+      return event && FileClassStateManager.manualEditEvents.some(e => event.includes(e));
+    });
+  }
+
   /**
    * When receiving an editor event, we update the last modified time for the file.
    * This is used to determine if the file has been modified manually recently.
@@ -141,12 +148,8 @@ export class FileClassStateManager {
     if (!(file instanceof TFile)) {
       return;
     }
-    if (vu.docChanged && vu.transactions.some(tr => {
-      const event = tr.annotation && tr.annotation(Transaction.userEvent);
-      return event && FileClassStateManager.manualEditEvents.some(e => event.includes(e));
-    })) {
+    if (this.isManualEditEvent(vu)) {
       if (this.settings.debugMode) console.debug(`FileClassStateManager: manual edit detected`, vu.transactions);
-      const content = vu.state.doc.toString();
       this.fileModifiedMap.set(file.path, true);
     }
   }
