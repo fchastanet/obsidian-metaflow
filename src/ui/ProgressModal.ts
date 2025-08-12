@@ -94,26 +94,27 @@ export class ProgressModal extends Modal implements LogManagerInterface {
     this.progressText.setText(`${percent.toFixed(0)}%`);
   }
 
+  private addResultItem(text: string, className: string) {
+    this.results.createEl('li', {text, cls: className});
+    this.results.scrollTop = this.results.scrollHeight;
+  }
+
   addError(error: string) {
     this.errorCount++;
     this.numberErrorsText.setText(`${this.errorCount} errors`);
-    this.results.createEl('li', {text: error, cls: 'progress-modal-error-item'});
-    this.results.scrollTop = this.results.scrollHeight;
+    this.addResultItem(error, 'progress-modal-error-item');
   }
 
   addInfo(info: string) {
-    this.results.createEl('li', {text: info, cls: 'progress-modal-info-item'});
-    this.results.scrollTop = this.results.scrollHeight;
+    this.addResultItem(info, 'progress-modal-info-item');
   }
 
   addDebug(message: string): void {
-    this.results.createEl('li', {text: `[DEBUG] ${message}`, cls: 'progress-modal-debug-item'});
-    this.results.scrollTop = this.results.scrollHeight;
+    this.addResultItem(`[DEBUG] ${message}`, 'progress-modal-debug-item');
   }
 
   addWarning(message: string): void {
-    this.results.createEl('li', {text: `[WARNING] ${message}`, cls: 'progress-modal-warning-item'});
-    this.results.scrollTop = this.results.scrollHeight;
+    this.addResultItem(`[WARNING] ${message}`, 'progress-modal-warning-item');
   }
 
   addMessage(message: string, logLevel: LogManagerLogLevel): void {
