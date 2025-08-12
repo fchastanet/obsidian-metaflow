@@ -95,8 +95,9 @@ export default class MetaFlowPlugin extends Plugin {
     ));
 
     // CodeMirror extension to detect manual edits (typing, paste, cut, drop, undo, redo, autocomplete)
-    const manualEditExtension: Extension = EditorView.updateListener.of(this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager));
-    this.registerEditorExtension(manualEditExtension);
+    this.registerEditorExtension(EditorView.updateListener.of(
+      this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager)
+    ));
 
     this.app.workspace.onLayoutReady(() => {
       this.registerEvent(this.app.vault.on('create', this.fileClassStateManager.handleCreateFileEvent.bind(this.fileClassStateManager)));
@@ -236,7 +237,11 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  private async massUpdateMetadataProperties(directory: string, files: TFile[], noticeManager: LogManagerInterface) {
+  private async massUpdateMetadataProperties(
+    directory: string,
+    files: TFile[],
+    noticeManager: LogManagerInterface,
+  ) {
     // Filter out files in excluded folders
     const excludeFolders = (this.settings.excludeFolders || []);
     const filteredFiles = files.filter(file => {

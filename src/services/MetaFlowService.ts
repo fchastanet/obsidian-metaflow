@@ -175,7 +175,7 @@ export class MetaFlowService {
 
       // Step 2: Determine or validate fileClass
       let fileClass = this.metadataMenuAdapter.getFileClassFromMetadata(frontmatter);
-      let newFileClass = "";
+      let newFileClass;
       if (!fileClass) {
         // Try to deduce fileClass from folder/fileClass mapping
         const deducedFileClass = this.deduceFileClassFromPath(file.path);
