@@ -1,4 +1,4 @@
-name: Create Release
+name: Unit test
 
 permissions:
   # used by ouzi-dev/commit-status-updater
