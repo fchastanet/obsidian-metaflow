@@ -23,5 +23,6 @@ export interface MetaFlowSettings {
   excludeFolders?: string[];
   autoMoveNoteToRightFolder: boolean;
   debugMode: boolean;
+  frontmatterUpdateDelayMs: number;
 }
 

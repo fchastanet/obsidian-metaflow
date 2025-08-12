@@ -29,7 +29,7 @@ export default class MetaFlowPlugin extends Plugin {
   frontMatterService: FrontMatterService;
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
-  timer: {[key: string]: number} = {}
+  timer: {[key: string]: number} = {};
 
   async onload() {
     this.settings = await this.loadSettings();
@@ -256,7 +256,7 @@ export default class MetaFlowPlugin extends Plugin {
       `Mass Updating ${totalFiles} files in the folder "${directory}"`,
       async () => {
         abort = true;
-        await Utils.sleep(500, () => {
+        await Utils.sleep(this.settings.frontmatterUpdateDelayMs, () => {
           this.fileClassStateManager.setEnabled(true);
         });
       },

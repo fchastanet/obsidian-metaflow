@@ -88,7 +88,7 @@ export class MetaFlowService {
         logManager
       );
 
-      await Utils.sleep(500, async () => {
+      await Utils.sleep(this.metaFlowSettings.frontmatterUpdateDelayMs, async () => {
         await this.updateFrontmatter(file, enrichedFrontmatter, true)
         // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
         try {
@@ -326,7 +326,7 @@ export class MetaFlowService {
       }
       enrichedFrontmatter = this.sortProperties(enrichedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
 
-      await Utils.sleep(500, async () => {
+      await Utils.sleep(this.metaFlowSettings.frontmatterUpdateDelayMs, async () => {
         await this.updateFrontmatter(file, enrichedFrontmatter, false);
       });
     } catch (error) {
