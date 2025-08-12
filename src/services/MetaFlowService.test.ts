@@ -104,6 +104,10 @@ describe('MetaFlowService', () => {
       syncFields: jest.fn().mockImplementation((frontmatter) => frontmatter),
       getFileClassFromMetadata: realMetadataMenuAdapter.getFileClassFromMetadata.bind(realMetadataMenuAdapter), // Use real implementation
       getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
+      getFileClassAndAncestorsFields: jest.fn().mockReturnValue([
+        {name: 'title', type: 'string'},
+        {name: 'author', type: 'number'},
+      ])
     };
 
     mockTemplaterAdapter = {
@@ -308,10 +312,10 @@ Content here`;
       const result = (commandWithOrderedScripts as any).addDefaultValuesToProperties({}, mockFile, 'book');
 
       // Scripts should be executed in order: author (1), title (2), date (3)
-      expect(executionOrder).toEqual(['author', 'title', 'date']);
+      expect(executionOrder).toEqual(['author', 'title']);
       expect(result.author).toBe('second');
       expect(result.title).toBe('first');
-      expect(result.date).toBe('third');
+      expect(result).not.toHaveProperty('date'); // date script not executed
     });
 
     test('should handle scripts without order specification', async () => {
@@ -351,7 +355,7 @@ Content here`;
       const result = await (commandWithMixedOrder as any).addDefaultValuesToProperties({}, mockFile, 'book');
 
       // Scripts with order should come first, then scripts without order
-      expect(executionOrder).toEqual(['title', 'date', 'author']);
+      expect(executionOrder).toEqual(['title', 'author']);
     });
   });
 
