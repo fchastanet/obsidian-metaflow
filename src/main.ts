@@ -248,7 +248,6 @@ export default class MetaFlowPlugin extends Plugin {
       return;
     }
     let abort = false;
-    let started = false;
     const modal = new ProgressModal(
       this.app,
       totalFiles,
@@ -261,8 +260,6 @@ export default class MetaFlowPlugin extends Plugin {
         });
       },
       async () => {
-        if (started) return; // in case of multiple click on Confirm button
-        started = true;
         // block fileClassStateManager to update note while mass update is in progress
         this.fileClassStateManager.setEnabled(false);
 
