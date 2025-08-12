@@ -2,6 +2,8 @@ import {App, CachedMetadata, MarkdownView, TAbstractFile, TFile, WorkspaceLeaf} 
 import {MetaFlowService} from "../services/MetaFlowService";
 import {MetaFlowSettings} from "../settings/types";
 import {LogManagerInterface} from "./types";
+import {ViewUpdate} from '@codemirror/view';
+import {Transaction} from '@codemirror/state';
 
 export type FileClassChangedCallback = (
   file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string
@@ -19,6 +21,15 @@ export class FileClassStateManager {
 
   private fileClassMap: Map<string, string>;
   private fileModifiedMap: Map<string, boolean>;
+  private fileRenamedMap: Map<string, string>;
+  private enabled: boolean;
+
+  // List of user events considered as manual edits
+  private static manualEditEvents = [
+    "input", "input.type", "input.paste", "cut", "input.drop",
+    "delete.backward", "delete.forward", "undo", "redo", "input.complete"
+  ];
+
 
   constructor(
     app: App,
@@ -34,9 +45,25 @@ export class FileClassStateManager {
     this.metaFlowService = new MetaFlowService(app, settings);
     this.fileClassMap = new Map<string, string>();
     this.fileModifiedMap = new Map<string, boolean>();
+    this.fileRenamedMap = new Map<string, string>();
+    this.enabled = true;
+  }
+
+  public setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      // ensure all file states are cleared in case handle is called a little bit after mass update
+      this.fileClassMap.clear();
+      this.fileModifiedMap.clear();
+      this.fileRenamedMap.clear();
+    }
   }
 
   public handleActiveLeafChange(leaf: WorkspaceLeaf | null): void {
+    if (!this.enabled) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager is disabled, skipping handleActiveLeafChange');
+      return;
+    }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleActiveLeafChange`, leaf);
     if (!this.settings.autoMetadataInsertion) {
       return;
@@ -74,6 +101,10 @@ export class FileClassStateManager {
   }
 
   public handleMetadataChanged(file: TFile, data: string, cache: CachedMetadata): void {
+    if (!this.enabled) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager is disabled, skipping handleMetadataChanged');
+      return;
+    }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleMetadataChanged for ${file.path}`, file, data, cache);
     if (data === "") {
       // ignore metadata changes for new files
@@ -98,34 +129,49 @@ export class FileClassStateManager {
   }
 
   /**
-   * When receiving a typing event, we update the last modified time for the file.
+   * When receiving an editor event, we update the last modified time for the file.
    * This is used to determine if the file has been modified manually recently.
-   * This detection is not really accurate, as using arrow keys would be detected as a modification.
-   * But it is a good enough approximation as the real modification is detected by handleMetadataChanged
    */
-  public handleTypingEvent(event: KeyboardEvent | ClipboardEvent) {
-    try {
-      if ((event?.target as HTMLElement)?.closest('.markdown-source-view > .cm-editor')) {
-        const file = this.app.workspace.getActiveFile()
-        if (!(file instanceof TFile)) {
-          return;
-        }
-        this.fileModifiedMap.set(file.path, true);
-      }
-    } catch (e) {
-      console.error(e)
+  public handleTypingEvent(vu: ViewUpdate) {
+    if (!this.enabled) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager is disabled, skipping handleTypingEvent');
+      return;
+    }
+    const file = this.app.workspace.getActiveFile()
+    if (!(file instanceof TFile)) {
+      return;
+    }
+    if (vu.docChanged && vu.transactions.some(tr => {
+      const event = tr.annotation && tr.annotation(Transaction.userEvent);
+      return event && FileClassStateManager.manualEditEvents.some(e => event.includes(e));
+    })) {
+      if (this.settings.debugMode) console.debug(`FileClassStateManager: manual edit detected`, vu.transactions);
+      const content = vu.state.doc.toString();
+      this.fileModifiedMap.set(file.path, true);
     }
   }
 
   public handleCreateFileEvent(file: TAbstractFile) {
+    if (!this.enabled) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager is disabled, skipping handleCreateFileEvent');
+      return;
+    }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleCreateFileEvent for ${file.path}`, file);
     if (!(file instanceof TFile)) {
+      return;
+    }
+    if (this.fileRenamedMap.has(file.path)) {
+      if (this.settings.debugMode) console.debug(`FileClassStateManager: handleCreateFileEvent ignored ${file.path} (renamed)`, file);
       return;
     }
     this.fileModifiedMap.set(file.path, true);
   }
 
   public handleModifyFileEvent(file: TAbstractFile) {
+    if (!this.enabled) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager is disabled, skipping handleModifyFileEvent');
+      return;
+    }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleModifyFileEvent for ${file.path}`, file);
     if (!(file instanceof TFile) || file.saving) {
       return;
@@ -142,19 +188,29 @@ export class FileClassStateManager {
   }
 
   public handleDeleteFileEvent(file: TAbstractFile) {
+    if (!this.enabled) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager is disabled, skipping handleDeleteFileEvent');
+      return;
+    }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleDeleteFileEvent for ${file.path}`, file);
     if (!(file instanceof TFile)) {
       return;
     }
     this.fileModifiedMap.delete(file.path);
     this.fileClassMap.delete(file.path);
+    this.fileRenamedMap.delete(file.path);
   }
 
   public handleRenameFileEvent(file: TAbstractFile, oldPath: string) {
+    if (!this.enabled) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager is disabled, skipping handleRenameFileEvent');
+      return;
+    }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: handleRenameFileEvent for ${file.path}`, file, oldPath);
     if (!(file instanceof TFile)) {
       return;
     }
+    this.fileRenamedMap.set(file.path, oldPath);
     if (!this.fileModifiedMap.has(oldPath)) {
       if (this.settings.debugMode) console.debug(`File ${oldPath} renamed without prior typing or create event`);
       return;

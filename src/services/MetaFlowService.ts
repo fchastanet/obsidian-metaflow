@@ -7,6 +7,7 @@ import {FolderFileClassMapping, MetaFlowSettings, PropertyDefaultValueScript} fr
 import {MetaFlowException} from "../MetaFlowException";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {LogManagerInterface} from "../managers/types";
+import {Utils} from "../utils/Utils";
 
 export class MetaFlowService {
   private app: App;
@@ -27,10 +28,10 @@ export class MetaFlowService {
     this.obsidianAdapter = new ObsidianAdapter(app, this.metaFlowSettings);
   }
 
-  handleFileClassChanged(
+  async handleFileClassChanged(
     file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
     logManager: LogManagerInterface
-  ): void {
+  ): Promise<void> {
     if (!this.metaFlowSettings.autoMetadataInsertion) {
       console.info('Auto metadata insertion is disabled');
       return;
@@ -87,7 +88,7 @@ export class MetaFlowService {
         logManager
       );
 
-      setTimeout(async () => {
+      await Utils.sleep(500, async () => {
         await this.updateFrontmatter(file, enrichedFrontmatter, true)
         // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
         try {
@@ -104,7 +105,7 @@ export class MetaFlowService {
           console.error(msg, error);
           logManager.addMessage(msg, error?.noticeLevel ?? 'error');
         }
-      }, 500);
+      });
     } catch (error) {
       const msg = (error instanceof MetaFlowException) ?
         `Error updating metadata properties: ${error.message}` :
@@ -174,23 +175,30 @@ export class MetaFlowService {
 
       // Step 2: Determine or validate fileClass
       let fileClass = this.metadataMenuAdapter.getFileClassFromMetadata(frontmatter);
-
+      let newFileClass = "";
       if (!fileClass) {
         // Try to deduce fileClass from folder/fileClass mapping
-        fileClass = this.deduceFileClassFromPath(file.path);
-        if (!fileClass) {
+        const deducedFileClass = this.deduceFileClassFromPath(file.path);
+        if (!deducedFileClass) {
           throw new MetaFlowException(`No fileClass found for file "${file.name}" and no matching folder pattern.`, 'warning');
         }
-        if (!this.validateFileClassAgainstMapping(file.path, fileClass)) {
-          throw new MetaFlowException(`FileClass "${fileClass}" does not match any folder/fileClass mapping.`, 'warning');
+        if (!this.validateFileClassAgainstMapping(file.path, deducedFileClass)) {
+          throw new MetaFlowException(`FileClass "${deducedFileClass}" does not match any folder/fileClass mapping.`, 'warning');
         }
+        newFileClass = deducedFileClass;
+      } else {
+        newFileClass = fileClass;
       }
 
       // Step 3: Validate fileClass exists in MetadataMenu, throw error if not found
-      this.metadataMenuAdapter.getFileClassByName(fileClass);
+      this.metadataMenuAdapter.getFileClassByName(newFileClass);
 
       // Step 4: Synchronize frontmatter with new/obsolete fileClass's fields
-      let updatedFrontmatter: any = this.metadataMenuAdapter.syncFields(frontmatter, fileClass, logManager);
+      let updatedFrontmatter: any = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass, logManager);
+      if (newFileClass !== fileClass) {
+        logManager.addInfo(`File class changed for "${file.name}": ${fileClass} -> ${newFileClass}`);
+      }
+
       // Step 5: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
         updatedFrontmatter = this.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
@@ -200,7 +208,7 @@ export class MetaFlowService {
       const enrichedFrontmatter = this.addDefaultValuesToProperties(
         updatedFrontmatter || {},
         file,
-        fileClass,
+        newFileClass,
         logManager
       );
 
@@ -301,7 +309,7 @@ export class MetaFlowService {
     });
   }
 
-  public processSortContent(content: string, file: TFile): void {
+  public async processSortContent(content: string, file: TFile): Promise<void> {
     this.checkIfValidFile(file);
     this.checkIfExcluded(file);
 
@@ -318,9 +326,9 @@ export class MetaFlowService {
       }
       enrichedFrontmatter = this.sortProperties(enrichedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
 
-      setTimeout(async () => {
+      await Utils.sleep(500, async () => {
         await this.updateFrontmatter(file, enrichedFrontmatter, false);
-      }, 500)
+      });
     } catch (error) {
       console.error('Error sorting metadata fields:', error);
       throw new MetaFlowException(`Error sorting metadata fields: ${error.message}`, 'error');
