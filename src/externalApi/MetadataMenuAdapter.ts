@@ -95,23 +95,12 @@ export class MetadataMenuAdapter {
     }
 
     try {
-      // Get the ancestor chain for this fileClass
-      const ancestorChain = this.getFileClassAncestorChain(fileClassName, logManager);
-      const allFields: string[] = [];
-
-      // Step 1: Get all fields for the fileClass and its ancestors
-      // The chain is already in the correct order (most basic ancestor first)
-      for (const ancestorName of ancestorChain) {
-        if (this.settings.debugMode) console.debug(`Inserting missing fields from ancestor: ${ancestorName}`);
-        // get metadataMenu fileClass fields configuration
-        const fileClassFields = this.getFileClassFields(ancestorName);
-        allFields.push(...fileClassFields.map(field => field.name));
-      }
+      const allFields = this.getFileClassAndAncestorsFields(fileClassName, logManager);
 
       // Step 2: Remove empty properties that are not part of the new fileClass
       const fieldsToRemove = Object.keys(frontmatter).filter(key => {
         // Check if the field is not in the new fileClass fields
-        return !allFields.some(field => field === key) && (
+        return !allFields.some(field => field.name === key) && (
           frontmatter[key] === undefined || frontmatter[key] === null || frontmatter[key] === ''
         );
       });
@@ -120,9 +109,9 @@ export class MetadataMenuAdapter {
       }
 
       // Step 3: Add missing fields from the ancestor chain
-      for (const fieldName of allFields) {
-        if (!(fieldName in frontmatter)) {
-          frontmatter[fieldName] = null; // Initialize missing fields with undefined
+      for (const field of allFields) {
+        if (!(field.name in frontmatter)) {
+          frontmatter[field.name] = null; // Initialize missing fields with undefined
         }
       }
 
@@ -137,6 +126,23 @@ export class MetadataMenuAdapter {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
+  }
+
+  public getFileClassAndAncestorsFields(fileClass: string, logManager: LogManagerInterface): MetadataMenuField[] {
+    // Get the ancestor chain for this fileClass
+    const ancestorChain = this.getFileClassAncestorChain(fileClass, logManager);
+    const allFields: MetadataMenuField[] = [];
+
+    // Step 1: Get all fields for the fileClass and its ancestors
+    // The chain is already in the correct order (most basic ancestor first)
+    for (const ancestorName of ancestorChain) {
+      if (this.settings.debugMode) console.debug(`Inserting missing fields from ancestor: ${ancestorName}`);
+      // get metadataMenu fileClass fields configuration
+      const fileClassFields = this.getFileClassFields(ancestorName);
+      allFields.push(...fileClassFields);
+    }
+
+    return allFields;
   }
 
   private getFileClassFields(fileClass: string): MetadataMenuField[] {

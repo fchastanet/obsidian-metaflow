@@ -186,6 +186,121 @@ describe('MetadataMenuAdapter', () => {
     });
   });
 
+  // ...existing code...
+
+  describe('getFileClassAndAncestorsFields', () => {
+    test('returns fields for fileClass and its ancestors (Map ancestors)', () => {
+      const ancestorFields = [{name: 'id'}, {name: 'created'}];
+      const bookFields = [{name: 'title'}, {name: 'author'}];
+
+      const mockFieldsMap = new Map([
+        ['default', ancestorFields],
+        ['book', bookFields]
+      ]);
+      const mockAncestorsMap = new Map([
+        ['book', ['default']]
+      ]);
+
+      mockApp.plugins.plugins['metadata-menu'] = {
+        api: {},
+        settings: {},
+        fieldIndex: {
+          fileClassesFields: mockFieldsMap,
+          fileClassesAncestors: mockAncestorsMap
+        }
+      };
+      adapter = new MetadataMenuAdapter(mockApp, settings);
+
+      const result = (adapter as any).getFileClassAndAncestorsFields('book');
+      expect(result).toEqual([
+        ...ancestorFields,
+        ...bookFields
+      ]);
+    });
+
+    test('returns fields for fileClass and its ancestors (object ancestors)', () => {
+      const ancestorFields = [{name: 'id'}];
+      const bookFields = [{name: 'title'}];
+
+      const mockFieldsMap = new Map([
+        ['default', ancestorFields],
+        ['book', bookFields]
+      ]);
+      const mockAncestorsObj = {
+        'book': ['default']
+      };
+
+      mockApp.plugins.plugins['metadata-menu'] = {
+        api: {},
+        settings: {},
+        fieldIndex: {
+          fileClassesFields: mockFieldsMap,
+          fileClassesAncestors: mockAncestorsObj
+        }
+      };
+      adapter = new MetadataMenuAdapter(mockApp, settings);
+
+      const result = (adapter as any).getFileClassAndAncestorsFields('book');
+      expect(result).toEqual([
+        ...ancestorFields,
+        ...bookFields
+      ]);
+    });
+
+    test('returns only fileClass fields if no ancestors', () => {
+      const bookFields = [{name: 'title'}];
+      const mockFieldsMap = new Map([
+        ['book', bookFields]
+      ]);
+
+      mockApp.plugins.plugins['metadata-menu'] = {
+        api: {},
+        settings: {},
+        fieldIndex: {
+          fileClassesFields: mockFieldsMap,
+          fileClassesAncestors: new Map()
+        }
+      };
+      adapter = new MetadataMenuAdapter(mockApp, settings);
+
+      const result = (adapter as any).getFileClassAndAncestorsFields('book');
+      expect(result).toEqual(bookFields);
+    });
+
+    test('throws exception if fileClass not found', () => {
+      const mockFieldsMap = new Map([
+        ['default', [{name: 'id'}]]
+      ]);
+      mockApp.plugins.plugins['metadata-menu'] = {
+        api: {},
+        settings: {},
+        fieldIndex: {
+          fileClassesFields: mockFieldsMap,
+          fileClassesAncestors: new Map()
+        }
+      };
+      adapter = new MetadataMenuAdapter(mockApp, settings);
+      const result = (adapter as any).getFileClassAndAncestorsFields('book');
+      expect(result).toEqual([]);
+    });
+
+    test('returns empty array if no fields and no ancestors', () => {
+      const mockFieldsMap = new Map();
+      mockApp.plugins.plugins['metadata-menu'] = {
+        api: {},
+        settings: {},
+        fieldIndex: {
+          fileClassesFields: mockFieldsMap,
+          fileClassesAncestors: new Map()
+        }
+      };
+      adapter = new MetadataMenuAdapter(mockApp, settings);
+
+      const result = (adapter as any).getFileClassAndAncestorsFields('book');
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('getFileClassAlias', () => {
     test('throws exception when plugin not available', () => {
       adapter = new MetadataMenuAdapter(mockApp, settings);

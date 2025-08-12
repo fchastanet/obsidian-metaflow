@@ -8,6 +8,7 @@ import {MetaFlowException} from "../MetaFlowException";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {LogManagerInterface} from "../managers/types";
 import {Utils} from "../utils/Utils";
+import {MetadataMenuField} from "src/externalApi/types.MetadataMenu";
 
 export class MetaFlowService {
   private app: App;
@@ -318,11 +319,9 @@ export class MetaFlowService {
       const parseResult = this.frontMatterService.parseFrontmatter(content);
 
       let enrichedFrontmatter: any = {};
-      let bodyContent = content;
 
       if (parseResult) {
         enrichedFrontmatter = parseResult.metadata || {};
-        bodyContent = parseResult.restOfContent;
       }
       enrichedFrontmatter = this.sortProperties(enrichedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
 
@@ -358,13 +357,22 @@ export class MetaFlowService {
       return orderA - orderB;
     });
 
+    // Get only the fields associated to fileClass and ancestors
+    //convert array to map
+    const allFieldsMap = new Map<string, MetadataMenuField>();
+    this.metadataMenuAdapter.getFileClassAndAncestorsFields(fileClass, logManager).forEach(field => {
+      allFieldsMap.set(field.name, field);
+    });
+
     // Process each property default value script in order
     for (const script of orderedScripts) {
       // Skip if property already has a value (not null, undefined, or empty string)
       if (
-        enrichedFrontmatter[script.propertyName] !== undefined &&
-        enrichedFrontmatter[script.propertyName] !== null &&
-        enrichedFrontmatter[script.propertyName] !== ''
+        !allFieldsMap.has(script.propertyName) || (
+          enrichedFrontmatter[script.propertyName] !== undefined &&
+          enrichedFrontmatter[script.propertyName] !== null &&
+          enrichedFrontmatter[script.propertyName] !== ''
+        )
       ) {
         continue;
       }
