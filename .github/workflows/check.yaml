@@ -1,0 +1,28 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        if: ${{ hashFiles('package-lock.json') != '' }}
+        run: npm install
+
+      - name: Build the plugin
+        run: npm run build
+
+      - name: Test the plugin
+        run: npm run test
