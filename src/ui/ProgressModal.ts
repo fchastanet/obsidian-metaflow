@@ -1,13 +1,16 @@
 import {App, Modal, ProgressBarComponent, Setting} from "obsidian";
+import {LogManagerInterface, LogManagerLogLevel} from "src/managers/types";
 
-export class ProgressModal extends Modal {
+export class ProgressModal extends Modal implements LogManagerInterface {
   cancelCallback: Function;
+  actionCallback: Function;
   progressBar: ProgressBarComponent;
   progressText: HTMLElement;
   currentItem: HTMLElement;
   numberErrorsText: HTMLElement;
   results: HTMLElement;
   cancelButton: HTMLButtonElement;
+  actionButton: HTMLButtonElement;
   current: number;
   total: number;
   errorCount: number;
@@ -17,7 +20,9 @@ export class ProgressModal extends Modal {
     app: App,
     total: number,
     title: string,
+    message: string,
     cancelCallback: () => void,
+    actionCallback: () => void,
   ) {
     super(app);
     this.current = 0;
@@ -27,7 +32,9 @@ export class ProgressModal extends Modal {
     this.shouldRestoreSelection = true;
     this.processFinished = false;
     this.cancelCallback = cancelCallback;
+    this.actionCallback = actionCallback;
 
+    this.contentEl.createEl('p', {text: message});
 
     const progressBlock = this.contentEl.createEl('div');
     progressBlock.classList.add('progress-modal-progress-block');
@@ -46,8 +53,18 @@ export class ProgressModal extends Modal {
     this.results = this.contentEl.createEl('ul');
     this.results.classList.add('progress-modal-results');
 
-    this.cancelButton = this.contentEl.createEl('button', {text: 'Cancel'});
-    this.cancelButton.classList.add('mod-cta');
+    const modalButtonContainer = this.contentEl.createEl('div', {cls: 'modal-button-container'});
+
+    // Confirm action button
+    this.actionButton = modalButtonContainer.createEl('button', {text: 'Confirm'});
+    this.actionButton.classList.add('mod-cta');
+    this.actionButton.onclick = () => {
+      this.actionButton.disabled = true;
+      this.actionCallback();
+    };
+
+    // Cancel button
+    this.cancelButton = modalButtonContainer.createEl('button', {text: 'Cancel'});
     this.cancelButton.onclick = () => {
       super.close();
     };
@@ -77,21 +94,52 @@ export class ProgressModal extends Modal {
     this.progressText.setText(`${percent.toFixed(0)}%`);
   }
 
-  addError(error: string) {
-    this.errorCount++;
-    this.numberErrorsText.setText(`${this.errorCount} errors`);
-    const errorItem = this.results.createEl('li', {text: error, cls: 'progress-modal-error-item'});
+  private addResultItem(text: string, className: string) {
+    this.results.createEl('li', {text, cls: className});
     this.results.scrollTop = this.results.scrollHeight;
   }
 
+  addError(error: string) {
+    this.errorCount++;
+    this.numberErrorsText.setText(`${this.errorCount} errors`);
+    this.addResultItem(error, 'progress-modal-error-item');
+  }
+
   addInfo(info: string) {
-    const infoItem = this.results.createEl('li', {text: info, cls: 'progress-modal-info-item'});
-    this.results.scrollTop = this.results.scrollHeight;
+    this.addResultItem(info, 'progress-modal-info-item');
+  }
+
+  addDebug(message: string): void {
+    this.addResultItem(`[DEBUG] ${message}`, 'progress-modal-debug-item');
+  }
+
+  addWarning(message: string): void {
+    this.addResultItem(`[WARNING] ${message}`, 'progress-modal-warning-item');
+  }
+
+  addMessage(message: string, logLevel: LogManagerLogLevel): void {
+    switch (logLevel) {
+      case "debug":
+        this.addDebug(message);
+        break;
+      case "info":
+        this.addInfo(message);
+        break;
+      case "warning":
+        this.addWarning(message);
+        break;
+      case "error":
+        this.addError(message);
+        break;
+      default:
+        this.addInfo(message);
+    }
   }
 
   finish() {
     this.processFinished = true;
     this.cancelButton.textContent = "Close";
+    this.actionButton.disabled = true;
     this.displayCurrentItem("");
   }
 

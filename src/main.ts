@@ -1,3 +1,5 @@
+import {EditorView} from '@codemirror/view';
+import {Extension} from '@codemirror/state';
 import {Plugin, Editor, MarkdownView, TFolder, Notice, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal, MarkdownFileInfo, CachedMetadata, WorkspaceLeaf} from 'obsidian';
 import {MetaFlowSettings} from './settings/types';
 import {DEFAULT_SETTINGS} from './settings/defaultSettings';
@@ -10,6 +12,7 @@ import {FileClassStateManager} from './managers/FileClassStateManager';
 import {LogNoticeManager} from './managers/LogNoticeManager';
 import {ObsidianAdapter} from './externalApi/ObsidianAdapter';
 import {LogManagerInterface} from './managers/types';
+import {Utils} from './utils/Utils';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -26,7 +29,7 @@ export default class MetaFlowPlugin extends Plugin {
   frontMatterService: FrontMatterService;
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
-  timer: {[key: string]: number} = {}
+  timer: {[key: string]: number} = {};
 
   async onload() {
     this.settings = await this.loadSettings();
@@ -38,7 +41,7 @@ export default class MetaFlowPlugin extends Plugin {
       this.app, this.settings, logManager,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
         if (this.settings.autoMetadataInsertion) {
-          this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, logManager);
+          await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, logManager);
         }
       }
     );
@@ -57,21 +60,21 @@ export default class MetaFlowPlugin extends Plugin {
   private registerContextMenus() {
     // Add context menu for folder-based mass updates
     this.registerEvent(
-      this.app.workspace.on('file-menu', (menu, file) => {
-        if (file instanceof TFolder) {
+      this.app.workspace.on('file-menu', (menu, directory) => {
+        if (directory instanceof TFolder) {
           menu.addItem((item) => {
             item
               .setTitle('Metaflow - Update metadata in folder')
               .setIcon('folder-edit')
               .onClick(async () => {
                 const files: TFile[] = [];
-                Vault.recurseChildren(file, (f: TAbstractFile) => {
+                Vault.recurseChildren(directory, (f: TAbstractFile) => {
                   if (f instanceof TFile) {
                     files.push(f);
                   }
                 });
                 const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-                await this.massUpdateMetadataProperties(files, logManager);
+                await this.massUpdateMetadataProperties(directory.path, files, logManager);
               });
           });
         }
@@ -91,10 +94,10 @@ export default class MetaFlowPlugin extends Plugin {
       this.fileClassStateManager.handleMetadataChanged.bind(this.fileClassStateManager)
     ));
 
-    // Watch for typing events
-    this.registerDomEvent(document, 'keydown', this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager));
-    // Watch for clipboard paste
-    this.registerDomEvent(document, 'paste', this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager));
+    // CodeMirror extension to detect manual edits (typing, paste, cut, drop, undo, redo, autocomplete)
+    this.registerEditorExtension(EditorView.updateListener.of(
+      this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager)
+    ));
 
     this.app.workspace.onLayoutReady(() => {
       this.registerEvent(this.app.vault.on('create', this.fileClassStateManager.handleCreateFileEvent.bind(this.fileClassStateManager)));
@@ -119,9 +122,9 @@ export default class MetaFlowPlugin extends Plugin {
     this.addCommand({
       id: 'metaflow-sort-metadata',
       name: 'Sort metadata properties',
-      editorCallback: (editor: Editor, view: MarkdownView) => {
+      editorCallback: async (editor: Editor, view: MarkdownView) => {
         const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        this.sortMetadataPropertiesInEditor(editor, view, logManager);
+        await this.sortMetadataPropertiesInEditor(editor, view, logManager);
       }
     });
 
@@ -129,9 +132,9 @@ export default class MetaFlowPlugin extends Plugin {
     this.addCommand({
       id: 'metaflow-move-note-to-right-folder',
       name: 'Move the note to the right folder',
-      editorCallback: (editor: Editor, view: MarkdownView) => {
+      editorCallback: async (editor: Editor, view: MarkdownView) => {
         const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        this.moveNoteToTheRightFolder(editor, view, logManager);
+        await this.moveNoteToTheRightFolder(editor, view, logManager);
       }
     });
 
@@ -142,7 +145,7 @@ export default class MetaFlowPlugin extends Plugin {
       callback: async () => {
         const files = this.app.vault.getMarkdownFiles();
         const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        await this.massUpdateMetadataProperties(files, logManager);
+        await this.massUpdateMetadataProperties("/", files, logManager);
       }
     });
 
@@ -213,7 +216,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  private sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
+  private async sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
     const content = editor.getValue();
     const file = view.file;
 
@@ -223,7 +226,7 @@ export default class MetaFlowPlugin extends Plugin {
     }
 
     try {
-      this.metaFlowService.processSortContent(content, file);
+      await this.metaFlowService.processSortContent(content, file);
     } catch (error) {
       console.error('Error updating metadata properties:', error);
       if (error instanceof MetaFlowException) {
@@ -234,15 +237,17 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
-  private async massUpdateMetadataProperties(files: TFile[], noticeManager: LogManagerInterface) {
-    let updatedCount = 0;
-    let processedCount = 0;
+  private async massUpdateMetadataProperties(
+    directory: string,
+    files: TFile[],
+    noticeManager: LogManagerInterface,
+  ) {
     // Filter out files in excluded folders
     const excludeFolders = (this.settings.excludeFolders || []);
     const filteredFiles = files.filter(file => {
       return !excludeFolders.some(folder => file.path.startsWith(this.obsidianAdapter.folderPrefix(folder)));
     }).filter(file => file.extension === 'md');
-    let totalFiles = filteredFiles.length;
+    const totalFiles = filteredFiles.length;
     if (totalFiles === 0) {
       noticeManager.addWarning('No files to update - all files are excluded or no markdown files found.');
       return;
@@ -252,58 +257,90 @@ export default class MetaFlowPlugin extends Plugin {
       this.app,
       totalFiles,
       `Mass Updating ${totalFiles} files`,
-      () => {
+      `Mass Updating ${totalFiles} files in the folder "${directory}"`,
+      async () => {
         abort = true;
+        await Utils.sleep(this.settings.frontmatterUpdateDelayMs, () => {
+          this.fileClassStateManager.setEnabled(true);
+        });
+      },
+      async () => {
+        // block fileClassStateManager to update note while mass update is in progress
+        this.fileClassStateManager.setEnabled(false);
+
+        try {
+          let updatedCount = 0;
+          let processedCount = 0;
+          let movedCount = 0;
+          let errorCount = 0;
+          noticeManager.addInfo(`Starting mass update of ${totalFiles} files...`);
+          const startTime = new Date();
+          for (const file of filteredFiles) {
+            try {
+              if (abort) {
+                break;
+              }
+              let fileInError = false;
+              // Read file content
+              const content = await this.app.vault.read(file);
+              modal.setCurrentItem(file.path);
+              let processedContent = content;
+              try {
+                processedContent = this.metaFlowService.processContent(content, file, modal);
+                if (processedContent !== content) {
+                  updatedCount++;
+                  await this.app.vault.modify(file, processedContent);
+                }
+              } catch (error: any) {
+                modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
+                console.error(`Error processing content for file ${file.path}:`, error);
+                fileInError = true;
+              }
+              // Optionally move note to right folder
+              const fileClass = this.metaFlowService.getFileClassFromContent(processedContent);
+              if (fileClass) {
+                try {
+                  if (this.settings.autoMoveNoteToRightFolder) {
+                    const newFilePath = await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+                    if (file.path !== newFilePath) {
+                      modal.addInfo(`Moved note ${file.path} to ${newFilePath}`);
+                      movedCount++;
+                    }
+                  }
+                } catch (error: any) {
+                  modal.addError(`Error moving note to the right folder for file ${file.path}: ${error.message}`);
+                  console.error(`Error moving note to the right folder for file ${file.path}:`, error);
+                  fileInError = true;
+                }
+              }
+              if (fileInError) {
+                errorCount++;
+              }
+              processedCount++;
+            } catch (error: any) {
+              modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
+              console.error(`Error updating metadata in file ${file.path}:`, error);
+              errorCount++;
+            }
+          }
+          const endTime = new Date();
+          const duration = (endTime.getTime() - startTime.getTime()) / 1000;
+          const msg = (errorCount > 0) ? `Mass update completed in ${duration} seconds with ${errorCount} errors` : `Mass update completed in ${duration} seconds`;
+          modal.addInfo(msg);
+          modal.addInfo(`${processedCount} files processed out of ${totalFiles} total files`);
+          modal.addInfo(`${updatedCount} files updated out of ${totalFiles} total files`);
+          modal.addInfo(`${movedCount} files moved out of ${totalFiles} total files`);
+          if (errorCount > 0) {
+            modal.addError(`${errorCount} files encountered errors out of ${totalFiles} total files`);
+          }
+          modal.finish();
+          noticeManager.addInfo(msg);
+        } finally {
+          this.fileClassStateManager.setEnabled(true);
+        }
       }
     );
     modal.open();
-    noticeManager.addInfo(`Starting mass update of ${totalFiles} files...`);
-    const startTime = new Date();
-    for (const file of filteredFiles) {
-      try {
-        if (abort) {
-          break;
-        }
-        const content = await this.app.vault.process(file, (function (content: string) {
-          try {
-            processedCount++;
-            modal.setCurrentItem(file.path);
-            const processedContent = this.metaFlowService.processContent(content, file);
-            if (processedContent !== content) {
-              updatedCount++;
-            }
-            return processedContent;
-          } catch (error) {
-            modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
-            console.error(`Error processing content for file ${file.path}:`, error);
-            return content;
-          } finally {
-            if (processedCount == totalFiles) {
-              const endTime = new Date();
-              const duration = (endTime.getTime() - startTime.getTime()) / 1000;
-              const msg = `Mass update completed: ${updatedCount} files updated out of ${totalFiles} total files in ${duration} seconds`;
-              modal.addInfo(msg);
-              modal.finish();
-              noticeManager.addInfo(msg);
-            }
-          }
-        }).bind(this));
-        const fileClass = this.metaFlowService.getFileClassFromContent(content);
-        if (fileClass) {
-          try {
-            if (this.settings.autoMoveNoteToRightFolder) {
-              await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
-            }
-          } catch (error) {
-            modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
-            console.error(`Error moving note to the right folder for file ${file.path}:`, error);
-          }
-        }
-      } catch (error) {
-        modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
-        console.error(`Error updating metadata in file ${file.path}:`, error);
-      }
-    }
   }
 
   onunload() {
