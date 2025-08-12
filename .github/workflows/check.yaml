@@ -1,5 +1,9 @@
 name: Create Release
 
+permissions:
+  # used by ouzi-dev/commit-status-updater
+  statuses: write
+
 on:
   workflow_dispatch:
   push:
@@ -11,6 +15,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Sets push commit to pending status
+        uses: ouzi-dev/commit-status-updater@v2
+        with:
+          name: "unit-test"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -26,3 +35,9 @@ jobs:
 
       - name: Test the plugin
         run: npm run test
+
+      - if: always()
+        uses: ouzi-dev/commit-status-updater@v2
+        with:
+          name: "unit-test"
+          status: "${{ job.status }}"
