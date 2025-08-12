@@ -46,6 +46,10 @@
   color: var(--text-error);
 }
 
+.progress-modal-debug-item {
+  color: var(--text-normal);
+}
+
 .progress-modal-results {
   height: 300px;
   overflow-y: auto;

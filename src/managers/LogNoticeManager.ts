@@ -38,6 +38,8 @@ export class LogNoticeManager implements LogManagerInterface {
 
   public addMessage(message: string, logLevel: LogManagerLogLevel): void {
     switch (logLevel) {
+      case 'debug':
+        return this.addDebug(message);
       case 'info':
         return this.addInfo(message);
       case "warning":

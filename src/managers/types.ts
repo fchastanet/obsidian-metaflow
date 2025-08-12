@@ -1,4 +1,4 @@
-export type LogManagerLogLevel = 'info' | 'warning' | 'error' | 'ignore';
+export type LogManagerLogLevel = 'info' | 'warning' | 'error' | 'debug' | 'ignore';
 export type LogManagerInterface = {
   addDebug(message: string): void;
   addInfo(message: string): void;

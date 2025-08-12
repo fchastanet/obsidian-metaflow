@@ -97,26 +97,30 @@ export class ProgressModal extends Modal implements LogManagerInterface {
   addError(error: string) {
     this.errorCount++;
     this.numberErrorsText.setText(`${this.errorCount} errors`);
-    const errorItem = this.results.createEl('li', {text: error, cls: 'progress-modal-error-item'});
+    this.results.createEl('li', {text: error, cls: 'progress-modal-error-item'});
     this.results.scrollTop = this.results.scrollHeight;
   }
 
   addInfo(info: string) {
-    const infoItem = this.results.createEl('li', {text: info, cls: 'progress-modal-info-item'});
+    this.results.createEl('li', {text: info, cls: 'progress-modal-info-item'});
     this.results.scrollTop = this.results.scrollHeight;
   }
 
   addDebug(message: string): void {
-    this.addInfo(`[DEBUG] ${message}`);
+    this.results.createEl('li', {text: `[DEBUG] ${message}`, cls: 'progress-modal-debug-item'});
+    this.results.scrollTop = this.results.scrollHeight;
   }
 
   addWarning(message: string): void {
-    const warningItem = this.results.createEl('li', {text: `[WARNING] ${message}`, cls: 'progress-modal-warning-item'});
+    this.results.createEl('li', {text: `[WARNING] ${message}`, cls: 'progress-modal-warning-item'});
     this.results.scrollTop = this.results.scrollHeight;
   }
 
   addMessage(message: string, logLevel: LogManagerLogLevel): void {
     switch (logLevel) {
+      case "debug":
+        this.addDebug(message);
+        break;
       case "info":
         this.addInfo(message);
         break;
