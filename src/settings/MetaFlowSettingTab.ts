@@ -4,6 +4,7 @@ import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
 import {MetaFlowService} from "../services/MetaFlowService";
 import {FrontmatterParseResult, FrontMatterService} from "../services/FrontMatterService";
+import {NoteTitleTemplate, FolderFileClassMapping} from "./types";
 declare type AceModule = typeof import("ace-builds");
 import * as Ace from "ace-builds";
 import {FolderSuggest} from "./FolderSuggest";
@@ -189,7 +190,8 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.folderFileClassMappings.push({
             folder: '',
             fileClass: '',
-            moveToFolder: false
+            moveToFolder: false,
+            noteTitleTemplates: []
           });
           this.plugin.saveSettings();
           this.displayFolderMappings(mappingsContainer);
@@ -456,7 +458,8 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.folderFileClassMappings.push({
             folder: folderTemplate.folder,
             fileClass: '',
-            moveToFolder: true
+            moveToFolder: true,
+            noteTitleTemplates: []
           });
           importedCount++;
         }
@@ -539,35 +542,34 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     container.empty();
 
     this.plugin.settings.folderFileClassMappings.forEach((mapping, index) => {
-      const mappingDiv = container.createEl('div', {cls: 'setting-item'});
+      const mappingDiv = container.createEl('div', {cls: 'metaflow-settings-mapping-row metaflow-settings-grab'});
 
       // Add drag and drop functionality
       mappingDiv.draggable = true;
-      mappingDiv.classList.add('metaflow-settings-mapping-grab');
       mappingDiv.setAttribute('data-index', index.toString());
 
       // Add visual feedback for drag operations
       mappingDiv.addEventListener('dragstart', (e) => {
-        mappingDiv.classList.add('metaflow-settings-mapping-dragging');
+        mappingDiv.classList.add('metaflow-settings-dragging');
         e.dataTransfer?.setData('text/plain', index.toString());
       });
 
       mappingDiv.addEventListener('dragend', () => {
-        mappingDiv.classList.remove('metaflow-settings-mapping-dragging');
+        mappingDiv.classList.remove('metaflow-settings-dragging');
       });
 
       mappingDiv.addEventListener('dragover', (e) => {
         e.preventDefault();
-        mappingDiv.classList.add('metaflow-settings-mapping-dragover');
+        mappingDiv.classList.add('metaflow-settings-dragover');
       });
 
       mappingDiv.addEventListener('dragleave', () => {
-        mappingDiv.classList.remove('metaflow-settings-mapping-dragover');
+        mappingDiv.classList.remove('metaflow-settings-dragover');
       });
 
       mappingDiv.addEventListener('drop', async (e) => {
         e.preventDefault();
-        mappingDiv.classList.remove('metaflow-settings-mapping-dragover');
+        mappingDiv.classList.remove('metaflow-settings-dragover');
 
         const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
         const targetIndex = index;
@@ -586,29 +588,18 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       const mappingControl = mappingDiv.createEl('div', {cls: 'setting-item-control'});
       mappingControl.classList.add('metaflow-settings-mapping-control');
 
-      // Order controls
-      const orderDiv = mappingControl.createEl('div', {cls: 'setting-item-order'});
-      orderDiv.classList.add('metaflow-settings-mapping-order');
-
-      const upButton = orderDiv.createEl('button', {text: '↑'});
-      upButton.classList.add('metaflow-settings-mapping-up');
-      upButton.disabled = index === 0;
-
-      const downButton = orderDiv.createEl('button', {text: '↓'});
-      downButton.classList.add('metaflow-settings-mapping-down');
-      downButton.disabled = index === this.plugin.settings.folderFileClassMappings.length - 1;
-
-      orderDiv.createEl('span', {text: `Order: ${index + 1}`});
-
       // Control row
       const controlRow = mappingControl.createEl('div');
       controlRow.classList.add('metaflow-settings-mapping-control-row');
 
       // Folder pattern input
+      const inputId = `metaflow-settings-mapping-folder-${index}`;
+      controlRow.createEl('label', {text: 'Folder', attr: {for: inputId}});
       const folderInput = controlRow.createEl('input', {
         type: 'text',
         placeholder: 'A Vault folder',
-        value: mapping.folder
+        value: mapping.folder,
+        attr: {id: inputId},
       });
       // Add folder suggestions
       new FolderSuggest(this.app, folderInput);
@@ -669,46 +660,23 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       }
 
       // moveToFolder toggle
-      const moveToFolderToggle = controlRow.createEl('input', {
-        type: 'checkbox',
-        title: 'Move files to this folder if they match this fileClass',
+      const [moveToFolderToggle, moveToFolderLabel] = this.createCheckboxWithLabel(controlRow, {
+        label: 'Auto-Move',
+        labelClass: 'metaflow-settings-mapping-moveToFolder-label',
+        labelTitle: 'Move files to this folder if they match this fileClass',
+        checkboxClass: 'metaflow-settings-mapping-moveToFolder-checkbox',
+        checked: mapping.moveToFolder || false
       });
-      moveToFolderToggle.checked = mapping.moveToFolder || false;
-      const moveToFolderLabel = controlRow.createEl('label', {
-        text: 'AutoMove',
-        title: 'Move files to this folder if they match this fileClass',
-      });
-      moveToFolderToggle.addEventListener('change', async () => {
+      moveToFolderToggle.addEventListener('change', async (event) => {
         mapping.moveToFolder = moveToFolderToggle.checked;
         await this.plugin.saveSettings();
       });
-
 
       // Delete button
       const deleteButton = controlRow.createEl('button', {text: '🗑️ Delete'});
       deleteButton.classList.add('metaflow-settings-mapping-delete');
 
       // Event listeners
-      upButton.addEventListener('click', async () => {
-        if (index > 0) {
-          const temp = this.plugin.settings.folderFileClassMappings[index];
-          this.plugin.settings.folderFileClassMappings[index] = this.plugin.settings.folderFileClassMappings[index - 1];
-          this.plugin.settings.folderFileClassMappings[index - 1] = temp;
-          await this.plugin.saveSettings();
-          this.displayFolderMappings(container);
-        }
-      });
-
-      downButton.addEventListener('click', async () => {
-        if (index < this.plugin.settings.folderFileClassMappings.length - 1) {
-          const temp = this.plugin.settings.folderFileClassMappings[index];
-          this.plugin.settings.folderFileClassMappings[index] = this.plugin.settings.folderFileClassMappings[index + 1];
-          this.plugin.settings.folderFileClassMappings[index + 1] = temp;
-          await this.plugin.saveSettings();
-          this.displayFolderMappings(container);
-        }
-      });
-
       fileClassControl.addEventListener('change', async () => {
         mapping.fileClass = fileClassControl.value;
         await this.plugin.saveSettings();
@@ -726,7 +694,28 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         await this.plugin.saveSettings();
         this.displayFolderMappings(container);
       });
+
+      // Note Title Templates Section
+      this.displayNoteTitleTemplates(mappingDiv, mapping, index);
     });
+  }
+
+  private createCheckboxWithLabel(container: HTMLElement, options: {
+    label?: string,
+    labelClass: string,
+    labelTitle: string,
+    checkboxClass: string,
+    checked?: boolean
+  }): [HTMLInputElement, HTMLElement] {
+    const enabledLabel = container.createEl('label', {title: options.labelTitle});
+    enabledLabel.classList.add(options.labelClass);
+    const enabledToggle = enabledLabel.createEl('input', {type: 'checkbox'});
+    enabledToggle.classList.add(options.checkboxClass);
+    enabledLabel.appendChild(document.createTextNode(options.label ?? 'Enabled'));
+    if (options.checked !== undefined) {
+      enabledToggle.checked = options.checked;
+    }
+    return [enabledToggle, enabledLabel];
   }
 
   private displayPropertyScripts(container: HTMLElement): void {
@@ -741,31 +730,31 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
       // Add drag and drop functionality
       scriptDiv.draggable = true;
-      scriptDiv.classList.add('metaflow-settings-script-grab');
+      scriptDiv.classList.add('metaflow-settings-grab');
       scriptDiv.setAttribute('data-index', index.toString());
 
       // Add visual feedback for drag operations
       scriptDiv.addEventListener('dragstart', (e) => {
-        scriptDiv.classList.add('metaflow-settings-script-dragging');
+        scriptDiv.classList.add('metaflow-settings-dragging');
         e.dataTransfer?.setData('text/plain', index.toString());
       });
 
       scriptDiv.addEventListener('dragend', () => {
-        scriptDiv.classList.remove('metaflow-settings-script-dragging');
+        scriptDiv.classList.remove('metaflow-settings-dragging');
       });
 
       scriptDiv.addEventListener('dragover', (e) => {
         e.preventDefault();
-        scriptDiv.classList.add('metaflow-settings-script-dragover');
+        scriptDiv.classList.add('metaflow-settings-dragover');
       });
 
       scriptDiv.addEventListener('dragleave', () => {
-        scriptDiv.classList.remove('metaflow-settings-script-dragover');
+        scriptDiv.classList.remove('metaflow-settings-dragover');
       });
 
       scriptDiv.addEventListener('drop', async (e) => {
         e.preventDefault();
-        scriptDiv.classList.remove('metaflow-settings-script-dragover');
+        scriptDiv.classList.remove('metaflow-settings-dragover');
 
         const draggedDisplayIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
         const targetDisplayIndex = index;
@@ -813,12 +802,15 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       scriptPreview.classList.add('metaflow-settings-script-preview');
 
       // Enabled toggle
-      const enabledLabelPreview = readOnlyDiv.createEl('label');
-      enabledLabelPreview.classList.add('metaflow-settings-script-enabled-label');
-      const enabledTogglePreview = enabledLabelPreview.createEl('input', {type: 'checkbox'});
-      enabledTogglePreview.checked = script.enabled;
-      enabledTogglePreview.classList.add('metaflow-settings-script-enabled-toggle');
-      enabledLabelPreview.appendChild(document.createTextNode('Enabled'));
+      const [enabledTogglePreview, enabledLabelPreview] = this.createCheckboxWithLabel(
+        readOnlyDiv, {
+        labelClass: 'metaflow-settings-script-enabled-label',
+        labelTitle: 'Allows this script to run',
+        checkboxClass: 'metaflow-settings-script-enabled-toggle',
+        label: 'Enabled',
+        checked: script.enabled,
+      }
+      );
 
       // Edit button (aligned to right)
       const editButton = readOnlyDiv.createEl('button', {text: '✏️ Edit'});
@@ -846,12 +838,15 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       });
       propertyInput.classList.add('metaflow-settings-script-property-input');
 
-      // Enabled toggle
-      const enabledLabel = propertyRow.createEl('label');
-      const enabledToggle = enabledLabel.createEl('input', {type: 'checkbox'});
-      enabledToggle.checked = script.enabled;
-      enabledToggle.classList.add('metaflow-settings-script-enabled-toggle');
-      enabledLabel.appendChild(document.createTextNode('Enabled'));
+      const [enabledToggle, enabledLabel] = this.createCheckboxWithLabel(
+        propertyRow, {
+        labelClass: 'metaflow-settings-script-enabled-label',
+        labelTitle: 'Allows this script to run',
+        checkboxClass: 'metaflow-settings-script-enabled-toggle',
+        label: 'Enabled',
+        checked: script.enabled,
+      }
+      );
 
       // Order controls
       const orderDiv = propertyRow.createEl('div', {cls: 'setting-item-order'});
@@ -983,12 +978,12 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           readOnlyDiv.classList.add('metaflow-settings-hide');
           editDiv.classList.remove('metaflow-settings-hide');
           scriptDiv.draggable = false;
-          scriptDiv.classList.remove('metaflow-settings-script-grab');
+          scriptDiv.classList.remove('metaflow-settings-grab');
         } else {
           readOnlyDiv.classList.remove('metaflow-settings-hide');
           editDiv.classList.add('metaflow-settings-hide');
           scriptDiv.draggable = true;
-          scriptDiv.classList.add('metaflow-settings-script-grab');
+          scriptDiv.classList.add('metaflow-settings-grab');
         }
       };
 
@@ -1033,6 +1028,174 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         this.displayPropertyScripts(container);
       });
     });
+  }
+
+  private displayNoteTitleTemplates(mappingDiv: HTMLElement, mapping: any, mappingIndex: number): void {
+    // Initialize noteTitleTemplates if not exists
+    if (!mapping.noteTitleTemplates) {
+      mapping.noteTitleTemplates = [];
+    }
+
+    const templateSection = mappingDiv.createDiv({cls: 'note-title-template-section'});
+    const templateSectionToolbar = templateSection.createEl('div', {cls: 'metaflow-settings-note-title-template-toolbar'});
+    templateSectionToolbar.createEl('label', {text: 'Note Title Templates', cls: 'metaflow-settings-note-title-template-label'});
+
+    // Add button to create new template
+    const addTemplateButton = templateSectionToolbar.createEl('button', {text: '➕ Add Note Title Template'});
+    addTemplateButton.classList.add('metaflow-settings-note-title-template-add-btn');
+    addTemplateButton.onclick = async () => {
+      mapping.noteTitleTemplates.push({template: '', enabled: true});
+      await this.plugin.saveSettings();
+      this.displayFolderMappings(mappingDiv.parentElement as HTMLElement);
+    };
+
+    // Help button
+    const helpButton = templateSectionToolbar.createEl('button', {text: '🛈 Help', cls: 'metaflow-settings-template-help-btn'});
+    helpButton.onclick = () => {
+      this.showAvailableFields(mapping.fileClass);
+    };
+
+    // Display existing templates
+    const templatesContainer = templateSection.createDiv({cls: 'metaflow-settings-templates-container'});
+    this.displayTemplateRows(templatesContainer, mapping, mappingIndex);
+
+  }
+
+  private displayTemplateRows(container: HTMLElement, mapping: any, mappingIndex: number): void {
+    container.empty();
+
+    mapping.noteTitleTemplates.forEach((template: any, templateIndex: number) => {
+      const templateRow = container.createDiv({cls: 'metaflow-settings-template-row'});
+      templateRow.draggable = true;
+      templateRow.classList.add('metaflow-settings-template-row-draggable');
+      templateRow.setAttribute('data-template-index', templateIndex.toString());
+
+      // Add drag and drop functionality for templates
+      templateRow.addEventListener('dragstart', (e) => {
+        templateRow.classList.add('metaflow-settings-dragging');
+        e.dataTransfer?.setData('text/plain', templateIndex.toString());
+      });
+
+      templateRow.addEventListener('dragend', () => {
+        templateRow.classList.remove('metaflow-settings-dragging');
+      });
+
+      templateRow.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        templateRow.classList.add('metaflow-settings-dragover');
+      });
+
+      templateRow.addEventListener('dragleave', () => {
+        templateRow.classList.remove('metaflow-settings-dragover');
+      });
+
+      templateRow.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        templateRow.classList.remove('metaflow-settings-dragover');
+
+        const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
+        const targetIndex = templateIndex;
+
+        if (draggedIndex !== targetIndex && !isNaN(draggedIndex)) {
+          // Reorder the templates array
+          const draggedItem = mapping.noteTitleTemplates[draggedIndex];
+          mapping.noteTitleTemplates.splice(draggedIndex, 1);
+          mapping.noteTitleTemplates.splice(targetIndex, 0, draggedItem);
+
+          await this.plugin.saveSettings();
+          this.displayTemplateRows(container, mapping, mappingIndex);
+        }
+      });
+
+      // Drag handle
+      const dragHandle = templateRow.createEl('span', {cls: 'drag-handle', text: '⋮⋮'});
+
+      // Template input (CodeMirror placeholder for now, can be enhanced later)
+      const templateInput = templateRow.createEl('textarea', {cls: 'metaflow-settings-template-input', attr: {rows: 1}});
+      templateInput.value = template.template;
+      templateInput.placeholder = 'Enter template (e.g., {{title}} - {{author}})';
+      templateInput.addEventListener('input', async () => {
+        template.template = templateInput.value;
+        await this.plugin.saveSettings();
+      });
+
+      // Enabled toggle
+      const [enabledToggle, enabledLabel] = this.createCheckboxWithLabel(templateRow, {
+        label: 'Enabled',
+        labelClass: 'metaflow-settings-template-checkbox-label',
+        labelTitle: 'Toggle template enabled state',
+        checkboxClass: 'metaflow-settings-template-checkbox',
+        checked: template.enabled,
+      });
+      enabledToggle.addEventListener('change', async (event: Event) => {
+        template.enabled = enabledToggle.checked;
+        await this.plugin.saveSettings();
+      });
+
+      // Delete button
+      const deleteButton = templateRow.createEl('button', {text: '🗑️', cls: 'metaflow-settings-template-delete-btn'});
+      deleteButton.onclick = async () => {
+        mapping.noteTitleTemplates.splice(templateIndex, 1);
+        await this.plugin.saveSettings();
+        this.displayTemplateRows(container, mapping, mappingIndex);
+      };
+    });
+
+    // Default template row (always at the end)
+    const defaultRow = container.createDiv({cls: 'metaflow-settings-template-row metaflow-settings-default-template'});
+    defaultRow.createEl('span', {cls: 'metaflow-settings-drag-handle-not-allowed', text: '⋮⋮'});
+    defaultRow.createEl('span', {cls: 'metaflow-settings-default-template-label', text: 'Default: Untitled'});
+
+  }
+
+  private showAvailableFields(fileClass: string): void {
+    const modal = new (this.app as any).Modal(this.app);
+    modal.contentEl.createEl('h2', {text: 'Available Fields'});
+
+    if (!fileClass) {
+      modal.contentEl.createEl('p', {text: 'Please select a fileClass first to see available fields.'});
+      modal.open();
+      return;
+    }
+
+    modal.contentEl.createEl('h3', {text: `Fields for fileClass: ${fileClass}`});
+
+    try {
+      if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
+        const logManager = new LogNoticeManager(this.obsidianAdapter);
+        const fields = this.metadataMenuAdapter.getFileClassAndAncestorsFields(fileClass, logManager);
+
+        if (fields.length > 0) {
+          const fieldsList = modal.contentEl.createEl('ul');
+          fields.forEach((field: any) => {
+            const fieldItem = fieldsList.createEl('li');
+            fieldItem.createEl('strong', {text: field.name});
+            if (field.type) {
+              fieldItem.appendText(` (${field.type})`);
+            }
+            if (field.tooltip) {
+              fieldItem.appendText(` - ${field.tooltip}`);
+            }
+          });
+        } else {
+          modal.contentEl.createEl('p', {text: 'No fields found for this fileClass.'});
+        }
+      } else {
+        modal.contentEl.createEl('p', {text: 'MetadataMenu plugin is not available. Cannot show field information.'});
+      }
+    } catch (error) {
+      modal.contentEl.createEl('p', {text: `Error retrieving fields: ${error.message}`});
+    }
+
+    // Add template syntax help
+    modal.contentEl.createEl('h3', {text: 'Template Syntax'});
+    const syntaxList = modal.contentEl.createEl('ul');
+    syntaxList.createEl('li', {text: '{{fieldName}} - Insert value of a metadata field'});
+    syntaxList.createEl('li', {text: '{{file.name}} - File name without extension'});
+    syntaxList.createEl('li', {text: '{{file.basename}} - File name without path and extension'});
+    syntaxList.createEl('li', {text: '{{now()}} - Current date/time'});
+
+    modal.open();
   }
 
   private displaySimulationSection(): void {

@@ -114,12 +114,14 @@ describe('MetaFlowSettingTab', () => {
       expect(mockPlugin.settings.folderFileClassMappings[0]).toEqual({
         folder: 'Books',
         fileClass: '',
-        moveToFolder: true
+        moveToFolder: true,
+        noteTitleTemplates: []
       });
       expect(mockPlugin.settings.folderFileClassMappings[1]).toEqual({
         folder: 'Articles',
         fileClass: '',
-        moveToFolder: true
+        moveToFolder: true,
+        noteTitleTemplates: []
       });
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });
@@ -127,15 +129,15 @@ describe('MetaFlowSettingTab', () => {
     test('should not duplicate existing mappings', async () => {
       // Add existing mapping
       mockPlugin.settings.folderFileClassMappings = [
-        {folder: 'Books', fileClass: 'existing-book', moveToFolder: false}
+        {folder: 'Books', fileClass: 'existing-book', moveToFolder: false, noteTitleTemplates: []}
       ];
 
       await settingTab['importFolderMappingsFromTemplater']();
 
       // Should still have only one mapping (the existing one)
       expect(mockPlugin.settings.folderFileClassMappings).toStrictEqual([
-        {"fileClass": "existing-book", "folder": "Books", "moveToFolder": false},
-        {"fileClass": "", "folder": "Articles", "moveToFolder": true}
+        {"fileClass": "existing-book", "folder": "Books", "moveToFolder": false, "noteTitleTemplates": []},
+        {"fileClass": "", "folder": "Articles", "moveToFolder": true, "noteTitleTemplates": []}
       ]);
     });
 

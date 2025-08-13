@@ -14,7 +14,8 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
     {
       folder: '/',
       fileClass: 'default',
-      moveToFolder: false
+      moveToFolder: false,
+      noteTitleTemplates: [],
     }
   ],
   propertyDefaultValueScripts: [],

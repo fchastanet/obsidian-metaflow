@@ -103,7 +103,7 @@ describe('TemplaterAdapter', () => {
         ...DEFAULT_SETTINGS,
         enableTemplaterIntegration: true,
         folderFileClassMappings: [
-          {folder: 'Articles/*', fileClass: 'article', moveToFolder: true}  // Different pattern
+          {folder: 'Articles/*', fileClass: 'article', moveToFolder: true, noteTitleTemplates: []}  // Different pattern
         ]
       };
       const adapter = new TemplaterAdapter(mockApp, settingsWithMappings);

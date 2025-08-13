@@ -115,21 +115,16 @@
 }
 
 /* Folder mapping styles */
-.metaflow-settings-mapping-grab {
-  cursor: grab;
-}
-
-.metaflow-settings-mapping-dragging {
-  opacity: 0.5;
-  cursor: grabbing;
-}
-
-.metaflow-settings-mapping-dragover {
-  border-top: 2px solid var(--interactive-accent);
+.metaflow-settings-mapping-row {
+  flex-direction: column;
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
 }
 
 .metaflow-settings-mapping-control {
   display: flex;
+  width: 100%;
   justify-content: space-between;
 }
 
@@ -172,24 +167,42 @@
   border-radius: 3px;
 }
 
+.note-title-template-section {
+  width: 100%;
+  padding: 10px;
+  padding-left: 30px;
+}
+
+.metaflow-settings-note-title-template-toolbar {
+  display: flex;
+  width: 100%;
+  column-gap: 10px;
+  align-items: anchor-center;
+  margin-bottom: 10px;
+}
+
+.metaflow-settings-templates-container {
+  width: 100%;
+  border-left: 1px solid #fff;
+  padding-left: 10px;
+}
+
+.metaflow-settings-template-row {
+  display: flex;
+  column-gap: 10px;
+  align-items: anchor-center;
+}
+
+.metaflow-settings-template-input {
+  flex-grow: 1;
+  resize: none;
+}
+
 /* Property script styles */
 .metaflow-settings-script {
   border: 1px solid #ccc;
   padding: 10px;
   margin-bottom: 10px;
-}
-
-.metaflow-settings-script-grab {
-  cursor: grab;
-}
-
-.metaflow-settings-script-dragging {
-  opacity: 0.5;
-  cursor: grabbing;
-}
-
-.metaflow-settings-script-dragover {
-  border-top: 3px solid var(--interactive-accent);
 }
 
 .metaflow-settings-script-readonly {
@@ -373,6 +386,28 @@
   width: 24px;
   height: 24px;
 }
+
+/* -------------------------------------------------- */
+/* Drag & Drop                                        */
+/* -------------------------------------------------- */
+.metaflow-settings-drag-handle-not-allowed {
+  color: var(--text-error);
+  cursor: not-allowed;
+}
+
+.metaflow-settings-grab {
+  cursor: grab;
+}
+
+.metaflow-settings-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.metaflow-settings-dragover {
+  border-top: 2px solid var(--interactive-accent);
+}
+
 
 /* -------------------------------------------------- */
 /* Settings Support                                   */

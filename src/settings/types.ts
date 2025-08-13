@@ -1,7 +1,13 @@
+export interface NoteTitleTemplate {
+  template: string;
+  enabled: boolean;
+}
+
 export interface FolderFileClassMapping {
   folder: string;
   fileClass: string;
   moveToFolder: boolean;
+  noteTitleTemplates: NoteTitleTemplate[];
 }
 
 export interface PropertyDefaultValueScript {
