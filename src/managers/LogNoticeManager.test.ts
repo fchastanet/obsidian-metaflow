@@ -1,26 +1,20 @@
+import {domCreate} from "../__mocks__/dom";
 import {LogNoticeManager} from "./LogNoticeManager";
 
 describe("LogNoticeManager", () => {
   let obsidianAdapter: any;
   let manager: LogNoticeManager;
-  let domCreate: any;
+  let domCreateFn: any = domCreate;
 
   beforeEach(() => {
-    domCreate = jest.fn().mockImplementation(({cls, title, text}) => {
-      const div = document.createElement("div");
-      if (cls) div.className = cls;
-      if (title) div.title = title;
-      if (text) div.textContent = text;
-      div.createDiv = domCreate;
-      return div;
-    });
-
+    // Reset mocks
+    jest.clearAllMocks();
     obsidianAdapter = {
       notice: jest.fn().mockImplementation((message: string) => {
         return {
           messageEl: jest.fn().mockImplementation(() => {
             return {
-              createDiv: domCreate,
+              createDiv: domCreateFn,
             };
           })()
         }
@@ -31,77 +25,77 @@ describe("LogNoticeManager", () => {
   });
 
   it("should call notice for debug", () => {
-    const noticeObj = {messageEl: {createDiv: domCreate}};
+    const noticeObj = {messageEl: {createDiv: domCreateFn}};
     obsidianAdapter.notice.mockReturnValueOnce(noticeObj);
 
     manager.addDebug("debug");
-    expect(domCreate).toHaveBeenCalledTimes(3);
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "debug level"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - DEBUG 🐞"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "debug"});
+    expect(domCreateFn).toHaveBeenCalledTimes(3);
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "debug level"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - DEBUG 🐞"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "debug"});
   });
 
   it("should call notice for info", () => {
-    const noticeObj = {messageEl: {createDiv: domCreate}};
+    const noticeObj = {messageEl: {createDiv: domCreateFn}};
     obsidianAdapter.notice.mockReturnValueOnce(noticeObj);
 
     manager.addInfo("info");
-    expect(domCreate).toHaveBeenCalledTimes(3);
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "info level"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - INFO ℹ️"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "info"});
+    expect(domCreateFn).toHaveBeenCalledTimes(3);
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "info level"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - INFO ℹ️"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "info"});
   });
 
   it("should call notice for warning", () => {
-    const noticeObj = {messageEl: {createDiv: domCreate}};
+    const noticeObj = {messageEl: {createDiv: domCreateFn}};
     obsidianAdapter.notice.mockReturnValueOnce(noticeObj);
 
     manager.addWarning("warn");
-    expect(domCreate).toHaveBeenCalledTimes(3);
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "warning level"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - WARNING ⚠️"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "warn"});
+    expect(domCreateFn).toHaveBeenCalledTimes(3);
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "warning level"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - WARNING ⚠️"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "warn"});
   });
 
   it("should call notice for error", () => {
-    const noticeObj = {messageEl: {createDiv: domCreate}};
+    const noticeObj = {messageEl: {createDiv: domCreateFn}};
     obsidianAdapter.notice.mockReturnValueOnce(noticeObj);
 
     manager.addError("error");
-    expect(domCreate).toHaveBeenCalledTimes(3);
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "error level"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - ERROR ❌"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "error"});
+    expect(domCreateFn).toHaveBeenCalledTimes(3);
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "error level"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - ERROR ❌"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "error"});
   });
 
   it("should call addMessage with info level and use addDebug", () => {
-    const noticeObj = {messageEl: {createDiv: domCreate}};
+    const noticeObj = {messageEl: {createDiv: domCreateFn}};
     obsidianAdapter.notice.mockReturnValueOnce(noticeObj);
     manager.addMessage("debug", "info");
-    expect(domCreate).toHaveBeenCalledTimes(3);
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "info level"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - INFO ℹ️"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "debug"});
+    expect(domCreateFn).toHaveBeenCalledTimes(3);
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "info level"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - INFO ℹ️"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "debug"});
   });
 
   it("should call addMessage with warning level and use addWarning", () => {
-    const noticeObj = {messageEl: {createDiv: domCreate}};
+    const noticeObj = {messageEl: {createDiv: domCreateFn}};
     obsidianAdapter.notice.mockReturnValueOnce(noticeObj);
     manager.addMessage("warn", "warning");
-    expect(domCreate).toHaveBeenCalledTimes(3);
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "warning level"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - WARNING ⚠️"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "warn"});
+    expect(domCreateFn).toHaveBeenCalledTimes(3);
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "warning level"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - WARNING ⚠️"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "warn"});
   });
 
   it("should call addMessage with error level and use addError", () => {
-    const noticeObj = {messageEl: {createDiv: domCreate}};
+    const noticeObj = {messageEl: {createDiv: domCreateFn}};
     obsidianAdapter.notice.mockReturnValueOnce(noticeObj);
     manager.addMessage("error", "error");
-    expect(domCreate).toHaveBeenCalledTimes(3);
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "error level"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - ERROR ❌"});
-    expect(domCreate).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "error"});
+    expect(domCreateFn).toHaveBeenCalledTimes(3);
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice", "title": "error level"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-title", "text": "MetaFlow - ERROR ❌"});
+    expect(domCreateFn).toHaveBeenCalledWith({"cls": "meta-flow-notice-message", "text": "error"});
   });
 
   it("should call addMessage with ignore level and do nothing", () => {

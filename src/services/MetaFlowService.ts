@@ -8,7 +8,7 @@ import {MetaFlowException} from "../MetaFlowException";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {LogManagerInterface} from "../managers/types";
 import {Utils} from "../utils/Utils";
-import {MetadataMenuField} from "src/externalApi/types.MetadataMenu";
+import {MetadataMenuField} from "../externalApi/types.MetadataMenu";
 
 export class MetaFlowService {
   private app: App;

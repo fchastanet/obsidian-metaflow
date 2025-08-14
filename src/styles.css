@@ -88,6 +88,11 @@
   font-variant: var(--h1-variant);
 }
 
+.metaflow-settings-description {
+  font-size: 14px;
+  margin-left: 100px;
+}
+
 .metaflow-settings-section-header {
   --font-weight: var(--h4-weight);
   font-variant: var(--h4-variant);
@@ -120,6 +125,15 @@
   border: 1px solid #ccc;
   padding: 10px;
   margin-bottom: 10px;
+}
+
+.metaflow-settings-no-border {
+  border: none;
+  padding: 0.25em 0;
+}
+
+.metaflow-settings-folder-path-input {
+  flex-grow: 1;
 }
 
 .metaflow-settings-mapping-control {
@@ -200,8 +214,8 @@
 
 /* Property script styles */
 .metaflow-settings-script {
-  border: 1px solid #ccc;
-  padding: 10px;
+  border: 1px solid #ccc !important;
+  padding: 10px !important;
   margin-bottom: 10px;
 }
 
