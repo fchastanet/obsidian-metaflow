@@ -87,20 +87,32 @@ export class PluginsStatusSection {
   private updatePluginsStatus(metadataMenuStatus: HTMLElement, templaterStatus: HTMLElement): void {
     // MetadataMenu status
     if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-      metadataMenuStatus.innerHTML = '✅ <strong>MetadataMenu</strong> plugin is available and enabled.';
-      metadataMenuStatus.style.color = 'green';
+      const statusMessage = metadataMenuStatus.createEl('p', {cls: 'metaflow-settings-plugin-status-available'});
+      statusMessage.appendText('✅ ');
+      const strong = statusMessage.createEl('strong');
+      strong.setText('MetadataMenu');
+      statusMessage.appendText(' plugin is available and enabled.');
     } else {
-      metadataMenuStatus.innerHTML = '❌ <strong>MetadataMenu</strong> plugin is not available. Please install and enable it for full functionality.';
-      metadataMenuStatus.style.color = 'red';
+      const statusMessage = metadataMenuStatus.createEl('p', {cls: 'metaflow-settings-plugin-status-unavailable'});
+      statusMessage.appendText('❌ ');
+      const strong = statusMessage.createEl('strong');
+      strong.setText('MetadataMenu');
+      statusMessage.appendText(' plugin is not available. Please install and enable it for full functionality.');
     }
 
     // Templater status
     if (this.templaterAdapter.isTemplaterAvailable()) {
-      templaterStatus.innerHTML = '✅ <strong>Templater</strong> plugin is available and enabled.';
-      templaterStatus.style.color = 'green';
+      const statusMessage = templaterStatus.createEl('p', {cls: 'metaflow-settings-plugin-status-available'});
+      statusMessage.appendText('✅ ');
+      const strong = statusMessage.createEl('strong');
+      strong.setText('Templater');
+      statusMessage.appendText(' plugin is available and enabled.');
     } else {
-      templaterStatus.innerHTML = '❌ <strong>Templater</strong> plugin is not available. Install it to use folder template import functionality.';
-      templaterStatus.style.color = 'red';
+      const statusMessage = templaterStatus.createEl('p', {cls: 'metaflow-settings-plugin-status-unavailable'});
+      statusMessage.appendText('❌ ');
+      const strong = statusMessage.createEl('strong');
+      strong.setText('Templater');
+      statusMessage.appendText(' plugin is not available. Install it to use folder template import functionality.');
     }
   }
 }

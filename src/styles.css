@@ -445,6 +445,15 @@
   color: #fff;
 }
 
+.metaflow-settings-plugin-status-available {
+  color: green;
+}
+
+.metaflow-settings-plugin-status-unavailable {
+  color: red;
+}
+
+
 /* -------------------------------------------------- */
 /* Meta Flow Notice */
 /* -------------------------------------------------- */
