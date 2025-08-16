@@ -2,6 +2,7 @@ import {App, Notice, Setting} from "obsidian";
 import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
 import {MetaFlowSettings, PropertyDefaultValueScript} from "../types";
 import {SettingsUtils} from "../SettingsUtils";
+import {ScriptEditor} from "../ScriptEditor";
 
 declare type AceModule = typeof import("ace-builds");
 import * as Ace from "ace-builds";
@@ -210,92 +211,16 @@ export class PropertyDefaultValueScriptsSection {
         // Import and open the modal
         // @ts-ignore
         const mod = await import('../modals/CompletionsHelpModal');
-        new mod.CompletionsHelpModal(this.app, completions).open();
+        new mod.CompletionsHelpModal(this.app, scriptEditor.getCompletions()).open();
       });
 
-      const scriptTextarea = scriptRow.createEl('textarea', {
-        placeholder: 'return "default value";',
+      // Create script editor
+      const scriptEditor = new ScriptEditor(this.app, this.metadataMenuAdapter, {
+        enableDateFunctions: true,
+        enablePromptFunction: true
       });
-      scriptTextarea.value = script.script;
-      scriptTextarea.classList.add('metaflow-settings-script-textarea');
-      const completions: Ace.Ace.ValueCompletion[] = [
-        {value: 'file', score: 1, meta: 'TFile', docHTML: 'the obsidian TFile object currently being edited'},
-        {value: 'fileClass', score: 2, meta: 'string', docHTML: 'the deduced or forced fileClass for the current file'},
-        {value: 'metadata', score: 1, meta: 'object', docHTML: 'the metadata for the current file'},
-        {value: "now()", score: 1, meta: 'string', docHTML: 'current date with default ISO format'},
-        {value: "now('YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'current date with the moment library\'s format'},
-        {value: "tomorrow()", score: 1, meta: 'string', docHTML: 'date of tomorrow with default ISO format'},
-        {value: "tomorrow('YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'date of tomorrow with the moment library\'s format'},
-        {value: "yesterday()", score: 1, meta: 'string', docHTML: 'date of yesterday with default ISO format'},
-        {value: "yesterday('YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'date of yesterday with the moment library\'s format'},
-        {value: "formatDate(date, 'YYYY-MM-DD')", score: 1, meta: 'string', docHTML: 'format javascript date with the moment library\'s format'},
-        {value: 'generateMarkdownLink(file)', score: 1, meta: 'string', docHTML: 'generate a markdown link to the file'},
-        {value: 'detectLanguage(text)', score: 1, meta: 'string', docHTML: 'simple language detection of the given text'},
-        {value: 'prompt("Your prompt here", "defaultValue")', score: 1, meta: 'string: show prompt dialog', docHTML: 'show a prompt dialog to the user and return the input value, defaultValue will be used in case of mass update'},
-        {value: 'getParentFile()', score: 1, meta: 'string', docHTML: 'get the parent file of the current file'},
-      ];
 
-      const fileCompletions: Ace.Ace.ValueCompletion[] = [
-        {value: 'name', score: 1, meta: 'filename', docHTML: 'obsidian TFile object - file name without the path'},
-        {value: 'basename', score: 1, meta: 'file\'s basename', docHTML: 'obsidian TFile object - file name without path and extension'},
-        {value: 'extension', score: 1, meta: 'file extension', docHTML: 'obsidian TFile object - file extension without the dot'},
-        {value: 'parent.path', score: 1, meta: 'folder path', docHTML: 'obsidian TFile object - parent folder path'},
-        {value: 'path', score: 1, meta: 'file path', docHTML: 'obsidian TFile object - full file path'},
-      ];
-      const metadataCompletions: Ace.Ace.ValueCompletion[] = [];
-      if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-        this.metadataMenuAdapter.getAllFields().forEach(field => {
-          metadataCompletions.push({
-            value: field.name,
-            score: 1,
-            meta: `Metadata`,
-            docHTML: `Metadata field: ${field.name}.<br>Type: ${field.type}.<br>Description: ${field?.tooltip || 'No description available.'}`,
-          });
-        });
-      }
-
-      let editor: Ace.Editor | null = null;
-      if (typeof ace !== 'undefined') {
-        editor = ace.edit(scriptTextarea);
-        editor.setTheme("ace/theme/dracula");
-        editor.session.setMode("ace/mode/javascript");
-        editor.session.setUseWrapMode(true);
-        editor.setHighlightActiveLine(true);
-        editor.completers = [
-          {
-            getCompletions: (Editor, session, pos, prefix, callback) => {
-              const linePrefix = session.getLine(pos.row).substring(0, pos.column);
-              if (/metadata\./.exec(linePrefix)) {
-                // If the prefix matches metadata., return metadata completions
-                callback(null, metadataCompletions);
-                return;
-              } else if (/file\./.exec(linePrefix)) {
-                // If the prefix matches metadata., return metadata completions
-                callback(null, fileCompletions);
-                return;
-              }
-              callback(null, completions);
-            },
-          }
-        ];
-        editor.setOptions({
-          enableBasicAutocompletion: true,
-          enableLiveAutocompletion: true,
-          enableSnippets: true,
-          useWorker: false,
-          showLineNumbers: true,
-          fontSize: "14px",
-          wrap: true,
-          autoScrollEditorIntoView: true,
-          minLines: 5,
-          maxLines: 20,
-          tabSize: 2,
-          useSoftTabs: true,
-          highlightActiveLine: true,
-          highlightGutterLine: true,
-        });
-        editor.resize();
-      }
+      const scriptTextarea = scriptEditor.createEditor(scriptRow, 'return "default value";', script.script);
       // Button row
       const buttonRow = editDiv.createEl('div');
       buttonRow.classList.add('metaflow-settings-script-btn-row');
@@ -347,11 +272,9 @@ export class PropertyDefaultValueScriptsSection {
         // Apply changes
         script.propertyName = propertyInput.value;
         script.enabled = enabledToggle.checked;
-        if (editor !== null) {
-          scriptTextarea.value = editor.getValue();
-        }
-        script.script = scriptTextarea.value;
+        script.script = scriptEditor.getValue();
         await this.onChange();
+        scriptEditor.destroy();
         this.displayPropertyScripts(container);
       });
 
@@ -361,7 +284,7 @@ export class PropertyDefaultValueScriptsSection {
         script.script = originalScript;
         script.enabled = originalEnabled;
         propertyInput.value = originalPropertyName;
-        scriptTextarea.value = originalScript;
+        scriptEditor.setValue(originalScript);
         enabledToggle.checked = originalEnabled;
         toggleEditMode(false);
       });

@@ -151,9 +151,9 @@ describe('MetaFlowService', () => {
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: []},
-          {folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: []},
-          {folder: '/', fileClass: 'default', moveToFolder: false, noteTitleTemplates: []}
+          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {folder: '/', fileClass: 'default', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
 
@@ -225,8 +225,8 @@ Content here`;
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: []},
-          {folder: '/', fileClass: 'note', moveToFolder: false, noteTitleTemplates: []}
+          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {folder: '/', fileClass: 'note', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
 
@@ -582,8 +582,8 @@ Content here`;
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: []},
-          {folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: []}
+          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
       const service = new MetaFlowService(mockApp, settings);
@@ -601,7 +601,7 @@ Content here`;
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: false, noteTitleTemplates: []}
+          {folder: 'Books', fileClass: 'book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
       const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
@@ -629,7 +629,7 @@ Content here`;
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: []}
+          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
       mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(mockFile); // Simulate existing file
@@ -657,9 +657,9 @@ Content here`;
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: []},
-          {folder: 'Articles', fileClass: 'article', moveToFolder: false, noteTitleTemplates: []},
-          {folder: 'Articles2', fileClass: 'article', moveToFolder: true, noteTitleTemplates: []},
+          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {folder: 'Articles', fileClass: 'article', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {folder: 'Articles2', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
         ]
       };
       const spy = jest.spyOn(console, 'info').mockImplementation(() => { });
@@ -674,7 +674,7 @@ Content here`;
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: []}
+          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
       const service = new MetaFlowService(mockApp, settings);

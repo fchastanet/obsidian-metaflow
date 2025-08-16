@@ -3,11 +3,18 @@ export interface NoteTitleTemplate {
   enabled: boolean;
 }
 
+export interface NoteTitleScript {
+  script: string;
+  enabled: boolean;
+}
+
 export interface FolderFileClassMapping {
   folder: string;
   fileClass: string;
   moveToFolder: boolean;
   noteTitleTemplates: NoteTitleTemplate[];
+  noteTitleScript: NoteTitleScript;
+  templateMode?: 'template' | 'script'; // Default to 'template' for backward compatibility
 }
 
 export interface PropertyDefaultValueScript {

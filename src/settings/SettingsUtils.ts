@@ -39,6 +39,24 @@ export class SettingsUtils {
     return [checkbox, enabledLabel];
   }
 
+  static createRadioButtonWithLabel(container: HTMLElement, options: {
+    label?: string,
+    labelClass: string,
+    labelTitle: string,
+    radioClass: string,
+    radioName: string,
+    radioValue: string,
+    checked?: boolean
+  }): [HTMLInputElement, HTMLElement] {
+    const enabledLabel = container.createEl('label', {title: options.labelTitle});
+    enabledLabel.classList.add(options.labelClass);
+    const radio = enabledLabel.createEl('input', {type: 'radio', attr: {name: options.radioName, value: options.radioValue}});
+    radio.classList.add(options.radioClass);
+    radio.checked = options.checked ?? false;
+    if (options.label) enabledLabel.appendChild(document.createTextNode(options.label));
+    return [radio, enabledLabel];
+  }
+
   static emptyAndCreate(container: HTMLElement, cls: string): HTMLElement {
     container.empty();
     return container.createDiv({cls});

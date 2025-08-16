@@ -16,6 +16,11 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
       fileClass: 'default',
       moveToFolder: false,
       noteTitleTemplates: [],
+      noteTitleScript: {
+        script: 'return "";',
+        enabled: true
+      },
+      templateMode: 'template' as const,
     }
   ],
   propertyDefaultValueScripts: [],

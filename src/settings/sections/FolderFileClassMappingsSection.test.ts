@@ -6,6 +6,7 @@ import {FolderFileClassMappingsSection} from "./FolderFileClassMappingsSection";
 import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
 import {LogNoticeManager} from "../../managers/LogNoticeManager";
+import {FolderFileClassMapping, NoteTitleScript} from "../types";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -140,13 +141,23 @@ describe('FolderFileClassMappingsSection', () => {
         folder: 'Books',
         fileClass: '',
         moveToFolder: true,
-        noteTitleTemplates: []
+        noteTitleTemplates: [],
+        noteTitleScript: {
+          script: 'return "";',
+          enabled: true
+        },
+        templateMode: 'template'
       });
       expect(folderFileClassMappings[1]).toEqual({
         folder: 'Articles',
         fileClass: '',
         moveToFolder: true,
-        noteTitleTemplates: []
+        noteTitleTemplates: [],
+        noteTitleScript: {
+          script: 'return "";',
+          enabled: true
+        },
+        templateMode: 'template'
       });
       expect(folderFileClassMappingsSection['onChange']).toHaveBeenCalled();
     });
@@ -154,7 +165,7 @@ describe('FolderFileClassMappingsSection', () => {
     test('should not duplicate existing mappings', async () => {
       // Add existing mapping
       mockPlugin.settings.folderFileClassMappings = [
-        {folder: 'Books', fileClass: 'existing-book', moveToFolder: false, noteTitleTemplates: []}
+        {folder: 'Books', fileClass: 'existing-book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template'}
       ];
       folderFileClassMappingsSection = getFolderFileClassMappingsSection();
 
@@ -163,8 +174,8 @@ describe('FolderFileClassMappingsSection', () => {
       // Should still have only one mapping (the existing one)
       const folderFileClassMappings = folderFileClassMappingsSection['folderFileClassMappings'];
       expect(folderFileClassMappings).toStrictEqual([
-        {"fileClass": "existing-book", "folder": "Books", "moveToFolder": false, "noteTitleTemplates": []},
-        {"fileClass": "", "folder": "Articles", "moveToFolder": true, "noteTitleTemplates": []}
+        {"fileClass": "existing-book", "folder": "Books", "moveToFolder": false, "noteTitleTemplates": [], "noteTitleScript": {script: 'return "";', enabled: true}, "templateMode": "template"},
+        {"fileClass": "", "folder": "Articles", "moveToFolder": true, "noteTitleTemplates": [], "noteTitleScript": {script: 'return "";', enabled: true}, "templateMode": "template"}
       ]);
     });
 
@@ -213,5 +224,4 @@ describe('FolderFileClassMappingsSection', () => {
       expect(mockContainer.empty).toHaveBeenCalled();
     });
   });
-
 });
