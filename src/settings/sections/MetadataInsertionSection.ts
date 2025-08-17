@@ -14,12 +14,15 @@ export class MetadataInsertionSection {
     // Auto metadata insertion setting
     let autoSortSetting: Setting;
     let autoMoveNoteToRightFolderSetting: Setting;
+    let autoRenameNoteSetting: Setting;
 
     const updateDependentRadioButtons = () => {
       autoSortSetting.components[0].setDisabled(!this.settings.autoMetadataInsertion);
       autoSortSetting.controlEl.setAttribute('title', this.settings.autoMetadataInsertion ? '' : 'Disabled when auto-insert is off');
       autoMoveNoteToRightFolderSetting.components[0].setDisabled(!this.settings.autoMetadataInsertion);
       autoMoveNoteToRightFolderSetting.controlEl.setAttribute('title', this.settings.autoMetadataInsertion ? '' : 'Disabled when auto-insert is off');
+      autoRenameNoteSetting.components[0].setDisabled(!this.settings.autoMetadataInsertion);
+      autoRenameNoteSetting.controlEl.setAttribute('title', this.settings.autoMetadataInsertion ? '' : 'Disabled when auto-insert is off');
     };
 
     new Setting(this.container)
@@ -32,6 +35,7 @@ export class MetadataInsertionSection {
           if (!this.settings.autoMetadataInsertion) {
             this.settings.autoSort = false;
             this.settings.autoMoveNoteToRightFolder = false;
+            this.settings.autoRenameNote = false;
           }
           updateDependentRadioButtons();
           this.onChange();
@@ -56,6 +60,17 @@ export class MetadataInsertionSection {
         .setValue(this.settings.autoMoveNoteToRightFolder)
         .onChange(async (value) => {
           this.settings.autoMoveNoteToRightFolder = value;
+          this.onChange();
+        }));
+
+    // Auto-rename note setting
+    autoRenameNoteSetting = new Setting(this.container)
+      .setName('Auto-rename note based on folder/fileClass mapping')
+      .setDesc('Automatically rename note based on the title template or script defined in Folder/FileClass mapping when updating metadata')
+      .addToggle(toggle => toggle
+        .setValue(this.settings.autoRenameNote)
+        .onChange(async (value) => {
+          this.settings.autoRenameNote = value;
           this.onChange();
         }));
 

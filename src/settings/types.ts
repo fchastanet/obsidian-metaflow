@@ -35,6 +35,7 @@ export interface MetaFlowSettings {
   propertyDefaultValueScripts: PropertyDefaultValueScript[];
   excludeFolders?: string[];
   autoMoveNoteToRightFolder: boolean;
+  autoRenameNote: boolean;
   debugMode: boolean;
   frontmatterUpdateDelayMs: number;
 }

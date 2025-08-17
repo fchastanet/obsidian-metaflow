@@ -72,6 +72,40 @@ This document shows examples of how the new `formatNoteTitle` method works with 
 - Script: `throw new Error("test");`
 - Result: `"Untitled"`
 
+### More advanced scripts
+
+#### rename book based on bookTitle, date and bookAuthors metadata
+
+```javascript
+const title = metadata?.bookTitle || false;
+const date = metadata?.date || false;
+let authorStr = false;
+if (typeof metadata?.bookAuthors === "string") {
+  authorStr = metadata?.bookAuthors;
+} else if (Array.isArray(metadata?.bookAuthors) && typeof metadata?.bookAuthors?.[0] === "string") {
+  authorStr = metadata.bookAuthors[0];
+}
+let author = false;
+if (authorStr) {
+  const extractAuthorRegexp = /\[\[(.*\/)?(?<author>.*)\]\]$/
+  const arr = extractAuthorRegexp.exec(authorStr);
+  author = arr?.groups?.author || false;
+}
+return [date, title, author].filter(Boolean).join(" - ");
+```
+
+with the following metadata
+```
+{
+  "bookTitle": "The Great Gatsby",
+  "date": "1925",
+  "bookAuthors": "[[F. Scott Fitzgerald]]"
+}
+```
+
+it will produce the following title: `1925 - The Great Gatsby - F. Scott Fitzgerald`
+if the date is missing, it will produce the following title: `The Great Gatsby - F. Scott Fitzgerald`
+
 ## Debug Logging
 
 When `debugMode` is enabled, the following messages are logged:

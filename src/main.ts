@@ -138,6 +138,16 @@ export default class MetaFlowPlugin extends Plugin {
       }
     });
 
+    // Register the command to rename the file based on rules
+    this.addCommand({
+      id: 'metaflow-rename-file-based-on-rules',
+      name: 'Rename the file based on rules',
+      editorCallback: async (editor: Editor, view: MarkdownView) => {
+        const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
+        await this.renameFileBasedOnRules(editor, view, logManager);
+      }
+    });
+
     // Register the mass update command for vault-wide processing
     this.addCommand({
       id: 'metaflow-mass-update-metadata',
@@ -188,6 +198,38 @@ export default class MetaFlowPlugin extends Plugin {
     }
   }
 
+  private async renameFileBasedOnRules(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
+    const content = editor.getValue();
+    const file = view.file;
+
+    if (!file) {
+      logManager.addWarning('No active file');
+      return;
+    }
+
+    try {
+      this.metaFlowService.checkIfValidFile(file);
+
+      const metadata = this.metaFlowService.getFrontmatterFromContent(content);
+      const fileClass = this.metaFlowService.getFileClassFromMetadata(metadata);
+      if (fileClass) {
+        // Rename note if autoRenameNote is enabled
+        if (this.settings.autoRenameNote) {
+          await this.metaFlowService.renameNote(file, fileClass, metadata, logManager);
+        }
+      } else {
+        logManager.addWarning('No file class found');
+      }
+    } catch (error) {
+      console.error('Error updating metadata properties:', error);
+      if (error instanceof MetaFlowException) {
+        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
+      } else {
+        logManager.addError('Error updating metadata properties');
+      }
+    }
+  }
+
   private async moveNoteToTheRightFolder(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
     const content = editor.getValue();
     const file = view.file;
@@ -200,9 +242,19 @@ export default class MetaFlowPlugin extends Plugin {
     try {
       this.metaFlowService.checkIfValidFile(file);
 
-      const fileClass = this.metaFlowService.getFileClassFromContent(content);
+      const metadata = this.metaFlowService.getFrontmatterFromContent(content);
+      const fileClass = this.metaFlowService.getFileClassFromMetadata(metadata);
       if (fileClass) {
-        await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+        let newFile = file;
+        // Rename note if autoRenameNote is enabled
+        if (this.settings.autoRenameNote) {
+          const renamedFile = await this.metaFlowService.renameNote(file, fileClass, metadata, logManager);
+          if (renamedFile) {
+            newFile = renamedFile;
+          }
+        }
+
+        await this.metaFlowService.moveNoteToTheRightFolder(newFile, fileClass);
       } else {
         logManager.addWarning('No file class found');
       }
@@ -297,9 +349,16 @@ export default class MetaFlowPlugin extends Plugin {
                 fileInError = true;
               }
               // Optionally move note to right folder
-              const fileClass = this.metaFlowService.getFileClassFromContent(processedContent);
-              if (fileClass) {
-                try {
+              try {
+                // Parse metadata for renaming
+                const metadata = this.metaFlowService.getFrontmatterFromContent(processedContent);
+                const fileClass = this.metaFlowService.getFileClassFromMetadata(metadata);
+                if (fileClass) {
+                  // Rename note if autoRenameNote is enabled
+                  if (this.settings.autoRenameNote) {
+                    await this.metaFlowService.renameNote(file, fileClass, metadata, modal);
+                  }
+
                   if (this.settings.autoMoveNoteToRightFolder) {
                     const newFilePath = await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
                     if (file.path !== newFilePath) {
@@ -307,11 +366,11 @@ export default class MetaFlowPlugin extends Plugin {
                       movedCount++;
                     }
                   }
-                } catch (error: any) {
-                  modal.addError(`Error moving note to the right folder for file ${file.path}: ${error.message}`);
-                  console.error(`Error moving note to the right folder for file ${file.path}:`, error);
-                  fileInError = true;
                 }
+              } catch (error: any) {
+                modal.addError(`Error moving note to the right folder for file ${file.path}: ${error.message}`);
+                console.error(`Error moving note to the right folder for file ${file.path}:`, error);
+                fileInError = true;
               }
               if (fileInError) {
                 errorCount++;

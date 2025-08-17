@@ -22,6 +22,10 @@ describe('ObsidianAdapter', () => {
       fileManager: {
         generateMarkdownLink: jest.fn((targetFile, sourcePath) => `[[${targetFile.path}|${sourcePath}]]`),
         renameFile: jest.fn((file, newPath) => Promise.resolve(undefined))
+      },
+      vault: {
+        rename: jest.fn((file, newPath) => Promise.resolve()),
+        getAbstractFileByPath: jest.fn((path) => ObsidianAdapter.createMockTFile(path))
       }
     };
     adapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS);
@@ -66,6 +70,71 @@ describe('ObsidianAdapter', () => {
     const message = 'Test message';
     adapter.notice(message);
     expect(Notice).toHaveBeenCalledWith(message);
+  });
+
+  describe('renameNote', () => {
+    test('should rename note using vault.rename and return renamed file', async () => {
+      const file = ObsidianAdapter.createMockTFile('folder/old-name.md');
+      file.parent = {path: 'folder'} as any;
+      const newName = 'new-name.md';
+      const expectedPath = 'folder/new-name.md';
+
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+
+      const result = await adapter.renameNote(file, newName);
+
+      expect(mockApp.vault.rename).toHaveBeenCalledWith(file, expectedPath);
+      expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith(expectedPath);
+      expect(consoleSpy).toHaveBeenCalledWith(`Renaming note folder/old-name.md to ${expectedPath}`);
+      expect(result).toBeDefined();
+      expect(result.path).toBe(expectedPath);
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should handle file in root folder (no parent)', async () => {
+      const file = ObsidianAdapter.createMockTFile('old-name.md');
+      file.parent = null;
+      const newName = 'new-name.md';
+
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+
+      const result = await adapter.renameNote(file, newName);
+
+      expect(mockApp.vault.rename).toHaveBeenCalledWith(file, newName);
+      expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith(newName);
+      expect(consoleSpy).toHaveBeenCalledWith(`Renaming note old-name.md to ${newName}`);
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should throw error if renamed file cannot be found', async () => {
+      const file = ObsidianAdapter.createMockTFile('folder/old-name.md');
+      file.parent = {path: 'folder'} as any;
+      const newName = 'new-name.md';
+      const expectedPath = 'folder/new-name.md';
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+
+      // Mock that the file is not found after rename
+      mockApp.vault.getAbstractFileByPath.mockReturnValue(null);
+
+      await expect(adapter.renameNote(file, newName))
+        .rejects.toThrow(`Failed to get renamed file at ${expectedPath}`);
+      expect(consoleSpy).toHaveBeenCalledWith(`Renaming note folder/old-name.md to folder/new-name.md`);
+    });
+
+    test('should throw error if vault.rename fails', async () => {
+      const file = ObsidianAdapter.createMockTFile('folder/old-name.md');
+      file.parent = {path: 'folder'} as any;
+      const newName = 'new-name.md';
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+
+      mockApp.vault.rename.mockRejectedValue(new Error('Rename failed'));
+
+      await expect(adapter.renameNote(file, newName))
+        .rejects.toThrow('Rename failed');
+      expect(consoleSpy).toHaveBeenCalledWith(`Renaming note folder/old-name.md to folder/new-name.md`);
+    });
   });
 
 });

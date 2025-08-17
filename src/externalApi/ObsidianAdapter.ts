@@ -26,6 +26,18 @@ export class ObsidianAdapter {
     return await this.app.fileManager.renameFile(file, newPath);
   }
 
+  async renameNote(file: TFile, newName: string): Promise<TFile> {
+    const newPath = file.parent ? `${file.parent.path}/${newName}` : newName;
+    console.info(`Renaming note ${file.path} to ${newPath}`);
+    await this.app.vault.rename(file, newPath);
+    // Return the renamed file
+    const renamedFile = this.app.vault.getAbstractFileByPath(newPath);
+    if (renamedFile instanceof TFile) {
+      return renamedFile;
+    }
+    throw new Error(`Failed to get renamed file at ${newPath}`);
+  }
+
   isFileExists(filePath: string): boolean {
     const file = this.app.vault.getAbstractFileByPath(filePath);
     return !!file && file instanceof TFile;

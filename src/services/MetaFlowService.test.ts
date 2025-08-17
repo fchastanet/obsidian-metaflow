@@ -840,6 +840,7 @@ Content here`;
         autoSort: true,
         sortUnknownPropertiesLast: true,
         autoMoveNoteToRightFolder: true,
+        autoRenameNote: true,
         frontmatterUpdateDelayMs: 100,
       });
     });
@@ -1347,6 +1348,110 @@ Content here`;
         expect(consoleDebugSpy).toHaveBeenCalledWith('This debug message should not appear in test output');
         expect(consoleErrorSpy).toHaveBeenCalledWith('This error message should not appear in test output');
       });
+    });
+  });
+
+  describe('renameNote', () => {
+    let mockObsidianAdapter: any;
+    let service: MetaFlowService;
+
+    beforeEach(() => {
+      const settings: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        autoRenameNote: true,
+        folderFileClassMappings: [
+          {
+            folder: '/books',
+            fileClass: 'book',
+            moveToFolder: true,
+            noteTitleTemplates: [
+              {
+                template: '{{title}} by {{author}}',
+                enabled: true
+              }
+            ],
+            noteTitleScript: {
+              script: 'return "";',
+              enabled: false
+            },
+            templateMode: 'template' as const,
+          }
+        ]
+      };
+
+      mockObsidianAdapter = {
+        isFileExists: jest.fn().mockReturnValue(false),
+        renameNote: jest.fn().mockResolvedValue(mockFile),
+        folderPrefix: jest.fn().mockImplementation((filePath: string) => {
+          const normalizedPath = filePath.replace(/\\/g, '/');
+          const folderPath = normalizedPath.replace(/^\//, '');
+          return folderPath + '/';
+        }),
+      };
+
+      service = new MetaFlowService(mockApp, settings);
+      (service as any).obsidianAdapter = mockObsidianAdapter;
+    });
+
+    it('should rename note with new title based on template', async () => {
+      const metadata = {title: 'The Great Gatsby', author: 'F. Scott Fitzgerald'};
+      mockFile.basename = 'old-note-name';
+
+      await service.renameNote(mockFile, 'book', metadata, mockLogManager);
+
+      expect(mockObsidianAdapter.renameNote).toHaveBeenCalledWith(mockFile, 'The Great Gatsby by F. Scott Fitzgerald.md');
+      expect(mockLogManager.addInfo).toHaveBeenCalledWith('Renamed note "test.md" to "The Great Gatsby by F. Scott Fitzgerald.md"');
+    });
+
+    it('should not rename if current title matches new title', async () => {
+      const metadata = {title: 'The Great Gatsby', author: 'F. Scott Fitzgerald'};
+      mockFile.basename = 'The Great Gatsby by F. Scott Fitzgerald';
+
+      const result = await service.renameNote(mockFile, 'book', metadata, mockLogManager);
+
+      expect(result).toBeNull();
+      expect(mockObsidianAdapter.renameNote).not.toHaveBeenCalled();
+    });
+
+    it('should throw error if target file already exists', async () => {
+      const metadata = {title: 'The Great Gatsby', author: 'F. Scott Fitzgerald'};
+      mockFile.basename = 'old-note-name';
+      mockObsidianAdapter.isFileExists.mockReturnValue(true);
+
+      await expect(service.renameNote(mockFile, 'book', metadata, mockLogManager))
+        .rejects.toThrow('Cannot rename note: file "The Great Gatsby by F. Scott Fitzgerald.md" already exists');
+    });
+
+    it('should handle invalid file', async () => {
+      const invalidFile = null as any;
+      const metadata = {title: 'Test'};
+
+      await expect(service.renameNote(invalidFile, 'book', metadata, mockLogManager))
+        .rejects.toThrow('Invalid file provided for class change');
+    });
+
+    it('should handle excluded file', async () => {
+      const settings: MetaFlowSettings = {
+        ...DEFAULT_SETTINGS,
+        excludeFolders: ['excluded']
+      };
+      service = new MetaFlowService(mockApp, settings);
+      (service as any).obsidianAdapter = mockObsidianAdapter;
+
+      mockFile.path = 'excluded/test.md';
+      const metadata = {title: 'Test'};
+
+      await expect(service.renameNote(mockFile, 'book', metadata, mockLogManager))
+        .rejects.toThrow('File test.md is in an excluded folder: excluded/test.md');
+    });
+
+    it('should handle rename errors gracefully', async () => {
+      const metadata = {title: 'The Great Gatsby', author: 'F. Scott Fitzgerald'};
+      mockFile.basename = 'old-note-name';
+      mockObsidianAdapter.renameNote.mockRejectedValue(new Error('Rename failed'));
+
+      await expect(service.renameNote(mockFile, 'book', metadata, mockLogManager))
+        .rejects.toThrow('Error renaming note "test.md": Rename failed');
     });
   });
 

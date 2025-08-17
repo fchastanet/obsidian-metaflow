@@ -95,6 +95,11 @@ export class MetaFlowService {
         await this.updateFrontmatter(file, enrichedFrontmatter, true)
         // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
         try {
+          // Rename note if autoRenameNote is enabled
+          if (this.metaFlowSettings.autoRenameNote) {
+            await this.renameNote(file, fileClass, enrichedFrontmatter, logManager);
+          }
+
           if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
             const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
             if (newFilePath) {
@@ -228,6 +233,11 @@ export class MetaFlowService {
     return this.frontMatterService.parseFileClassFromContent(content, fileClassAlias);
   }
 
+  public getFrontmatterFromContent(content: string): any | null {
+    const parseResult = this.frontMatterService.parseFrontmatter(content);
+    return parseResult?.metadata || null;
+  }
+
   public getFileClassFromMetadata(metadata: any): string | null {
     if (!metadata || typeof metadata !== 'object') {
       return null;
@@ -276,6 +286,49 @@ export class MetaFlowService {
         return null;
       }
       throw new MetaFlowException(`No target folder defined for fileClass "${fileClass}"`, 'warning');
+    }
+  }
+
+  public async renameNote(
+    file: TFile,
+    fileClass: string,
+    metadata: {[key: string]: any},
+    logManager: LogManagerInterface
+  ): Promise<TFile | null> {
+    this.checkIfValidFile(file);
+    this.checkIfExcluded(file);
+
+    try {
+      const newTitle = this.formatNoteTitle(file, fileClass, metadata, logManager);
+
+      // Check if the title needs to change
+      const currentName = file.basename; // basename without extension
+      if (currentName === newTitle) {
+        if (this.metaFlowSettings.debugMode) {
+          console.debug(`MetaFlow: Note "${file.name}" already has the correct title "${newTitle}"`);
+        }
+        return null;
+      }
+
+      // Check if new name would create a conflict
+      const newFileName = `${newTitle}.${file.extension}`;
+      const newPath = file.parent ? `${file.parent.path}/${newFileName}` : newFileName;
+
+      if (this.obsidianAdapter.isFileExists(newPath)) {
+        throw new MetaFlowException(`Cannot rename note: file "${newFileName}" already exists`, 'warning');
+      }
+
+      // Perform the rename
+      const renamedFile = await this.obsidianAdapter.renameNote(file, newFileName);
+
+      logManager.addInfo(`Renamed note "${file.name}" to "${newFileName}"`);
+      return renamedFile;
+
+    } catch (error) {
+      if (error instanceof MetaFlowException) {
+        throw error;
+      }
+      throw new MetaFlowException(`Error renaming note "${file.name}": ${error.message}`, 'error');
     }
   }
 
@@ -569,6 +622,7 @@ export class MetaFlowService {
     this.metaFlowSettings.excludeFolders = Array.isArray(this.metaFlowSettings.excludeFolders) ? this.metaFlowSettings.excludeFolders : DEFAULT_SETTINGS.excludeFolders;
     this.metaFlowSettings.debugMode = typeof this.metaFlowSettings.debugMode === 'boolean' ? this.metaFlowSettings.debugMode : DEFAULT_SETTINGS.debugMode;
     this.metaFlowSettings.autoMoveNoteToRightFolder = typeof this.metaFlowSettings.autoMoveNoteToRightFolder === 'boolean' ? this.metaFlowSettings.autoMoveNoteToRightFolder : DEFAULT_SETTINGS.autoMoveNoteToRightFolder;
+    this.metaFlowSettings.autoRenameNote = typeof this.metaFlowSettings.autoRenameNote === 'boolean' ? this.metaFlowSettings.autoRenameNote : DEFAULT_SETTINGS.autoRenameNote;
     this.metaFlowSettings.frontmatterUpdateDelayMs = typeof this.metaFlowSettings.frontmatterUpdateDelayMs === 'number' ? this.metaFlowSettings.frontmatterUpdateDelayMs : DEFAULT_SETTINGS.frontmatterUpdateDelayMs;
   }
 
