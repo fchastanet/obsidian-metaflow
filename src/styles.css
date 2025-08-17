@@ -264,7 +264,6 @@
   font-family: monospace;
   font-size: 12px;
   flex-grow: 1;
-  white-space: pre;
 }
 
 .metaflow-settings-script-enabled-label {

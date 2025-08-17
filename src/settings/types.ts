@@ -14,7 +14,7 @@ export interface FolderFileClassMapping {
   moveToFolder: boolean;
   noteTitleTemplates: NoteTitleTemplate[];
   noteTitleScript: NoteTitleScript;
-  templateMode?: 'template' | 'script'; // Default to 'template' for backward compatibility
+  templateMode: 'template' | 'script'; // Default to 'template' for backward compatibility
 }
 
 export interface PropertyDefaultValueScript {

@@ -151,9 +151,9 @@ describe('MetaFlowService', () => {
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
-          {folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
-          {folder: '/', fileClass: 'default', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
+          {templateMode: 'template' as const, folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {templateMode: 'template' as const, folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {templateMode: 'template' as const, folder: '/', fileClass: 'default', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
 
@@ -225,8 +225,8 @@ Content here`;
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
-          {folder: '/', fileClass: 'note', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
+          {templateMode: 'template' as const, folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {templateMode: 'template' as const, folder: '/', fileClass: 'note', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
 
@@ -582,8 +582,8 @@ Content here`;
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
-          {folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
+          {templateMode: 'template' as const, folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {templateMode: 'template' as const, folder: 'Articles', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
       const service = new MetaFlowService(mockApp, settings);
@@ -601,7 +601,7 @@ Content here`;
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
+          {templateMode: 'template' as const, folder: 'Books', fileClass: 'book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
       const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
@@ -629,7 +629,7 @@ Content here`;
         ...DEFAULT_SETTINGS,
         autoMoveNoteToRightFolder: true,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
+          {templateMode: 'template' as const, folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
         ]
       };
       mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(mockFile); // Simulate existing file
@@ -657,9 +657,9 @@ Content here`;
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
-          {folder: 'Articles', fileClass: 'article', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
-          {folder: 'Articles2', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {templateMode: 'template' as const, folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {templateMode: 'template' as const, folder: 'Articles', fileClass: 'article', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
+          {templateMode: 'template' as const, folder: 'Articles2', fileClass: 'article', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}},
         ]
       };
       const spy = jest.spyOn(console, 'info').mockImplementation(() => { });
@@ -674,7 +674,14 @@ Content here`;
       const settings = {
         ...DEFAULT_SETTINGS,
         folderFileClassMappings: [
-          {folder: 'Books', fileClass: 'book', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}}
+          {
+            templateMode: 'template' as const,
+            folder: 'Books',
+            fileClass: 'book',
+            moveToFolder: true,
+            noteTitleTemplates: [],
+            noteTitleScript: {script: 'return "";', enabled: true},
+          }
         ]
       };
       const service = new MetaFlowService(mockApp, settings);
@@ -776,6 +783,76 @@ Content here`;
         expect(frontmatter).toEqual({x: 0, z: 1, a: 2});
       });
       await (service as any).updateFrontmatter(file, enrichedFrontmatter, false);
+    });
+  });
+
+  describe("MetaFlowService.importSettings", () => {
+    let service: MetaFlowService;
+    let initialSettings: any;
+
+    beforeEach(() => {
+      initialSettings = {
+        folderFileClassMappings: [],
+        propertyDefaultValueScripts: [],
+        excludeFolders: [],
+        hidePropertiesInEditor: false,
+        debugMode: false,
+        autoMetadataInsertion: true,
+        autoSort: false,
+        sortUnknownPropertiesLast: false,
+        autoMoveNoteToRightFolder: false,
+        frontmatterUpdateDelayMs: 0,
+      };
+      service = new MetaFlowService({} as any, {...initialSettings});
+    });
+
+    it("should update settings from JSON string and fix defaults", () => {
+      const json = JSON.stringify({
+        autoMetadataInsertion: false,
+        folderFileClassMappings: [{folder: "folder", fileClass: "class"}],
+        propertyDefaultValueScripts: [{propertyName: "prop", script: "return 1;", enabled: true}],
+        excludeFolders: ["excluded"],
+        hidePropertiesInEditor: true,
+        debugMode: true,
+        autoSort: true,
+        sortUnknownPropertiesLast: true,
+        autoMoveNoteToRightFolder: true,
+        frontmatterUpdateDelayMs: 100,
+      });
+      const result = service.importSettings(json);
+      expect(result).toStrictEqual({
+        autoMetadataInsertion: false,
+        folderFileClassMappings: [{
+          folder: "folder",
+          fileClass: "class",
+          noteTitleScript: {
+            script: 'return "";',
+            enabled: true
+          },
+          noteTitleTemplates: [],
+          templateMode: "template",
+        }],
+        propertyDefaultValueScripts: [{propertyName: "prop", script: "return 1;", enabled: true}],
+        excludeFolders: ["excluded"],
+        hidePropertiesInEditor: true,
+        insertMissingFieldsOnSort: true,
+        debugMode: true,
+        autoSort: true,
+        sortUnknownPropertiesLast: true,
+        autoMoveNoteToRightFolder: true,
+        frontmatterUpdateDelayMs: 100,
+      });
+    });
+
+    it("should not throw if JSON is missing optional fields", () => {
+      const json = JSON.stringify({});
+      const serviceWithEmptySettings = new MetaFlowService(mockApp, {} as MetaFlowSettings);
+      expect(() => serviceWithEmptySettings.importSettings(json)).not.toThrow();
+      expect(serviceWithEmptySettings["metaFlowSettings"]).toStrictEqual(DEFAULT_SETTINGS);
+    });
+
+    it("should throw if JSON is invalid", () => {
+      expect(() => service.importSettings("not a json")).toThrow();
     });
   });
 

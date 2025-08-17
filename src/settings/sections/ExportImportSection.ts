@@ -1,9 +1,11 @@
 import {App, Setting, Notice} from "obsidian";
 import {MetaFlowSettings} from "../types";
+import {MetaFlowService} from "../../services/MetaFlowService";
 
 export class ExportImportSection {
   constructor(
     private app: App,
+    private metaflowService: MetaFlowService,
     private container: HTMLElement,
     private settings: MetaFlowSettings,
     private onChange: () => void
@@ -51,8 +53,7 @@ export class ExportImportSection {
               const reader = new FileReader();
               reader.onload = async (e: any) => {
                 try {
-                  const importedSettings = JSON.parse(e.target.result);
-                  Object.assign(this.settings, importedSettings);
+                  this.metaflowService.importSettings(e.target.result);
                   new Notice('Settings imported successfully!');
                   this.onChange();
                 } catch (err) {

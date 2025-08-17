@@ -13,6 +13,7 @@ import {SimulationSection} from "./sections/SimulationSection";
 import {ExportImportSection} from "./sections/ExportImportSection";
 import {PluginsStatusSection} from "./sections/PluginsStatusSection";
 import {LogNoticeManager} from "../managers/LogNoticeManager";
+import {MetaFlowService} from "../services/MetaFlowService";
 declare const ace: AceModule;
 
 /**
@@ -21,6 +22,7 @@ declare const ace: AceModule;
  */
 export class MetaFlowSettingTab extends PluginSettingTab {
   plugin: MetaFlowPlugin;
+  metaflowService: MetaFlowService;
   metadataMenuAdapter: MetadataMenuAdapter;
   templaterAdapter: TemplaterAdapter;
   obsidianAdapter: ObsidianAdapter;
@@ -38,6 +40,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     this.templaterAdapter = new TemplaterAdapter(app, plugin.settings);
     this.obsidianAdapter = new ObsidianAdapter(app, plugin.settings);
     this.logManager = new LogNoticeManager(this.obsidianAdapter);
+    this.metaflowService = new MetaFlowService(app, plugin.settings);
   }
 
 
@@ -144,6 +147,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     const exportImportDetails = SettingsUtils.createSection(containerEl, 'Export/Import');
     new ExportImportSection(
       this.app,
+      this.metaflowService,
       exportImportDetails,
       this.plugin.settings,
       async () => {await this.plugin.saveSettings(); this.display();}

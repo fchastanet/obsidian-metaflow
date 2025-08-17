@@ -9,6 +9,7 @@ import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {LogManagerInterface} from "../managers/types";
 import {Utils} from "../utils/Utils";
 import {MetadataMenuField} from "../externalApi/types.MetadataMenu";
+import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
 
 export class MetaFlowService {
   private app: App;
@@ -27,6 +28,7 @@ export class MetaFlowService {
     this.frontMatterService = new FrontMatterService();
     this.templaterAdapter = new TemplaterAdapter(app, this.metaFlowSettings);
     this.obsidianAdapter = new ObsidianAdapter(app, this.metaFlowSettings);
+    this.fixSettings();
   }
 
   async handleFileClassChanged(
@@ -527,6 +529,54 @@ export class MetaFlowService {
         styleEl.remove();
       }
     }
+  }
+
+  private fixSettings(): void {
+    if (this.metaFlowSettings === undefined) {
+      this.metaFlowSettings = DEFAULT_SETTINGS;
+    }
+    this.metaFlowSettings.autoSort = typeof this.metaFlowSettings.autoSort === 'boolean' ? this.metaFlowSettings.autoSort : DEFAULT_SETTINGS.autoSort;
+    this.metaFlowSettings.sortUnknownPropertiesLast = typeof this.metaFlowSettings.sortUnknownPropertiesLast === 'boolean' ? this.metaFlowSettings.sortUnknownPropertiesLast : DEFAULT_SETTINGS.sortUnknownPropertiesLast;
+    this.metaFlowSettings.autoMetadataInsertion = typeof this.metaFlowSettings.autoMetadataInsertion === 'boolean' ? this.metaFlowSettings.autoMetadataInsertion : DEFAULT_SETTINGS.autoMetadataInsertion;
+    this.metaFlowSettings.insertMissingFieldsOnSort = typeof this.metaFlowSettings.insertMissingFieldsOnSort === 'boolean' ? this.metaFlowSettings.insertMissingFieldsOnSort : DEFAULT_SETTINGS.insertMissingFieldsOnSort;
+    this.metaFlowSettings.hidePropertiesInEditor = typeof this.metaFlowSettings.hidePropertiesInEditor === 'boolean' ? this.metaFlowSettings.hidePropertiesInEditor : DEFAULT_SETTINGS.hidePropertiesInEditor;
+
+    this.metaFlowSettings.folderFileClassMappings = Array.isArray(this.metaFlowSettings.folderFileClassMappings) ? this.metaFlowSettings.folderFileClassMappings : DEFAULT_SETTINGS.folderFileClassMappings;
+    if (this.metaFlowSettings.folderFileClassMappings.length === 0) {
+      this.metaFlowSettings.folderFileClassMappings = DEFAULT_SETTINGS.folderFileClassMappings;
+    }
+    this.metaFlowSettings.folderFileClassMappings.forEach((folderFileClassMapping: FolderFileClassMapping) => {
+      folderFileClassMapping.folder = typeof folderFileClassMapping.folder === 'string' ? folderFileClassMapping.folder : '/';
+      folderFileClassMapping.templateMode = typeof folderFileClassMapping.templateMode === 'string' ? folderFileClassMapping.templateMode : DEFAULT_SETTINGS.folderFileClassMappings[0].templateMode;
+      folderFileClassMapping.noteTitleScript = typeof folderFileClassMapping.noteTitleScript === 'object' ? folderFileClassMapping.noteTitleScript : DEFAULT_SETTINGS.folderFileClassMappings[0].noteTitleScript;
+      folderFileClassMapping.noteTitleTemplates = Array.isArray(folderFileClassMapping.noteTitleTemplates) ? folderFileClassMapping.noteTitleTemplates : DEFAULT_SETTINGS.folderFileClassMappings[0].noteTitleTemplates;
+      folderFileClassMapping.noteTitleScript.enabled = typeof folderFileClassMapping.noteTitleScript.enabled === 'boolean' ? folderFileClassMapping.noteTitleScript.enabled : true;
+      folderFileClassMapping.noteTitleScript.script = typeof folderFileClassMapping.noteTitleScript.script === 'string' ? folderFileClassMapping.noteTitleScript.script : DEFAULT_SETTINGS.folderFileClassMappings[0].noteTitleScript.script;
+    });
+    this.metaFlowSettings.propertyDefaultValueScripts = Array.isArray(this.metaFlowSettings.propertyDefaultValueScripts) ? this.metaFlowSettings.propertyDefaultValueScripts : DEFAULT_SETTINGS.propertyDefaultValueScripts;
+    this.metaFlowSettings.propertyDefaultValueScripts.forEach((propertyDefaultValueScript: PropertyDefaultValueScript) => {
+      propertyDefaultValueScript.propertyName = typeof propertyDefaultValueScript.propertyName === 'string' ? propertyDefaultValueScript.propertyName : 'default';
+      propertyDefaultValueScript.script = typeof propertyDefaultValueScript.script === 'string' ? propertyDefaultValueScript.script : 'return "";';
+      propertyDefaultValueScript.enabled = typeof propertyDefaultValueScript.enabled === 'boolean' ? propertyDefaultValueScript.enabled : true;
+      // if property order exists
+      if (propertyDefaultValueScript.hasOwnProperty('order')) {
+        propertyDefaultValueScript.order = typeof propertyDefaultValueScript.order === 'number' ? propertyDefaultValueScript.order : 1;
+      }
+      if (propertyDefaultValueScript.hasOwnProperty('fileClasses')) {
+        propertyDefaultValueScript.fileClasses = Array.isArray(propertyDefaultValueScript.fileClasses) ? propertyDefaultValueScript.fileClasses : [];
+      }
+    });
+    this.metaFlowSettings.excludeFolders = Array.isArray(this.metaFlowSettings.excludeFolders) ? this.metaFlowSettings.excludeFolders : DEFAULT_SETTINGS.excludeFolders;
+    this.metaFlowSettings.debugMode = typeof this.metaFlowSettings.debugMode === 'boolean' ? this.metaFlowSettings.debugMode : DEFAULT_SETTINGS.debugMode;
+    this.metaFlowSettings.autoMoveNoteToRightFolder = typeof this.metaFlowSettings.autoMoveNoteToRightFolder === 'boolean' ? this.metaFlowSettings.autoMoveNoteToRightFolder : DEFAULT_SETTINGS.autoMoveNoteToRightFolder;
+    this.metaFlowSettings.frontmatterUpdateDelayMs = typeof this.metaFlowSettings.frontmatterUpdateDelayMs === 'number' ? this.metaFlowSettings.frontmatterUpdateDelayMs : DEFAULT_SETTINGS.frontmatterUpdateDelayMs;
+  }
+
+  public importSettings(jsonString: string): MetaFlowSettings {
+    const importedSettings = JSON.parse(jsonString);
+    Object.assign(this.metaFlowSettings, importedSettings);
+    this.fixSettings();
+    return this.metaFlowSettings;
   }
 
 }
