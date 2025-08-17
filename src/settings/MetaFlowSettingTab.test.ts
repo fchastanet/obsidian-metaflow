@@ -46,6 +46,12 @@ jest.mock('../externalApi/TemplaterAdapter', () => ({
   }))
 }));
 
+jest.mock('./modals/CompletionsHelpModal.ts', () => ({
+  CompletionsHelpModal: jest.fn().mockImplementation(() => ({
+    open: jest.fn()
+  }))
+}));
+
 jest.mock('./modals/FileClassAvailableFieldsHelpModal.ts', () => ({
   FileClassAvailableFieldsHelpModal: jest.fn().mockImplementation(() => ({
     open: jest.fn()

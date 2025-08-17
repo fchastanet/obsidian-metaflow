@@ -8,6 +8,7 @@ import {SettingsUtils} from "../SettingsUtils";
 import {LogNoticeManager} from "../../managers/LogNoticeManager";
 import {FileClassAvailableFieldsHelpModal} from "../modals/FileClassAvailableFieldsHelpModal";
 import {ScriptEditor} from "../ScriptEditor";
+import {CompletionsHelpModal} from "../modals/CompletionsHelpModal";
 
 export class FolderFileClassMappingsSection {
   private templaterImportButton: HTMLButtonElement;
@@ -391,16 +392,25 @@ export class FolderFileClassMappingsSection {
   private displayTemplateRows(container: HTMLElement, mapping: any, mappingIndex: number): void {
     container.empty();
 
+    // Toolbar
+    const toolbar = container.createDiv({cls: 'metaflow-settings-template-toolbar'});
+
+    // Help button
+    const helpButton = toolbar.createEl('button', {text: '🛈 Help', cls: 'metaflow-settings-template-help-btn'});
+    helpButton.addEventListener('click', async () => {
+      // Import and open the modal
+      const modal = new FileClassAvailableFieldsHelpModal(this.app, mapping.fileClass, this.metadataMenuAdapter, this.logManager);
+      modal.open();
+    });
+
     // Add button only for templates mode (script mode allows only one script)
-    if (mapping.templateMode === 'template') {
-      const addButton = container.createEl('button', {text: '➕ Add Note Title Template'});
-      addButton.classList.add('metaflow-settings-note-title-template-add-btn');
-      addButton.onclick = async () => {
-        mapping.noteTitleTemplates.push({template: '', enabled: true});
-        await this.onChange();
-        this.displayNoteTitleTemplates(container.parentElement as HTMLElement, mapping, mappingIndex);
-      };
-    }
+    const addButton = toolbar.createEl('button', {text: '➕ Add Note Title Template'});
+    addButton.classList.add('metaflow-settings-note-title-template-add-btn');
+    addButton.onclick = async () => {
+      mapping.noteTitleTemplates.push({template: '', enabled: true});
+      await this.onChange();
+      this.displayNoteTitleTemplates(container.parentElement as HTMLElement, mapping, mappingIndex);
+    };
 
     mapping.noteTitleTemplates.forEach((template: any, templateIndex: number) => {
       const templateRow = container.createDiv({cls: 'metaflow-settings-template-row'});
@@ -534,9 +544,10 @@ export class FolderFileClassMappingsSection {
 
     // Help button
     const helpButton = toolbar.createEl('button', {text: '🛈 Help', cls: 'metaflow-settings-template-help-btn'});
-    helpButton.onclick = () => {
-      this.showAvailableFields(mapping.fileClass);
-    };
+    helpButton.addEventListener('click', async () => {
+      // Import and open the modal
+      new CompletionsHelpModal(this.app, scriptEditor.getCompletions()).open();
+    });
 
     // OK button
     const okButton = toolbar.createEl('button', {text: '✅ OK'});
@@ -575,9 +586,6 @@ export class FolderFileClassMappingsSection {
     });
 
     // No delete button and no default row for script mode since there's only one script
-  } private showAvailableFields(fileClass: string): void {
-    const modal = new FileClassAvailableFieldsHelpModal(this.app, fileClass, this.metadataMenuAdapter, this.logManager);
-    modal.open();
   }
 
 

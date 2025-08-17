@@ -217,6 +217,12 @@
   align-items: center;
 }
 
+.metaflow-settings-template-toolbar {
+  display: flex;
+  column-gap: 10px;
+  align-items: center;
+}
+
 .metaflow-settings-template-row {
   display: flex;
   column-gap: 10px;

@@ -63,6 +63,12 @@ jest.mock('../modals/FileClassAvailableFieldsHelpModal.ts', () => ({
   }))
 }));
 
+jest.mock('../modals/CompletionsHelpModal.ts', () => ({
+  CompletionsHelpModal: jest.fn().mockImplementation(() => ({
+    open: jest.fn()
+  }))
+}));
+
 describe('FolderFileClassMappingsSection', () => {
   let mockApp: any;
   let mockPlugin: any;
