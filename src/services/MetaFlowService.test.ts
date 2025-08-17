@@ -856,4 +856,498 @@ Content here`;
     });
   });
 
+  describe('formatNoteTitle', () => {
+    let testSettings: MetaFlowSettings;
+    let testFile: TFile;
+    let testMetadata: {[key: string]: any};
+    let consoleDebugSpy: jest.SpyInstance;
+    let consoleErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      testFile = new TFile();
+      testFile.basename = 'test';
+      testFile.extension = 'md';
+      testFile.name = 'test.md';
+      testFile.path = 'Books/test.md';
+
+      testMetadata = {
+        title: 'My Great Book',
+        author: 'John Doe',
+        year: 2023,
+        tags: ['fiction', 'adventure']
+      };
+
+      // Mock console methods to prevent output and allow testing
+      consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    afterEach(() => {
+      // Restore console methods
+      consoleDebugSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    });
+
+    describe('Template Mode', () => {
+      beforeEach(() => {
+        testSettings = {
+          ...DEFAULT_SETTINGS,
+          debugMode: true,
+          folderFileClassMappings: [
+            {
+              folder: 'Books',
+              fileClass: 'book',
+              moveToFolder: true,
+              templateMode: 'template',
+              noteTitleTemplates: [
+                {template: '{{title}} - {{author}}', enabled: true},
+                {template: '{{title}}', enabled: true}
+              ],
+              noteTitleScript: {script: 'return "";', enabled: true}
+            }
+          ]
+        };
+      });
+
+      test('should generate title from first valid template', () => {
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+        expect(result).toBe('My Great Book - John Doe');
+      });
+
+      test('should fallback to second template when first has missing metadata', () => {
+        // Remove author to make first template fail
+        delete testMetadata.author;
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('My Great Book');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Template "{{title}} - {{author}}" could not be processed due to missing metadata for fileClass "book"'
+        );
+      });
+
+      test('should return "Untitled" when no templates work', () => {
+        // Remove all metadata
+        testMetadata = {};
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        // Should log debug for both templates that failed
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Template "{{title}} - {{author}}" could not be processed due to missing metadata for fileClass "book"'
+        );
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Template "{{title}}" could not be processed due to missing metadata for fileClass "book"'
+        );
+      });
+
+      test('should return "Untitled" when no templates are defined', () => {
+        testSettings.folderFileClassMappings[0].noteTitleTemplates = [];
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: No note title templates defined for fileClass "book"'
+        );
+      });
+
+      test('should skip disabled templates', () => {
+        testSettings.folderFileClassMappings[0].noteTitleTemplates = [
+          {template: '{{title}} - {{author}} - {{year}}', enabled: false},
+          {template: '{{title}} - {{author}}', enabled: true}
+        ];
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+        expect(result).toBe('My Great Book - John Doe');
+      });
+
+      test('should handle array values in templates', () => {
+        testSettings.folderFileClassMappings[0].noteTitleTemplates = [
+          {template: '{{title}} - {{tags}}', enabled: true}
+        ];
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+        expect(result).toBe('My Great Book - fiction, adventure');
+      });
+
+      test('should sanitize invalid filename characters', () => {
+        testMetadata.title = 'My/Great\\Book:*?"<>|';
+        testSettings.folderFileClassMappings[0].noteTitleTemplates = [
+          {template: '{{title}}', enabled: true}
+        ];
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+        expect(result).toBe('MyGreatBook');
+      });
+
+      test('should return "Untitled" for invalid template results', () => {
+        testMetadata.title = '///';  // Results in empty string after sanitization
+        testSettings.folderFileClassMappings[0].noteTitleTemplates = [
+          {template: '{{title}}', enabled: true}
+        ];
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Template result "///" is not a valid filename for fileClass "book"'
+        );
+      });
+
+      test('should handle template processing errors gracefully', () => {
+        testSettings.folderFileClassMappings[0].noteTitleTemplates = [
+          {template: '{{invalid}}', enabled: true}
+        ];
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Template "{{invalid}}" could not be processed due to missing metadata for fileClass "book"'
+        );
+      });
+    });
+
+    describe('Script Mode', () => {
+      beforeEach(() => {
+        testSettings = {
+          ...DEFAULT_SETTINGS,
+          debugMode: true,
+          folderFileClassMappings: [
+            {
+              folder: 'Books',
+              fileClass: 'book',
+              moveToFolder: true,
+              templateMode: 'script',
+              noteTitleTemplates: [],
+              noteTitleScript: {
+                script: 'return metadata.title + " - " + metadata.author;',
+                enabled: true
+              }
+            }
+          ]
+        };
+      });
+
+      test('should generate title from script', () => {
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+        expect(result).toBe('My Great Book - John Doe');
+      });
+
+      test('should return "Untitled" when script is disabled', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.enabled = false;
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Note title script is disabled or empty for fileClass "book"'
+        );
+      });
+
+      test('should return "Untitled" when script is empty', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.script = '';
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Note title script is disabled or empty for fileClass "book"'
+        );
+      });
+
+      test('should return "Untitled" when script returns empty string', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.script = 'return "";';
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Note title script returned empty string for fileClass "book"'
+        );
+      });
+
+      test('should return "Untitled" when script returns non-string', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.script = 'return 42;';
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Note title script returned non-string value (number) for fileClass "book"'
+        );
+      });
+
+      test('should sanitize script result filename', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.script = 'return "My/Great\\\\Book:*?\\"<>|";';
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+        expect(result).toBe('MyGreatBook');
+      });
+
+      test('should return "Untitled" for invalid script result', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.script = 'return "///";';
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: Note title script result "///" is not a valid filename for fileClass "book"'
+        );
+      });
+
+      test('should handle script execution errors gracefully', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.script = 'throw new Error("Test error");';
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Error executing note title script for fileClass "book": Test error')
+        );
+      });
+
+      test('should provide proper script context', () => {
+        testSettings.folderFileClassMappings[0].noteTitleScript.script = 'return fileClass + "-" + file.name + "-" + metadata.title;';
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+        expect(result).toBe('book-test.md-My Great Book');
+      });
+    });
+
+    describe('General Cases', () => {
+      test('should return "Untitled" when no folder mapping found', () => {
+        testSettings = {
+          ...DEFAULT_SETTINGS,
+          debugMode: true, // Enable debug mode to test logging
+          folderFileClassMappings: []
+        };
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        const result = service.formatNoteTitle(testFile, 'unknown', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: No folder mapping found for fileClass "unknown"'
+        );
+      });
+
+      test('should handle errors gracefully and return "Untitled"', () => {
+        testSettings = {
+          ...DEFAULT_SETTINGS,
+          folderFileClassMappings: [
+            {
+              folder: 'Books',
+              fileClass: 'book',
+              moveToFolder: true,
+              templateMode: 'template',
+              noteTitleTemplates: [
+                {template: '{{title}}', enabled: true}
+              ],
+              noteTitleScript: {script: 'return "";', enabled: true}
+            }
+          ]
+        };
+
+        // Mock an error in the processing
+        const service = new MetaFlowService(mockApp, testSettings);
+        const processTemplateOriginal = (service as any).processTemplate;
+        (service as any).processTemplate = jest.fn().mockImplementation(() => {
+          throw new Error('Test error');
+        });
+
+        const result = service.formatNoteTitle(testFile, 'book', testMetadata, mockLogManager);
+
+        expect(result).toBe('Untitled');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Error processing template "{{title}}" for fileClass "book": Test error')
+        );
+
+        // Restore
+        (service as any).processTemplate = processTemplateOriginal;
+      });
+
+      test('should log debug messages when debug mode is enabled', () => {
+        testSettings = {
+          ...DEFAULT_SETTINGS,
+          debugMode: true,
+          folderFileClassMappings: []
+        };
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        service.formatNoteTitle(testFile, 'unknown', testMetadata, mockLogManager);
+
+        expect(consoleDebugSpy).toHaveBeenCalledWith(
+          'MetaFlow: No folder mapping found for fileClass "unknown"'
+        );
+      });
+
+      test('should not log debug messages when debug mode is disabled', () => {
+        testSettings = {
+          ...DEFAULT_SETTINGS,
+          debugMode: false,
+          folderFileClassMappings: []
+        };
+
+        const service = new MetaFlowService(mockApp, testSettings);
+        service.formatNoteTitle(testFile, 'unknown', testMetadata, mockLogManager);
+
+        expect(consoleDebugSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Filename Sanitization', () => {
+      test('should sanitize invalid characters', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const sanitizeFilename = (service as any).sanitizeFilename.bind(service);
+
+        expect(sanitizeFilename('test/file')).toBe('testfile');
+        expect(sanitizeFilename('test\\file')).toBe('testfile');
+        expect(sanitizeFilename('test:file')).toBe('testfile');
+        expect(sanitizeFilename('test*file')).toBe('testfile');
+        expect(sanitizeFilename('test?file')).toBe('testfile');
+        expect(sanitizeFilename('test"file')).toBe('testfile');
+        expect(sanitizeFilename('test<file')).toBe('testfile');
+        expect(sanitizeFilename('test>file')).toBe('testfile');
+        expect(sanitizeFilename('test|file')).toBe('testfile');
+      });
+
+      test('should handle reserved names', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const sanitizeFilename = (service as any).sanitizeFilename.bind(service);
+
+        expect(sanitizeFilename('CON')).toBe('');
+        expect(sanitizeFilename('PRN')).toBe('');
+        expect(sanitizeFilename('AUX')).toBe('');
+        expect(sanitizeFilename('NUL')).toBe('');
+        expect(sanitizeFilename('COM1')).toBe('');
+        expect(sanitizeFilename('LPT1')).toBe('');
+        expect(sanitizeFilename('.')).toBe('');
+        expect(sanitizeFilename('..')).toBe('');
+      });
+
+      test('should collapse multiple spaces', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const sanitizeFilename = (service as any).sanitizeFilename.bind(service);
+
+        expect(sanitizeFilename('test    file')).toBe('test file');
+        expect(sanitizeFilename('  test  file  ')).toBe('test file');
+      });
+
+      test('should limit filename length', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const sanitizeFilename = (service as any).sanitizeFilename.bind(service);
+
+        const longName = 'a'.repeat(300);
+        const result = sanitizeFilename(longName);
+        expect(result.length).toBe(255);
+      });
+
+      test('should handle empty and invalid inputs', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const sanitizeFilename = (service as any).sanitizeFilename.bind(service);
+
+        expect(sanitizeFilename('')).toBe('');
+        expect(sanitizeFilename(null)).toBe('');
+        expect(sanitizeFilename(undefined)).toBe('');
+        expect(sanitizeFilename(123 as any)).toBe('');
+      });
+    });
+
+    describe('Template Processing', () => {
+      test('should process simple placeholders', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const processTemplate = (service as any).processTemplate.bind(service);
+
+        const result = processTemplate('{{title}}', {title: 'Test Title'}, 'book');
+        expect(result).toBe('Test Title');
+      });
+
+      test('should process multiple placeholders', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const processTemplate = (service as any).processTemplate.bind(service);
+
+        const result = processTemplate('{{title}} by {{author}}', {title: 'Test Title', author: 'John Doe'}, 'book');
+        expect(result).toBe('Test Title by John Doe');
+      });
+
+      test('should handle missing metadata', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const processTemplate = (service as any).processTemplate.bind(service);
+
+        const result = processTemplate('{{title}} by {{author}}', {title: 'Test Title'}, 'book');
+        expect(result).toBeNull();
+      });
+
+      test('should handle placeholders with spaces', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const processTemplate = (service as any).processTemplate.bind(service);
+
+        const result = processTemplate('{{ title }} by {{ author }}', {title: 'Test Title', author: 'John Doe'}, 'book');
+        expect(result).toBe('Test Title by John Doe');
+      });
+
+      test('should handle array values', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const processTemplate = (service as any).processTemplate.bind(service);
+
+        const result = processTemplate('{{tags}}', {tags: ['tag1', 'tag2']}, 'book');
+        expect(result).toBe('tag1, tag2');
+      });
+
+      test('should handle empty array values', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const processTemplate = (service as any).processTemplate.bind(service);
+
+        const result = processTemplate('{{tags}}', {tags: []}, 'book');
+        expect(result).toBe('');
+      });
+
+      test('should handle null and undefined values', () => {
+        const service = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
+        const processTemplate = (service as any).processTemplate.bind(service);
+
+        expect(processTemplate('{{title}}', {title: null}, 'book')).toBeNull();
+        expect(processTemplate('{{title}}', {title: undefined}, 'book')).toBeNull();
+        expect(processTemplate('{{title}}', {title: ''}, 'book')).toBeNull();
+      });
+    });
+
+    describe('Console Output Verification', () => {
+      test('should properly mock console.debug and not show output', () => {
+        // This test verifies that our console mocking is working correctly
+        // and no debug output will be shown during test runs
+        expect(consoleDebugSpy).toBeDefined();
+        expect(consoleErrorSpy).toBeDefined();
+
+        // Call the methods directly to verify they're mocked
+        console.debug('This debug message should not appear in test output');
+        console.error('This error message should not appear in test output');
+
+        expect(consoleDebugSpy).toHaveBeenCalledWith('This debug message should not appear in test output');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('This error message should not appear in test output');
+      });
+    });
+  });
+
 });
