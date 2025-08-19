@@ -9,9 +9,11 @@ import {LogNoticeManager} from "../../managers/LogNoticeManager";
 import {FileClassAvailableFieldsHelpModal} from "../modals/FileClassAvailableFieldsHelpModal";
 import {ScriptEditor} from "../ScriptEditor";
 import {CompletionsHelpModal} from "../modals/CompletionsHelpModal";
+import {TitleTemplateLinter, ValidationResult} from "./TitleTemplateLinter";
 
 export class FolderFileClassMappingsSection {
   private templaterImportButton: HTMLButtonElement;
+  private linter: TitleTemplateLinter;
 
   constructor(
     private app: App,
@@ -22,7 +24,9 @@ export class FolderFileClassMappingsSection {
     private templaterAdapter: TemplaterAdapter,
     private logManager: LogNoticeManager,
     private onChange: () => void
-  ) { }
+  ) {
+    this.linter = new TitleTemplateLinter();
+  }
 
   render() {
     this.container.empty();
@@ -459,13 +463,22 @@ export class FolderFileClassMappingsSection {
       const dragHandle = templateRow.createEl('span', {cls: 'drag-handle', text: '⋮⋮'});
 
       // Template input (CodeMirror placeholder for now, can be enhanced later)
-      const templateInput = templateRow.createEl('textarea', {cls: 'metaflow-settings-template-input', attr: {rows: 1}});
+      const templateInputContainer = templateRow.createEl('div', {cls: 'metaflow-settings-template-input-container'});
+      const templateInput = templateInputContainer.createEl('textarea', {cls: 'metaflow-settings-template-input', attr: {rows: 1}});
       templateInput.value = template.template;
       templateInput.placeholder = 'Enter template (e.g., {{title}} - {{author}})';
+
       templateInput.addEventListener('input', async () => {
         template.template = templateInput.value;
         await this.onChange();
+        // Update validation feedback
+        this.updateValidationFeedback(templateInputContainer, templateInput.value, false);
       });
+
+      // Initial validation feedback
+      if (template.template) {
+        this.updateValidationFeedback(templateInputContainer, template.template, false);
+      }
 
       // Enabled toggle
       const [enabledToggle, enabledLabel] = SettingsUtils.createCheckboxWithLabel(templateRow, {
@@ -562,6 +575,9 @@ export class FolderFileClassMappingsSection {
     const editDiv = scriptDiv.createEl('div', {cls: 'note-title-script-edit'});
     editDiv.classList.add('metaflow-settings-script-edit');
 
+    // Create validation feedback container
+    const validationContainer = scriptDiv.createEl('div', {cls: 'metaflow-script-validation-container'});
+
     // Store original values for cancel functionality
     let originalScript = script.script;
 
@@ -571,6 +587,29 @@ export class FolderFileClassMappingsSection {
       enablePromptFunction: false // Don't enable prompt function for note title scripts
     });
     scriptEditor.createEditor(editDiv, 'return "";', script.script);
+
+    // Add validation on script change
+    const validateScript = () => {
+      const currentScript = scriptEditor.getValue();
+      this.updateValidationFeedback(validationContainer, currentScript, true);
+    };
+
+    // Initial validation
+    if (script.script) {
+      validateScript();
+    }
+
+    // Add a small delay to validation to avoid too frequent updates
+    let validationTimeout: NodeJS.Timeout | null = null;
+    const scriptElement = editDiv.querySelector('.ace_editor');
+    if (scriptElement) {
+      scriptElement.addEventListener('input', () => {
+        if (validationTimeout) {
+          clearTimeout(validationTimeout);
+        }
+        validationTimeout = setTimeout(validateScript, 500);
+      });
+    }
 
     okButton.addEventListener('click', async () => {
       script.script = scriptEditor.getValue();
@@ -586,6 +625,64 @@ export class FolderFileClassMappingsSection {
     });
 
     // No delete button and no default row for script mode since there's only one script
+  }
+
+  /**
+   * Creates a validation feedback element for templates or scripts
+   */
+  private createValidationFeedback(container: HTMLElement, validationResult: ValidationResult): HTMLElement {
+    const existingFeedback = container.querySelector('.metaflow-validation-feedback') as HTMLElement | null;
+    if (existingFeedback) {
+      if (existingFeedback.classList.contains(`metaflow-validation-${validationResult.type}`)) {
+        // just update the message
+        existingFeedback.textContent = validationResult.message;
+        return existingFeedback;
+      }
+      container.removeChild(existingFeedback);
+    }
+
+    const feedbackEl = container.createEl('div', {cls: 'metaflow-validation-feedback'});
+
+    // Add type-specific classes
+    feedbackEl.classList.add(`metaflow-validation-${validationResult.type}`);
+
+    // Add icon based on type
+    const icon = validationResult.type === 'error' ? '❌' :
+      validationResult.type === 'warning' ? '⚠️' : '✅';
+
+    feedbackEl.createEl('span', {
+      cls: 'metaflow-validation-icon',
+      text: icon
+    });
+
+    feedbackEl.createEl('span', {
+      cls: 'metaflow-validation-message',
+      text: validationResult.message
+    });
+
+    return feedbackEl;
+  }
+
+  /**
+   * Updates validation feedback for a given element
+   */
+  private updateValidationFeedback(container: HTMLElement, value: string, isScript: boolean = false): void {
+    // Only show feedback if there's content to validate
+    if (!value || value.trim() === '') {
+      // Remove existing feedback
+      const existingFeedback = container.querySelector('.metaflow-validation-feedback');
+      if (existingFeedback) {
+        existingFeedback.remove();
+      }
+      return;
+    }
+
+    // Validate and create feedback
+    const validationResult = isScript ?
+      this.linter.validateScript(value) :
+      this.linter.validateTemplate(value);
+
+    this.createValidationFeedback(container, validationResult);
   }
 
 
