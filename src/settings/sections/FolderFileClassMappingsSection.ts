@@ -10,10 +10,12 @@ import {FileClassAvailableFieldsHelpModal} from "../modals/FileClassAvailableFie
 import {ScriptEditor} from "../ScriptEditor";
 import {CompletionsHelpModal} from "../modals/CompletionsHelpModal";
 import {TitleTemplateLinter, ValidationResult} from "./TitleTemplateLinter";
+import {TitleScriptLinter} from "./TitleScriptLinter";
 
 export class FolderFileClassMappingsSection {
   private templaterImportButton: HTMLButtonElement;
-  private linter: TitleTemplateLinter;
+  private templateLinter: TitleTemplateLinter;
+  private scriptLinter: TitleScriptLinter;
 
   constructor(
     private app: App,
@@ -25,7 +27,8 @@ export class FolderFileClassMappingsSection {
     private logManager: LogNoticeManager,
     private onChange: () => void
   ) {
-    this.linter = new TitleTemplateLinter();
+    this.templateLinter = new TitleTemplateLinter();
+    this.scriptLinter = new TitleScriptLinter();
   }
 
   render() {
@@ -679,8 +682,8 @@ export class FolderFileClassMappingsSection {
 
     // Validate and create feedback
     const validationResult = isScript ?
-      this.linter.validateScript(value) :
-      this.linter.validateTemplate(value);
+      this.scriptLinter.validateScript(value) :
+      this.templateLinter.validateTemplate(value);
 
     this.createValidationFeedback(container, validationResult);
   }

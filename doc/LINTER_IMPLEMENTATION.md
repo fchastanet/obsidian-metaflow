@@ -1,4 +1,4 @@
-# Title Template Linter Implementation
+# Title Template and Script Linter Implementation
 
 ## Overview
 
@@ -7,13 +7,20 @@ I've successfully implemented a comprehensive linting system for title templates
 ## New Files Created
 
 ### 1. `TitleTemplateLinter.ts`
-A dedicated class that provides validation for both template strings and JavaScript scripts used for note title generation.
+A dedicated class that provides validation for template strings used in note title generation.
 
 **Key Features:**
 - **Template Validation**: Validates template syntax, variable names, and brace balance
-- **Script Validation**: Uses **Acorn AST parser** for accurate JavaScript analysis
 - **User-Friendly Feedback**: Returns structured validation results with clear messages
+- **Performance Optimized**: Lightweight validation focused on template syntax
+
+### 2. `TitleScriptLinter.ts`
+A dedicated class that provides validation for JavaScript scripts used in note title generation.
+
+**Key Features:**
+- **Script Validation**: Uses **Acorn AST parser** for accurate JavaScript analysis
 - **Security Analysis**: AST-based detection of dangerous patterns
+- **Execution Path Analysis**: Ensures all code branches return string values
 - **Performance Optimized**: Falls back to regex when AST parsing fails
 
 **Template Validation Checks:**
@@ -34,12 +41,21 @@ A dedicated class that provides validation for both template strings and JavaScr
 - **AST-based best practice warnings** (console statements, string return type detection)
 - Intelligent script fragment handling (wraps fragments in functions for parsing)
 
-### 2. `TitleTemplateLinter.test.ts`
-Comprehensive unit tests covering all validation scenarios including:
-- Edge cases (empty inputs, malformed syntax)
-- Security validation (dangerous functions)
-- Warning conditions (best practices)
-- Valid input acceptance
+### 3. `TitleTemplateLinter.test.ts`
+Comprehensive unit tests for template validation functionality.
+
+### 4. `TitleScriptLinter.test.ts`
+Comprehensive unit tests for script validation functionality including execution path analysis.
+
+## Implementation Structure
+
+The linting system is now organized into separate, focused classes:
+
+- **`TitleTemplateLinter`**: Handles template string validation (braces, variables, syntax)
+- **`TitleScriptLinter`**: Handles JavaScript script validation (AST analysis, security, execution paths)
+- **`FolderFileClassMappingsSection`**: Integrates both linters and provides UI feedback
+
+This separation provides better maintainability, focused responsibilities, and easier testing.
 
 ## Integration with FolderFileClassMappingsSection
 
