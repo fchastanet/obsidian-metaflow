@@ -72,7 +72,7 @@ export class PropertyDefaultValueScriptsSection {
             propertyName: '',
             script: 'return "";',
             enabled: true,
-            order: this.settings.propertyDefaultValueScripts.length
+            order: this.settings.propertyDefaultValueScripts.reduce((max, script) => Math.max(max, script.order ?? 0), 0) + 1
           });
           this.onChange();
           this.displayPropertyScripts(scriptsContainer);
