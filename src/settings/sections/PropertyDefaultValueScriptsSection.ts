@@ -3,6 +3,7 @@ import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
 import {MetaFlowSettings, PropertyDefaultValueScript} from "../types";
 import {SettingsUtils} from "../SettingsUtils";
 import {ScriptEditor} from "../ScriptEditor";
+import {DragDropHelper} from "../DragDropHelper";
 
 declare type AceModule = typeof import("ace-builds");
 import * as Ace from "ace-builds";
@@ -10,6 +11,7 @@ declare const ace: AceModule;
 
 export class PropertyDefaultValueScriptsSection {
   private metadataMenuImportButton: HTMLButtonElement | null = null;
+  private dragDropHelper: DragDropHelper<PropertyDefaultValueScript>;
 
   constructor(
     private app: App,
@@ -17,7 +19,22 @@ export class PropertyDefaultValueScriptsSection {
     private settings: MetaFlowSettings,
     private metadataMenuAdapter: MetadataMenuAdapter,
     private onChange: () => void
-  ) { }
+  ) {
+    // Initialize drag and drop helper
+    this.dragDropHelper = new DragDropHelper<PropertyDefaultValueScript>({
+      container: this.container,
+      items: this.settings.propertyDefaultValueScripts,
+      onReorder: this.onChange,
+      refreshDisplay: () => {
+        const scriptsContainer = this.container.querySelector('.scripts-container') as HTMLElement;
+        if (scriptsContainer) {
+          this.displayPropertyScripts(scriptsContainer);
+        }
+      },
+      getOrder: (script) => script.order ?? Number.MAX_SAFE_INTEGER,
+      setOrder: (script, order) => {script.order = order;}
+    });
+  }
 
   render() {
     this.container.empty();
@@ -41,6 +58,7 @@ export class PropertyDefaultValueScriptsSection {
 
     // Create container for scripts
     const scriptsContainer = this.container.createEl('div');
+    scriptsContainer.classList.add('scripts-container');
     this.displayPropertyScripts(scriptsContainer);
 
     // Add new script button
@@ -71,58 +89,8 @@ export class PropertyDefaultValueScriptsSection {
       const scriptDiv = container.createEl('div', {cls: 'setting-item'});
       scriptDiv.classList.add('metaflow-settings-script');
 
-      // Add drag and drop functionality
-      scriptDiv.draggable = true;
-      scriptDiv.classList.add('metaflow-settings-grab');
-      scriptDiv.setAttribute('data-index', index.toString());
-
-      // Add visual feedback for drag operations
-      scriptDiv.addEventListener('dragstart', (e) => {
-        scriptDiv.classList.add('metaflow-settings-dragging');
-        e.dataTransfer?.setData('text/plain', index.toString());
-      });
-
-      scriptDiv.addEventListener('dragend', () => {
-        scriptDiv.classList.remove('metaflow-settings-dragging');
-      });
-
-      scriptDiv.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        scriptDiv.classList.add('metaflow-settings-dragover');
-      });
-
-      scriptDiv.addEventListener('dragleave', () => {
-        scriptDiv.classList.remove('metaflow-settings-dragover');
-      });
-
-      scriptDiv.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        scriptDiv.classList.remove('metaflow-settings-dragover');
-
-        const draggedDisplayIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
-        const targetDisplayIndex = index;
-
-        if (draggedDisplayIndex !== targetDisplayIndex && !isNaN(draggedDisplayIndex)) {
-          // Get the actual script objects from the sorted array
-          const draggedScript = orderedProperties[draggedDisplayIndex];
-          const targetScript = orderedProperties[targetDisplayIndex];
-
-          // Remove dragged item from the ordered array
-          orderedProperties.splice(draggedDisplayIndex, 1);
-
-          // Insert at the new position
-          const insertIndex = draggedDisplayIndex < targetDisplayIndex ? targetDisplayIndex : targetDisplayIndex;
-          orderedProperties.splice(insertIndex, 0, draggedScript);
-
-          // Recompute all order values based on new positions
-          orderedProperties.forEach((script, newIndex) => {
-            script.order = newIndex + 1;
-          });
-
-          await this.onChange();
-          this.displayPropertyScripts(container);
-        }
-      });
+      // Add drag and drop functionality using helper
+      this.dragDropHelper.makeDraggable(scriptDiv, index);
 
       // Create read-only view
       const readOnlyDiv = scriptDiv.createEl('div', {cls: 'property-script-readonly'});
@@ -246,13 +214,11 @@ export class PropertyDefaultValueScriptsSection {
         if (editMode) {
           readOnlyDiv.classList.add('metaflow-settings-hide');
           editDiv.classList.remove('metaflow-settings-hide');
-          scriptDiv.draggable = false;
-          scriptDiv.classList.remove('metaflow-settings-grab');
+          this.dragDropHelper.makeNonDraggable(scriptDiv);
         } else {
           readOnlyDiv.classList.remove('metaflow-settings-hide');
           editDiv.classList.add('metaflow-settings-hide');
-          scriptDiv.draggable = true;
-          scriptDiv.classList.add('metaflow-settings-grab');
+          this.dragDropHelper.makeDraggable(scriptDiv, index);
         }
       };
 

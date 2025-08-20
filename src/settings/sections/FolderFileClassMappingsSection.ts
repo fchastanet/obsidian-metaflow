@@ -11,11 +11,14 @@ import {ScriptEditor} from "../ScriptEditor";
 import {CompletionsHelpModal} from "../modals/CompletionsHelpModal";
 import {TitleTemplateLinter, ValidationResult} from "./TitleTemplateLinter";
 import {TitleScriptLinter} from "./TitleScriptLinter";
+import {DragDropHelper} from "../DragDropHelper";
 
 export class FolderFileClassMappingsSection {
   private templaterImportButton: HTMLButtonElement;
   private templateLinter: TitleTemplateLinter;
   private scriptLinter: TitleScriptLinter;
+  private folderMappingDragDropHelper: DragDropHelper<FolderFileClassMapping>;
+  private templateDragDropHelper: (element: HTMLElement, childIndex: number, parentIndex: number) => void;
 
   constructor(
     private app: App,
@@ -29,6 +32,33 @@ export class FolderFileClassMappingsSection {
   ) {
     this.templateLinter = new TitleTemplateLinter();
     this.scriptLinter = new TitleScriptLinter();
+
+    // Initialize drag and drop helper for folder mappings
+    this.folderMappingDragDropHelper = new DragDropHelper<FolderFileClassMapping>({
+      container: this.container,
+      items: this.folderFileClassMappings,
+      onReorder: this.onChange,
+      refreshDisplay: () => {
+        const mappingsContainer = this.container.querySelector('.mappings-container') as HTMLElement;
+        if (mappingsContainer) {
+          this.displayFolderMappings(mappingsContainer);
+        }
+      }
+      // No order functions since this uses simple array ordering
+    });
+
+    // Initialize drag and drop helper for templates
+    this.templateDragDropHelper = DragDropHelper.createNestedArrayHelper(
+      this.folderFileClassMappings,
+      (mapping) => mapping.noteTitleTemplates,
+      this.onChange,
+      () => {
+        const mappingsContainer = this.container.querySelector('.mappings-container') as HTMLElement;
+        if (mappingsContainer) {
+          this.displayFolderMappings(mappingsContainer);
+        }
+      }
+    );
   }
 
   render() {
@@ -52,6 +82,7 @@ export class FolderFileClassMappingsSection {
 
     // Create container for mappings
     const mappingsContainer = this.container.createEl('div');
+    mappingsContainer.classList.add('mappings-container');
     this.displayFolderMappings(mappingsContainer);
 
     // Add new mapping button
@@ -162,7 +193,7 @@ export class FolderFileClassMappingsSection {
 
   private displayFolderMapping(container: HTMLElement, mapping: FolderFileClassMapping, index: number): void {
     const mappingDiv = container.createEl('div', {cls: 'metaflow-settings-mapping-row metaflow-settings-grab'});
-    this.makeFolderMappingDraggable(container, mappingDiv, index);
+    this.folderMappingDragDropHelper.makeDraggable(mappingDiv, index);
     this.makeFolderMappingDefaultFields(container, mapping, mappingDiv, index);
 
     const templateSection = mappingDiv.createDiv({cls: 'note-title-template-section'});
@@ -331,48 +362,6 @@ export class FolderFileClassMappingsSection {
       this.displayFolderMappings(container);
     });
   }
-  private makeFolderMappingDraggable(container: HTMLElement, mappingDiv: HTMLElement, index: number) {
-    // Add drag and drop functionality
-    mappingDiv.draggable = true;
-    mappingDiv.setAttribute('data-index', index.toString());
-
-    // Add visual feedback for drag operations
-    mappingDiv.addEventListener('dragstart', (e) => {
-      mappingDiv.classList.add('metaflow-settings-dragging');
-      e.dataTransfer?.setData('text/plain', index.toString());
-    });
-
-    mappingDiv.addEventListener('dragend', () => {
-      mappingDiv.classList.remove('metaflow-settings-dragging');
-    });
-
-    mappingDiv.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      mappingDiv.classList.add('metaflow-settings-dragover');
-    });
-
-    mappingDiv.addEventListener('dragleave', () => {
-      mappingDiv.classList.remove('metaflow-settings-dragover');
-    });
-
-    mappingDiv.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      mappingDiv.classList.remove('metaflow-settings-dragover');
-
-      const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
-      const targetIndex = index;
-
-      if (draggedIndex !== targetIndex && !isNaN(draggedIndex)) {
-        // Reorder the array
-        const draggedItem = this.folderFileClassMappings[draggedIndex];
-        this.folderFileClassMappings.splice(draggedIndex, 1);
-        this.folderFileClassMappings.splice(targetIndex, 0, draggedItem);
-
-        await this.onChange();
-        this.displayFolderMappings(container);
-      }
-    });
-  }
 
   private displayNoteTitleTemplates(mappingDiv: HTMLElement, mapping: any, mappingIndex: number): void {
     // Initialize properties if not exists
@@ -421,46 +410,9 @@ export class FolderFileClassMappingsSection {
 
     mapping.noteTitleTemplates.forEach((template: any, templateIndex: number) => {
       const templateRow = container.createDiv({cls: 'metaflow-settings-template-row'});
-      templateRow.draggable = true;
-      templateRow.classList.add('metaflow-settings-template-row-draggable');
-      templateRow.setAttribute('data-template-index', templateIndex.toString());
 
       // Add drag and drop functionality for templates
-      templateRow.addEventListener('dragstart', (e) => {
-        templateRow.classList.add('metaflow-settings-dragging');
-        e.dataTransfer?.setData('text/plain', templateIndex.toString());
-      });
-
-      templateRow.addEventListener('dragend', () => {
-        templateRow.classList.remove('metaflow-settings-dragging');
-      });
-
-      templateRow.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        templateRow.classList.add('metaflow-settings-dragover');
-      });
-
-      templateRow.addEventListener('dragleave', () => {
-        templateRow.classList.remove('metaflow-settings-dragover');
-      });
-
-      templateRow.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        templateRow.classList.remove('metaflow-settings-dragover');
-
-        const draggedIndex = parseInt(e.dataTransfer?.getData('text/plain') || '');
-        const targetIndex = templateIndex;
-
-        if (draggedIndex !== targetIndex && !isNaN(draggedIndex)) {
-          // Reorder the templates array
-          const draggedItem = mapping.noteTitleTemplates[draggedIndex];
-          mapping.noteTitleTemplates.splice(draggedIndex, 1);
-          mapping.noteTitleTemplates.splice(targetIndex, 0, draggedItem);
-
-          await this.onChange();
-          this.displayTemplateRows(container, mapping, mappingIndex);
-        }
-      });
+      this.templateDragDropHelper(templateRow, templateIndex, mappingIndex);
 
       // Drag handle
       const dragHandle = templateRow.createEl('span', {cls: 'drag-handle', text: '⋮⋮'});
