@@ -164,6 +164,13 @@ Potential improvements that could be added:
 - More sophisticated script analysis
 - Integration with TypeScript for better script validation
 
+## Limitations
+
+- The linter may not catch all edge cases, especially in complex scripts
+- The linter consider that variables are always strings
+- Performance may degrade with very large scripts or templates
+- Some JavaScript features (e.g., dynamic imports) may not be fully supported
+
 ## Testing
 
 The implementation includes comprehensive unit tests that cover:

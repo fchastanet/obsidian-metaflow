@@ -14,7 +14,7 @@ export interface ParsedScript {
  * and caches the result to avoid multiple parsing operations
  */
 export class ScriptASTParser {
-  private parseCache = new Map<string, ParsedScript>();
+  private parseCache = new Map<string, ParsedScript | null>();
 
   /**
    * Parses a script into an AST, with caching to avoid repeated parsing
@@ -30,7 +30,7 @@ export class ScriptASTParser {
     try {
       // First try parsing as-is for complete programs
       try {
-        const ast = acorn.parse(script, { ecmaVersion: 'latest' });
+        const ast = acorn.parse(script, {ecmaVersion: 'latest'});
         const result: ParsedScript = {
           ast,
           isWrapped: false,
@@ -41,7 +41,7 @@ export class ScriptASTParser {
       } catch (error) {
         // If that fails, try wrapping in function (for script fragments)
         const wrappedScript = `function temp() { ${script} }`;
-        const ast = acorn.parse(wrappedScript, { ecmaVersion: 'latest' });
+        const ast = acorn.parse(wrappedScript, {ecmaVersion: 'latest'});
         const result: ParsedScript = {
           ast,
           isWrapped: true,
@@ -52,7 +52,7 @@ export class ScriptASTParser {
       }
     } catch (error) {
       // Cache null result to avoid repeated parsing attempts
-      this.parseCache.set(script, null as any);
+      this.parseCache.set(script, null);
       return null;
     }
   }

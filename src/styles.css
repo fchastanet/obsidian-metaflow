@@ -192,7 +192,7 @@
 /* Folder mapping styles */
 .metaflow-settings-mapping-row {
   flex-direction: column;
-  border: 1px solid #ccc;
+  border: 1px solid var(--background-modifier-border);
   padding: 10px;
   margin-bottom: 10px;
 }
@@ -277,7 +277,7 @@
 
 .metaflow-settings-templates-container {
   width: 100%;
-  border-left: 1px solid #fff;
+  border-left: 1px solid var(--background-modifier-border);
   padding-left: 10px;
 }
 
@@ -306,9 +306,8 @@
 
 /* Property script styles */
 .metaflow-settings-script {
-  border: 1px solid #ccc !important;
-  padding: 10px !important;
-  margin-bottom: 10px;
+  flex-direction: column;
+  gap: 0;
 }
 
 .metaflow-settings-script-readonly {
@@ -316,6 +315,7 @@
   align-items: center;
   gap: 10px;
   padding: 5px;
+  padding-bottom: 0;
   border-radius: 3px;
   width: 100%;
 }
@@ -340,6 +340,12 @@
   font-family: monospace;
   font-size: 12px;
   flex-grow: 1;
+  width: 100%;
+  margin-left: 72px;
+  padding-left: 10px;
+  white-space: pre;
+  padding-right: 200px;
+  border-left: 1px solid var(--blockquote-border-color);
 }
 
 .metaflow-settings-script-enabled-label {

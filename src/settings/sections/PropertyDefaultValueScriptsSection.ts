@@ -106,12 +106,6 @@ export class PropertyDefaultValueScriptsSection {
       propertySpan.textContent = script.propertyName || 'Unnamed Property';
       propertySpan.classList.add('metaflow-settings-script-property');
 
-      // Script preview (extended to 100 characters)
-      const scriptPreview = readOnlyDiv.createEl('span');
-      const scriptPreviewText = script.script.replace(/\n/g, ' ').substring(0, 100);
-      scriptPreview.textContent = scriptPreviewText + (script.script.length > 100 ? '...' : '');
-      scriptPreview.classList.add('metaflow-settings-script-preview');
-
       // Enabled toggle
       const [enabledTogglePreview, enabledLabelPreview] = SettingsUtils.createCheckboxWithLabel(
         readOnlyDiv, {
@@ -123,9 +117,23 @@ export class PropertyDefaultValueScriptsSection {
       }
       );
 
+      // Add a spacer
+      const spacer = readOnlyDiv.createDiv();
+      spacer.classList.add('metaflow-settings-script-btn-spacer');
+
+      // Delete button
+      const deleteButton = readOnlyDiv.createEl('button', {text: '🗑️ Delete'});
+      deleteButton.classList.add('metaflow-settings-script-delete-btn');
+
       // Edit button (aligned to right)
       const editButton = readOnlyDiv.createEl('button', {text: '✏️ Edit'});
       editButton.classList.add('metaflow-settings-script-edit-btn');
+
+      // Script preview (extended to 100 characters)
+      const scriptPreview = scriptDiv.createEl('span');
+      const scriptPreviewText = script.script.replace(/\n/g, ' ').substring(0, 100);
+      scriptPreview.textContent = scriptPreviewText + (script.script.length > 100 ? '...' : '');
+      scriptPreview.classList.add('metaflow-settings-script-preview');
 
       // Create edit view (hidden by default)
       const editDiv = scriptDiv.createEl('div', {cls: 'property-script-edit'});
@@ -193,13 +201,9 @@ export class PropertyDefaultValueScriptsSection {
       const buttonRow = editDiv.createEl('div');
       buttonRow.classList.add('metaflow-settings-script-btn-row');
 
-      // Delete button
-      const deleteButton = buttonRow.createEl('button', {text: '🗑️ Delete'});
-      deleteButton.classList.add('metaflow-settings-script-delete-btn');
-
       // Add a spacer
-      const spacer = buttonRow.createDiv();
-      spacer.classList.add('metaflow-settings-script-btn-spacer');
+      const spacer2 = buttonRow.createDiv();
+      spacer2.classList.add('metaflow-settings-script-btn-spacer');
 
       // OK button
       const okButton = buttonRow.createEl('button', {text: '✅ OK'});
