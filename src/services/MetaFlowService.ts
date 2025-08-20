@@ -308,11 +308,17 @@ export class MetaFlowService {
           console.debug(`MetaFlow: Note "${file.name}" already has the correct title "${newTitle}"`);
         }
         return null;
+      } else if (newTitle === 'Untitled') {
+        if (this.metaFlowSettings.debugMode) {
+          console.debug(`MetaFlow: Note "${file.name}", new title would be 'Untitled', keeping old name`);
+        }
+        return file;
       }
 
       // Check if new name would create a conflict
       const newFileName = `${newTitle}.${file.extension}`;
-      const newPath = file.parent ? `${file.parent.path}/${newFileName}` : newFileName;
+      let newPath = file.parent ? `${file.parent.path}/${newFileName}` : newFileName;
+      newPath = this.obsidianAdapter.normalizePath(newPath);
 
       if (this.obsidianAdapter.isFileExists(newPath)) {
         throw new MetaFlowException(`Cannot rename note: file "${newFileName}" already exists`, 'warning');

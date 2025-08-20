@@ -1387,6 +1387,9 @@ Content here`;
           const folderPath = normalizedPath.replace(/^\//, '');
           return folderPath + '/';
         }),
+        normalizePath: jest.fn().mockImplementation((filePath: string) => {
+          return filePath.replace(/\\/g, '/');
+        }),
       };
 
       service = new MetaFlowService(mockApp, settings);
