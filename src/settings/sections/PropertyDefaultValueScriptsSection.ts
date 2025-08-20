@@ -106,6 +106,10 @@ export class PropertyDefaultValueScriptsSection {
       propertySpan.textContent = script.propertyName || 'Unnamed Property';
       propertySpan.classList.add('metaflow-settings-script-property');
 
+      // Add a spacer
+      const spacer = readOnlyDiv.createDiv();
+      spacer.classList.add('metaflow-settings-script-btn-spacer');
+
       // Enabled toggle
       const [enabledTogglePreview, enabledLabelPreview] = SettingsUtils.createCheckboxWithLabel(
         readOnlyDiv, {
@@ -116,10 +120,6 @@ export class PropertyDefaultValueScriptsSection {
         checked: script.enabled,
       }
       );
-
-      // Add a spacer
-      const spacer = readOnlyDiv.createDiv();
-      spacer.classList.add('metaflow-settings-script-btn-spacer');
 
       // Delete button
       const deleteButton = readOnlyDiv.createEl('button', {text: '🗑️ Delete'});
@@ -260,9 +260,13 @@ export class PropertyDefaultValueScriptsSection {
       });
 
       deleteButton.addEventListener('click', async () => {
-        this.settings.propertyDefaultValueScripts.splice(index, 1);
-        await this.onChange();
-        this.displayPropertyScripts(container);
+        // Find the correct index in the original array
+        const originalIdx = this.settings.propertyDefaultValueScripts.indexOf(script);
+        if (originalIdx !== -1) {
+          this.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
+          await this.onChange();
+          this.displayPropertyScripts(container);
+        }
       });
     });
   }

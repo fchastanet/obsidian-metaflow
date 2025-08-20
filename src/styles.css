@@ -233,6 +233,11 @@
   margin-right: 10px;
 }
 
+.metaflow-settings-mapping-folder-order {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .metaflow-settings-mapping-folder-input {
   flex-grow: 1;
 }

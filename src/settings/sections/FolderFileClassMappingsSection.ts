@@ -259,6 +259,11 @@ export class FolderFileClassMappingsSection {
     const controlRow = mappingControl.createEl('div');
     controlRow.classList.add('metaflow-settings-mapping-control-row');
 
+    // Order display (moved to left)
+    const orderSpan = controlRow.createEl('span');
+    orderSpan.textContent = `#${index + 1}`;
+    orderSpan.classList.add('metaflow-settings-mapping-folder-order');
+
     // Folder pattern input
     const inputId = `metaflow-settings-mapping-folder-${index}`;
     controlRow.createEl('label', {text: 'Folder', attr: {for: inputId}});
