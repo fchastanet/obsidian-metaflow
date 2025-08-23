@@ -13,8 +13,11 @@ const mockSettings = {
 const mockDependencies: CommandDependencies = {
   app: {} as any,
   settings: mockSettings,
-  metaFlowService: {
-    togglePropertiesVisibility: mockTogglePropertiesVisibility,
+  metaFlowService: {} as any,
+  serviceContainer: {
+    uiService: {
+      togglePropertiesVisibility: mockTogglePropertiesVisibility,
+    },
   } as any,
   fileClassStateManager: {} as any,
   obsidianAdapter: {} as any,
@@ -44,7 +47,7 @@ describe('TogglePropertiesPanelCommand', () => {
     expect(mockSettings.hidePropertiesInEditor).toBe(true);
     expect(mockSaveSettings).toHaveBeenCalled();
     expect(mockTogglePropertiesVisibility).toHaveBeenCalledWith(true);
-    expect(mockLogManager.addInfo).toHaveBeenCalledWith('Properties panel is now hidden');
+    expect(mockLogManager.addInfo).toHaveBeenCalledWith('Properties panel hidden');
   });
 
   it('should toggle properties panel from hidden to visible', () => {
@@ -55,6 +58,6 @@ describe('TogglePropertiesPanelCommand', () => {
     expect(mockSettings.hidePropertiesInEditor).toBe(false);
     expect(mockSaveSettings).toHaveBeenCalled();
     expect(mockTogglePropertiesVisibility).toHaveBeenCalledWith(false);
-    expect(mockLogManager.addInfo).toHaveBeenCalledWith('Properties panel is now visible');
+    expect(mockLogManager.addInfo).toHaveBeenCalledWith('Properties panel shown');
   });
 });

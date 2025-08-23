@@ -21,34 +21,20 @@ import {CommandDependencies} from './types';
 import {LogManagerInterface} from '../managers/types';
 import {TFile} from 'obsidian';
 
+const mockGetMarkdownFiles = jest.fn();
+
 // Simple mock dependencies
 const mockDependencies: CommandDependencies = {
   app: {
     vault: {
-      getMarkdownFiles: jest.fn().mockReturnValue([]),
-      read: jest.fn(),
-      modify: jest.fn(),
+      getMarkdownFiles: mockGetMarkdownFiles,
     },
   } as any,
-  settings: {
-    excludeFolders: [],
-    autoRenameNote: false,
-    autoMoveNoteToRightFolder: false,
-    frontmatterUpdateDelayMs: 100,
-  } as any,
-  metaFlowService: {
-    processContent: jest.fn(),
-    getFrontmatterFromContent: jest.fn(),
-    getFileClassFromMetadata: jest.fn(),
-    renameNote: jest.fn(),
-    moveNoteToTheRightFolder: jest.fn(),
-  } as any,
-  fileClassStateManager: {
-    setEnabled: jest.fn(),
-  } as any,
-  obsidianAdapter: {
-    folderPrefix: jest.fn(),
-  } as any,
+  settings: {} as any,
+  metaFlowService: {} as any,
+  serviceContainer: {} as any,
+  fileClassStateManager: {} as any,
+  obsidianAdapter: {} as any,
   saveSettings: jest.fn(),
 };
 
@@ -65,6 +51,7 @@ describe('MassUpdateMetadataCommand', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetMarkdownFiles.mockReturnValue([]);
     command = new MassUpdateMetadataCommand(mockDependencies);
   });
 
@@ -79,6 +66,6 @@ describe('MassUpdateMetadataCommand', () => {
 
   it('should call getMarkdownFiles when executed', async () => {
     await command.execute(mockLogManager);
-    expect(mockDependencies.app.vault.getMarkdownFiles).toHaveBeenCalled();
+    expect(mockGetMarkdownFiles).toHaveBeenCalled();
   });
 });

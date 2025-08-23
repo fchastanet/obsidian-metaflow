@@ -20,6 +20,7 @@ const mockDependencies: CommandDependencies = {
   metaFlowService: {
     processSortContent: mockProcessSortContent,
   } as any,
+  serviceContainer: {} as any,
   fileClassStateManager: {} as any,
   obsidianAdapter: {} as any,
   saveSettings: jest.fn(),

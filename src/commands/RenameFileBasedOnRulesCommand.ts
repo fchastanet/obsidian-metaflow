@@ -10,34 +10,25 @@ export class RenameFileBasedOnRulesCommand implements EditorCommand {
   constructor(private dependencies: CommandDependencies) { }
 
   async execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): Promise<void> {
-    const content = editor.getValue();
-    const file = view.file;
-
-    if (!file) {
-      logManager.addWarning('No active file');
-      return;
-    }
-
     try {
-      this.dependencies.metaFlowService.checkIfValidFile(file);
+      const file = view.file;
+      if (!file) {
+        logManager.addError('No active file found');
+        return;
+      }
 
-      const metadata = this.dependencies.metaFlowService.getFrontmatterFromContent(content);
-      const fileClass = this.dependencies.metaFlowService.getFileClassFromMetadata(metadata);
+      this.dependencies.serviceContainer.fileValidationService.checkIfValidFile(file);
+      const metadata = this.dependencies.app.metadataCache.getFileCache(file)?.frontmatter || {};
+
+      const fileClass = this.dependencies.serviceContainer.fileClassDeductionService.getFileClassFromMetadata(metadata);
       if (fileClass) {
-        // Rename note if autoRenameNote is enabled
-        if (this.dependencies.settings.autoRenameNote) {
-          await this.dependencies.metaFlowService.renameNote(file, fileClass, metadata, logManager);
-        }
+        logManager.addInfo(`Renaming ${file.name} based on rules for file class: ${fileClass}`);
+        await this.dependencies.serviceContainer.fileOperationsService.renameNote(file, fileClass, metadata, logManager);
       } else {
-        logManager.addWarning('No file class found');
+        logManager.addWarning(`No file class found for ${file.name}`);
       }
     } catch (error) {
-      console.error('Error renaming file based on rules:', error);
-      if (error instanceof MetaFlowException) {
-        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
-      } else {
-        logManager.addError('Error renaming file based on rules');
-      }
+      logManager.addError(`Error renaming note: ${error.message || error}`);
     }
   }
 }

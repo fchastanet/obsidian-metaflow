@@ -9,10 +9,8 @@ export class TogglePropertiesPanelCommand implements SimpleCommand {
 
   execute(logManager: LogManagerInterface): void {
     this.dependencies.settings.hidePropertiesInEditor = !this.dependencies.settings.hidePropertiesInEditor;
+    this.dependencies.serviceContainer.uiService.togglePropertiesVisibility(this.dependencies.settings.hidePropertiesInEditor);
     this.dependencies.saveSettings();
-    this.dependencies.metaFlowService.togglePropertiesVisibility(this.dependencies.settings.hidePropertiesInEditor);
-
-    const status = this.dependencies.settings.hidePropertiesInEditor ? 'hidden' : 'visible';
-    logManager.addInfo(`Properties panel is now ${status}`);
+    logManager.addInfo(`Properties panel ${this.dependencies.settings.hidePropertiesInEditor ? 'hidden' : 'shown'}`);
   }
 }

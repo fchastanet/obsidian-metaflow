@@ -4,11 +4,13 @@ import {MetaFlowService} from '../services/MetaFlowService';
 import {FileClassStateManager} from '../managers/FileClassStateManager';
 import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
 import {LogManagerInterface} from '../managers/types';
+import {ServiceContainer} from '../services/ServiceContainer';
 
 export interface CommandDependencies {
   app: App;
   settings: MetaFlowSettings;
-  metaFlowService: MetaFlowService;
+  metaFlowService: MetaFlowService; // Keep for backward compatibility until fully removed
+  serviceContainer: ServiceContainer;
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
   saveSettings: () => Promise<void>;

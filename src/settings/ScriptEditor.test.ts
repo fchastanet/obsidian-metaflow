@@ -2,7 +2,6 @@
  * @jest-environment jsdom
  */
 import {ScriptEditor, ScriptEditorConfig} from "./ScriptEditor";
-import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({

@@ -77,16 +77,16 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
               // Optionally move note to right folder
               try {
                 // Parse metadata for renaming
-                const metadata = this.dependencies.metaFlowService.getFrontmatterFromContent(processedContent);
-                const fileClass = this.dependencies.metaFlowService.getFileClassFromMetadata(metadata);
+                const metadata = this.dependencies.serviceContainer.frontMatterService.parseFrontmatter(processedContent)?.metadata || {};
+                const fileClass = this.dependencies.serviceContainer.fileClassDeductionService.getFileClassFromMetadata(metadata);
                 if (fileClass) {
                   // Rename note if autoRenameNote is enabled
                   if (this.dependencies.settings.autoRenameNote) {
-                    await this.dependencies.metaFlowService.renameNote(file, fileClass, metadata, modal);
+                    await this.dependencies.serviceContainer.fileOperationsService.renameNote(file, fileClass, metadata, modal);
                   }
 
                   if (this.dependencies.settings.autoMoveNoteToRightFolder) {
-                    const newFilePath = await this.dependencies.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
+                    const newFilePath = await this.dependencies.serviceContainer.fileOperationsService.moveNoteToTheRightFolder(file, fileClass);
                     if (file.path !== newFilePath) {
                       modal.addInfo(`Moved note ${file.path} to ${newFilePath}`);
                       movedCount++;

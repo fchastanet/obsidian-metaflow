@@ -24,6 +24,7 @@ const mockDependencies: CommandDependencies = {
   app: {} as any,
   settings: {} as any,
   metaFlowService: {} as any,
+  serviceContainer: {} as any,
   fileClassStateManager: {} as any,
   obsidianAdapter: {} as any,
   saveSettings: jest.fn(),

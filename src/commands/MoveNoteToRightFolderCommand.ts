@@ -10,40 +10,32 @@ export class MoveNoteToRightFolderCommand implements EditorCommand {
   constructor(private dependencies: CommandDependencies) { }
 
   async execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): Promise<void> {
-    const content = editor.getValue();
-    const file = view.file;
-
-    if (!file) {
-      logManager.addWarning('No active file');
-      return;
-    }
-
     try {
-      this.dependencies.metaFlowService.checkIfValidFile(file);
+      const file = view.file;
+      if (!file) {
+        logManager.addError('No active file found');
+        return;
+      }
 
-      const metadata = this.dependencies.metaFlowService.getFrontmatterFromContent(content);
-      const fileClass = this.dependencies.metaFlowService.getFileClassFromMetadata(metadata);
+      this.dependencies.serviceContainer.fileValidationService.checkIfValidFile(file);
+      const metadata = this.dependencies.app.metadataCache.getFileCache(file)?.frontmatter || {};
+
+      const fileClass = this.dependencies.serviceContainer.fileClassDeductionService.getFileClassFromMetadata(metadata);
       if (fileClass) {
         let newFile = file;
-        // Rename note if autoRenameNote is enabled
         if (this.dependencies.settings.autoRenameNote) {
-          const renamedFile = await this.dependencies.metaFlowService.renameNote(file, fileClass, metadata, logManager);
-          if (renamedFile) {
-            newFile = renamedFile;
-          }
+          const renamedFile = await this.dependencies.serviceContainer.fileOperationsService.renameNote(file, fileClass, metadata, logManager);
+          newFile = renamedFile || file;
+          logManager.addInfo(`Moving ${newFile.name} to the right folder for file class: ${fileClass}`);
+        } else {
+          logManager.addInfo(`Moving ${file.name} to the right folder for file class: ${fileClass}`);
         }
-
-        await this.dependencies.metaFlowService.moveNoteToTheRightFolder(newFile, fileClass);
+        await this.dependencies.serviceContainer.fileOperationsService.moveNoteToTheRightFolder(newFile, fileClass);
       } else {
-        logManager.addWarning('No file class found');
+        logManager.addWarning(`No file class found for ${file.name}`);
       }
     } catch (error) {
-      console.error('Error moving note to the right folder:', error);
-      if (error instanceof MetaFlowException) {
-        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
-      } else {
-        logManager.addError('Error moving note to the right folder');
-      }
+      logManager.addError(`Error moving note: ${error.message || error}`);
     }
   }
 }

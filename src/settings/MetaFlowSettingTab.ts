@@ -1,4 +1,4 @@
-import {App, Notice, PluginSettingTab, Setting} from "obsidian";
+import {App, PluginSettingTab, Setting} from "obsidian";
 import MetaFlowPlugin from "../main";
 import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
@@ -67,7 +67,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.hidePropertiesInEditor = value;
           await this.plugin.saveSettings();
           // Apply CSS to hide/show properties section immediately
-          this.plugin.metaFlowService.togglePropertiesVisibility(value);
+          this.plugin.serviceContainer.uiService.togglePropertiesVisibility(value);
         }));
 
     // debug mode setting

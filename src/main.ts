@@ -9,6 +9,7 @@ import {FileClassStateManager} from './managers/FileClassStateManager';
 import {LogNoticeManager} from './managers/LogNoticeManager';
 import {ObsidianAdapter} from './externalApi/ObsidianAdapter';
 import {CommandFactory} from './commands';
+import {ServiceContainer} from './services/ServiceContainer';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -22,6 +23,7 @@ import {CommandFactory} from './commands';
 export default class MetaFlowPlugin extends Plugin {
   settings: MetaFlowSettings;
   metaFlowService: MetaFlowService;
+  serviceContainer: ServiceContainer;
   frontMatterService: FrontMatterService;
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
@@ -31,12 +33,18 @@ export default class MetaFlowPlugin extends Plugin {
 
   async onload() {
     this.settings = await this.loadSettings();
+
+    // Create service container
+    this.serviceContainer = new ServiceContainer(this.app, this.settings);
+
+    // Keep MetaFlowService for backward compatibility during transition
     this.metaFlowService = new MetaFlowService(this.app, this.settings);
+
     this.frontMatterService = new FrontMatterService();
     this.obsidianAdapter = new ObsidianAdapter(this.app, this.settings);
     this.logManager = new LogNoticeManager(this.obsidianAdapter);
     this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, this.logManager,
+      this.app, this.settings, this.logManager, this.serviceContainer,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
         if (this.settings.autoMetadataInsertion) {
           await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, this.logManager);
@@ -49,13 +57,14 @@ export default class MetaFlowPlugin extends Plugin {
       app: this.app,
       settings: this.settings,
       metaFlowService: this.metaFlowService,
+      serviceContainer: this.serviceContainer,
       fileClassStateManager: this.fileClassStateManager,
       obsidianAdapter: this.obsidianAdapter,
       saveSettings: this.saveSettings.bind(this)
     });
 
     // Apply properties visibility setting on load
-    this.metaFlowService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
+    this.serviceContainer.uiService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
 
     this.registerCommands();
     this.registerEvents();
@@ -179,7 +188,7 @@ export default class MetaFlowPlugin extends Plugin {
 
   onunload() {
     // Remove CSS when plugin is disabled
-    this.metaFlowService.togglePropertiesVisibility(false);
+    this.serviceContainer.uiService.togglePropertiesVisibility(false);
   }
 
   async loadSettings(): Promise<MetaFlowSettings> {
