@@ -2,81 +2,110 @@
 
 ## Overview
 
-I've successfully implemented a comprehensive linting system for title templates and scripts in the `FolderFileClassMappingsSection.ts` file. This implementation provides real-time validation feedback to help users create valid templates and scripts, **using Acorn parser for robust JavaScript analysis**.
+The Linting system for title templates and scripts takes place in the `FolderFileClassMappingsSection.ts` file.
+This implementation provides real-time validation feedback to help users create valid templates and scripts, **using Acorn parser for robust JavaScript analysis**.
 
-## New Files Created
+## Architecture
 
-### 1. `TitleTemplateLinter.ts`
-A dedicated class that provides validation for template strings used in note title generation.
+The linting system is organized into focused classes for maintainability and performance:
 
-**Key Features:**
-- **Template Validation**: Validates template syntax, variable names, and brace balance
-- **User-Friendly Feedback**: Returns structured validation results with clear messages
-- **Performance Optimized**: Lightweight validation focused on template syntax
+1. **`ValidationResult`** - Interface defining validation feedback structure
+2. **`ScriptASTParser`** - Centralized AST parsing with caching
+3. **`ScriptSyntaxValidator`** - JavaScript syntax validation
+4. **`ScriptSecurityAnalyzer`** - Security vulnerability detection
+5. **`ScriptReturnAnalyzer`** - Return statement and execution path analysis
+6. **`ScriptBestPracticesChecker`** - Code quality warnings
+7. **`TitleScriptLinter`** - Main coordinator class
+8. **`TitleTemplateLinter`** - Template string validation
 
-### 2. `TitleScriptLinter.ts`
-A dedicated class that provides validation for JavaScript scripts used in note title generation.
+## Key Features
 
-**Key Features:**
-- **Script Validation**: Uses **Acorn AST parser** for accurate JavaScript analysis
-- **Security Analysis**: AST-based detection of dangerous patterns
-- **Execution Path Analysis**: Ensures all code branches return string values
-- **Performance Optimized**: Falls back to regex when AST parsing fails
-
-**Template Validation Checks:**
+### Template Validation
 - Empty template detection
-- Balanced braces validation (supporting `{}`, `[]`, `()`)
+- Balanced braces validation (`{}`, `[]`, `()`)
 - Valid variable name validation (e.g., `{{title}}`, `{{metadata.date}}`)
 - Warning for problematic file system characters
 - Warning for single braces (suggesting double braces)
 - Warning for very long templates
 
-**Script Validation Checks:**
+### Script Validation
 - Empty script detection
 - Return statement requirement (AST-based detection)
-- **Execution path analysis** - ensures all code branches return a value
-- **String return type validation** - verifies all returns produce strings
-- **Acorn-based JavaScript syntax validation** (more accurate than regex)
-- **AST-based security analysis** (detects `eval()`, `Function()`, `setTimeout()`, etc.)
-- **AST-based best practice warnings** (console statements, string return type detection)
+- Execution path analysis: ensures all code branches return a value
+- String return type validation: verifies all returns produce strings
+- Acorn-based JavaScript syntax validation
+- AST-based security analysis (detects `eval()`, `Function()`, `setTimeout()`, etc.)
+- AST-based best practice warnings (console statements, string return type detection)
 - Intelligent script fragment handling (wraps fragments in functions for parsing)
 
-### 3. `TitleTemplateLinter.test.ts`
-Comprehensive unit tests for template validation functionality.
+## Performance Optimization
 
-### 4. `TitleScriptLinter.test.ts`
-Comprehensive unit tests for script validation functionality including execution path analysis.
+- **AST Caching**: Scripts are parsed only once and cached for reuse
+- **Shared Parser**: All validation components share the same AST parser instance
 
-## Implementation Structure
+## Extensibility
 
-The linting system is now organized into separate, focused classes:
+- Easy to add new validation components
+- Plug-in architecture for validation rules
+- Reusable components for other script validation needs
 
-- **`TitleTemplateLinter`**: Handles template string validation (braces, variables, syntax)
-- **`TitleScriptLinter`**: Handles JavaScript script validation (AST analysis, security, execution paths)
-- **`FolderFileClassMappingsSection`**: Integrates both linters and provides UI feedback
+## File Structure
 
-This separation provides better maintainability, focused responsibilities, and easier testing.
+```
+src/settings/sections/
+├── TitleTemplateLinter.ts                  # Single class that manages template linting
+├── TitleScriptLinter.ts                    # Script linter coordinator class
+└── script-validation/
+    ├── index.ts                            # Barrel export file
+    ├── ValidationResult.ts                 # Validation result interface
+    ├── ScriptASTParser.ts                  # AST parsing with caching
+    ├── ScriptSyntaxValidator.ts            # Syntax validation
+    ├── ScriptSecurityAnalyzer.ts           # Security analysis
+    ├── ScriptReturnAnalyzer.ts             # Return statement analysis
+    └── ScriptBestPracticesChecker.ts       # Best practices checking
+```
+
+## Usage
+
+The public API remains unchanged. The `TitleScriptLinter` class can be used as follows:
+
+```typescript
+import { TitleScriptLinter } from './TitleScriptLinter';
+
+const linter = new TitleScriptLinter();
+const result = linter.validateScript('return "Hello World";');
+
+if (result.isValid) {
+  console.log('Script is valid');
+} else {
+  console.error('Validation error:', result.message);
+}
+
+// Cache management
+linter.clearCache();         // Clear AST cache
+console.log(linter.getCacheSize()); // Get cache size
+```
 
 ## Integration with FolderFileClassMappingsSection
 
 ### Template Input Enhancement
-- Added real-time validation feedback for template inputs
+- Real-time validation feedback for template inputs
 - Validation messages appear below each template input field
 - Color-coded feedback (green for success, yellow for warnings, red for errors)
 
 ### Script Editor Enhancement
-- Added validation feedback for the script editor
+- Validation feedback for the script editor
 - Validation occurs with a 500ms delay to avoid excessive updates
 - Feedback appears in a dedicated validation container
 
 ### UI Components
-Added helper methods:
+Helper methods:
 - `createValidationFeedback()`: Creates styled feedback elements
 - `updateValidationFeedback()`: Updates validation state for inputs
 
 ## Styling
 
-### CSS Classes Added to `styles.css`
+CSS Classes:
 ```css
 .metaflow-validation-feedback - Base feedback container
 .metaflow-validation-success - Success state styling
@@ -91,9 +120,9 @@ Added helper methods:
 ## User Experience Improvements
 
 ### Real-time Feedback
-- Users see immediate validation results as they type
-- Clear, actionable error messages help users fix issues quickly
-- Visual indicators (✅, ⚠️, ❌) provide instant status recognition
+- Immediate validation results as users type
+- Clear, actionable error messages
+- Visual indicators (✅, ⚠️, ❌) for instant status recognition
 
 ### Template Validation Examples
 - ✅ `{{title}} - {{author}}` - Valid template
@@ -113,7 +142,6 @@ Added helper methods:
 ## Technical Implementation Details
 
 ### Acorn Integration
-The linter uses **Acorn parser** for robust JavaScript analysis:
 - **AST-based parsing** instead of fragile regex patterns
 - **Intelligent fragment handling** - wraps script fragments in functions for valid parsing
 - **Execution path analysis** - verifies all code branches return string values
@@ -121,7 +149,7 @@ The linter uses **Acorn parser** for robust JavaScript analysis:
 - **Accurate syntax validation** with detailed error messages
 - **Security analysis** through AST traversal
 - **Smart string detection** using AST pattern analysis
-- **Fallback to regex** when AST parsing fails (graceful degradation)
+- **Fallback to regex** when AST parsing fails
 
 ### ValidationResult Interface
 ```typescript
@@ -133,56 +161,52 @@ interface ValidationResult {
 ```
 
 ### Security Features
-The linter includes **AST-based security analysis** to prevent:
-- Code injection via `eval()` (detected through AST traversal)
+AST-based security analysis prevents:
+- Code injection via `eval()`
 - Dynamic function creation (`Function()`, `new Function()`)
-- Timer functions that could cause performance issues (`setTimeout`, `setInterval`)
+- Timer functions (`setTimeout`, `setInterval`)
 - Access to system resources via `require()` or dynamic `import()`
-- **More accurate detection** than regex patterns through proper code parsing
+- Accurate detection through proper code parsing
 
 ### Performance Considerations
-- **AST parsing** with graceful fallback to regex for robustness
+- AST parsing with graceful fallback to regex
 - Validation is debounced for script editing (500ms delay)
-- **Intelligent fragment handling** - scripts don't need to be complete programs
+- Intelligent fragment handling
 - Efficient AST traversal for security and pattern analysis
-- **Lightweight parsing** using Acorn (already included in project dependencies)
+- Lightweight parsing using Acorn
+
+## Testing
+
+Comprehensive unit tests for each component:
+
+### Test Coverage
+- **ValidationResult.test.ts**: Interface structure, type constraints, serialization
+- **ScriptASTParser.test.ts**: Parsing, caching, error handling, edge cases
+- **ScriptSyntaxValidator.test.ts**: Valid/invalid syntax, error messages, edge cases
+- **ScriptSecurityAnalyzer.test.ts**: Security pattern detection, AST vs regex fallback
+- **ScriptReturnAnalyzer.test.ts**: Return detection, execution path analysis, string type checking
+- **ScriptBestPracticesChecker.test.ts**: Console warnings, string return warnings, script length
+- **ScriptValidationComponents.test.ts**: Individual component integration
+- **TitleScriptLinter.integration.test.ts**: Full system integration and regression tests
 
 ## Benefits
 
 1. **Improved User Experience**: Immediate feedback helps users create valid templates/scripts
 2. **Error Prevention**: Catches common mistakes before they cause runtime issues
 3. **Security**: Prevents potentially dangerous script patterns
-4. **Maintainability**: Centralized validation logic in a dedicated, well-tested class
+4. **Maintainability**: Centralized validation logic in dedicated, well-tested classes
 5. **Accessibility**: Clear, descriptive error messages help users of all skill levels
 
 ## Future Enhancements
 
-Potential improvements that could be added:
+Potential improvements:
 - Syntax highlighting for template variables
-- Auto-completion for available metadata fields
 - Template preview functionality
 - More sophisticated script analysis
-- Integration with TypeScript for better script validation
 
 ## Limitations
 
-- The linter may not catch all edge cases, especially in complex scripts
-- The linter consider that variables are always strings
+- May not catch all edge cases, especially in complex scripts
+- Assumes variables are always strings
 - Performance may degrade with very large scripts or templates
 - Some JavaScript features (e.g., dynamic imports) may not be fully supported
-
-## Testing
-
-The implementation includes comprehensive unit tests that cover:
-- All validation scenarios
-- Edge cases and error conditions
-- Security validation
-- Performance considerations
-- User experience flows
-
-To run the tests:
-```bash
-npm test -- TitleTemplateLinter.test.ts
-```
-
-This implementation significantly improves the user experience by providing immediate, helpful feedback for template and script creation while maintaining security and performance standards.

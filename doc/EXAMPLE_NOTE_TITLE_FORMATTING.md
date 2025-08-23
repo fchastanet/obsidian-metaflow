@@ -95,7 +95,7 @@ return [date, title, author].filter(Boolean).join(" - ");
 ```
 
 with the following metadata
-```
+```json
 {
   "bookTitle": "The Great Gatsby",
   "date": "1925",

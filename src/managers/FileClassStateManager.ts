@@ -26,6 +26,7 @@ export class FileClassStateManager {
 
   // List of user events considered as manual edits
   private static manualEditEvents = [
+    "set",
     "input", "input.type", "input.paste", "cut", "input.drop",
     "delete.backward", "delete.forward", "undo", "redo", "input.complete"
   ];

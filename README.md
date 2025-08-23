@@ -30,6 +30,15 @@ Applies the metadata workflow to all files in your vault:
 - Shows progress notifications during processing
 - Provides completion summary with update count
 
+### Rename the file based on rules
+
+Renames the file according to rules based on its fileClass and metadata:
+
+- Checks if the file is valid and has a fileClass
+- Uses the fileClass and metadata to determine the new name
+- Renames the note if `autoRenameNote` is enabled in settings
+- Provides warnings if no fileClass is found
+
 ## ⚙️ Settings
 
 ### Folder/FileClass Mapping
