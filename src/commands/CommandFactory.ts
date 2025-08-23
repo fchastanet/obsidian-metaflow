@@ -7,8 +7,6 @@ import {
   MassUpdateMetadataCommand,
   CommandDependencies
 } from './index';
-import {LogNoticeManager} from '../managers/LogNoticeManager';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
 
 /**
  * Factory class for creating command instances with proper dependencies
@@ -42,12 +40,5 @@ export class CommandFactory {
 
   createMassUpdateMetadataCommand(): MassUpdateMetadataCommand {
     return new MassUpdateMetadataCommand(this.dependencies);
-  }
-
-  /**
-   * Creates a log manager for command execution
-   */
-  createLogManager() {
-    return new LogNoticeManager(new ObsidianAdapter(this.dependencies.app, this.dependencies.settings));
   }
 }

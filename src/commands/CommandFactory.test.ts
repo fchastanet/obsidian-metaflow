@@ -1,15 +1,15 @@
 // Mock Obsidian classes first
 jest.mock('obsidian', () => ({
-  Modal: class MockModal {},
-  ProgressBarComponent: class MockProgressBarComponent {},
+  Modal: class MockModal { },
+  ProgressBarComponent: class MockProgressBarComponent { },
   Notice: jest.fn(),
-  Editor: class MockEditor {},
-  MarkdownView: class MockMarkdownView {},
-  TFile: class MockTFile {},
-  TFolder: class MockTFolder {},
-  TAbstractFile: class MockTAbstractFile {},
-  Vault: class MockVault {},
-  App: class MockApp {},
+  Editor: class MockEditor { },
+  MarkdownView: class MockMarkdownView { },
+  TFile: class MockTFile { },
+  TFolder: class MockTFolder { },
+  TAbstractFile: class MockTAbstractFile { },
+  Vault: class MockVault { },
+  App: class MockApp { },
 }));
 
 // Mock external dependencies
@@ -43,10 +43,5 @@ describe('CommandFactory', () => {
     expect(factory.createRenameFileBasedOnRulesCommand()).toBeDefined();
     expect(factory.createTogglePropertiesPanelCommand()).toBeDefined();
     expect(factory.createMassUpdateMetadataCommand()).toBeDefined();
-  });
-
-  it('should create log manager', () => {
-    const logManager = factory.createLogManager();
-    expect(logManager).toBeDefined();
   });
 });

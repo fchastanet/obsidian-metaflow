@@ -26,6 +26,7 @@ export default class MetaFlowPlugin extends Plugin {
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
   commandFactory: CommandFactory;
+  logManager: LogNoticeManager;
   timer: {[key: string]: number} = {};
 
   async onload() {
@@ -33,12 +34,12 @@ export default class MetaFlowPlugin extends Plugin {
     this.metaFlowService = new MetaFlowService(this.app, this.settings);
     this.frontMatterService = new FrontMatterService();
     this.obsidianAdapter = new ObsidianAdapter(this.app, this.settings);
-    const logManager = new LogNoticeManager(this.obsidianAdapter);
+    this.logManager = new LogNoticeManager(this.obsidianAdapter);
     this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, logManager,
+      this.app, this.settings, this.logManager,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
         if (this.settings.autoMetadataInsertion) {
-          await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, logManager);
+          await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, this.logManager);
         }
       }
     );
@@ -80,9 +81,8 @@ export default class MetaFlowPlugin extends Plugin {
                     files.push(f);
                   }
                 });
-                const logManager = this.commandFactory.createLogManager();
                 const command = this.commandFactory.createMassUpdateMetadataCommand();
-                await command.massUpdateMetadataProperties(directory.path, files, logManager);
+                await command.massUpdateMetadataProperties(directory.path, files, this.logManager);
               });
           });
         }
@@ -121,9 +121,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-update-metadata',
       name: 'Update metadata properties',
       editorCallback: (editor: Editor, view: MarkdownView) => {
-        const logManager = this.commandFactory.createLogManager();
         const command = this.commandFactory.createUpdateMetadataCommand();
-        command.execute(editor, view, logManager);
+        command.execute(editor, view, this.logManager);
       }
     });
 
@@ -132,9 +131,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-sort-metadata',
       name: 'Sort metadata properties',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const logManager = this.commandFactory.createLogManager();
         const command = this.commandFactory.createSortMetadataCommand();
-        await command.execute(editor, view, logManager);
+        await command.execute(editor, view, this.logManager);
       }
     });
 
@@ -143,9 +141,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-move-note-to-right-folder',
       name: 'Move the note to the right folder',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const logManager = this.commandFactory.createLogManager();
         const command = this.commandFactory.createMoveNoteToRightFolderCommand();
-        await command.execute(editor, view, logManager);
+        await command.execute(editor, view, this.logManager);
       }
     });
 
@@ -154,9 +151,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-rename-file-based-on-rules',
       name: 'Rename the file based on rules',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const logManager = this.commandFactory.createLogManager();
         const command = this.commandFactory.createRenameFileBasedOnRulesCommand();
-        await command.execute(editor, view, logManager);
+        await command.execute(editor, view, this.logManager);
       }
     });
 
@@ -165,9 +161,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-mass-update-metadata',
       name: 'Mass-update metadata properties',
       callback: async () => {
-        const logManager = this.commandFactory.createLogManager();
         const command = this.commandFactory.createMassUpdateMetadataCommand();
-        await command.execute(logManager);
+        await command.execute(this.logManager);
       }
     });
 
@@ -176,9 +171,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-toggle-properties-panel',
       name: 'Toggle properties panel visibility',
       callback: () => {
-        const logManager = this.commandFactory.createLogManager();
         const command = this.commandFactory.createTogglePropertiesPanelCommand();
-        command.execute(logManager);
+        command.execute(this.logManager);
       }
     });
   }
