@@ -1,5 +1,5 @@
-import { ScriptReturnAnalyzer } from './ScriptReturnAnalyzer';
-import { ScriptASTParser } from './ScriptASTParser';
+import {ScriptReturnAnalyzer} from './ScriptReturnAnalyzer';
+import {ScriptASTParser} from './ScriptASTParser';
 
 describe('ScriptReturnAnalyzer', () => {
   let analyzer: ScriptReturnAnalyzer;
@@ -137,18 +137,18 @@ describe('ScriptReturnAnalyzer', () => {
     describe('fallback to regex when AST parsing fails', () => {
       it('should use regex when AST parsing fails', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         expect(analyzer.hasReturnStatement('return "test";')).toBe(true);
         expect(analyzer.hasReturnStatement('const x = 5;')).toBe(false);
       });
 
       it('should handle complex cases with regex fallback', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         // Should ignore return in comments and strings
         expect(analyzer.hasReturnStatement('// return comment')).toBe(false);
         expect(analyzer.hasReturnStatement('"return string"')).toBe(false);
-        
+
         // Should detect actual return statements
         expect(analyzer.hasReturnStatement('if(true) return "yes";')).toBe(true);
       });
@@ -159,7 +159,7 @@ describe('ScriptReturnAnalyzer', () => {
     describe('valid return patterns', () => {
       it('should accept simple return statement', () => {
         const result = analyzer.validateAllBranchesReturn('return "hello";');
-        
+
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('');
         expect(result.type).toBe('success');
@@ -173,7 +173,7 @@ describe('ScriptReturnAnalyzer', () => {
             return file.basename;
           }
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -189,7 +189,7 @@ describe('ScriptReturnAnalyzer', () => {
               return file.basename;
           }
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -202,7 +202,7 @@ describe('ScriptReturnAnalyzer', () => {
             return file.basename;
           }
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -219,7 +219,7 @@ describe('ScriptReturnAnalyzer', () => {
             return file.basename;
           }
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -228,7 +228,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return metadata.title ? metadata.title : file.basename;
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -237,7 +237,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return "literal string";
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -246,7 +246,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return \`Title: \${metadata.title || file.basename}\`;
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -255,7 +255,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return metadata.title + " - " + file.basename;
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -264,7 +264,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return file.basename.toUpperCase();
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -278,7 +278,7 @@ describe('ScriptReturnAnalyzer', () => {
           }
           // No else clause, no guaranteed return
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
@@ -294,7 +294,7 @@ describe('ScriptReturnAnalyzer', () => {
             // No default case
           }
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
@@ -312,7 +312,7 @@ describe('ScriptReturnAnalyzer', () => {
               return file.basename;
           }
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
@@ -325,7 +325,7 @@ describe('ScriptReturnAnalyzer', () => {
           }
           // No catch block to handle potential errors
         `);
-        
+
         // This might actually be valid depending on implementation
         // The try block does have a return statement
         expect(result.type).toMatch(/success|error/);
@@ -335,7 +335,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return 42; // Number, not string
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Some return statements may not return strings. All returns should be string values.');
         expect(result.type).toBe('error');
@@ -349,7 +349,7 @@ describe('ScriptReturnAnalyzer', () => {
             return 123; // Number
           }
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Some return statements may not return strings. All returns should be string values.');
         expect(result.type).toBe('error');
@@ -364,7 +364,7 @@ describe('ScriptReturnAnalyzer', () => {
           }
           // Loop might not execute
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
@@ -377,7 +377,7 @@ describe('ScriptReturnAnalyzer', () => {
           }
           // Loop might not execute if condition is false
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
@@ -392,7 +392,7 @@ describe('ScriptReturnAnalyzer', () => {
           }
           return "default title"; // Guaranteed fallback
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -403,7 +403,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return; // Empty return
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Some return statements may not return strings. All returns should be string values.');
         expect(result.type).toBe('error');
@@ -411,14 +411,15 @@ describe('ScriptReturnAnalyzer', () => {
 
       it('should handle AST parsing failure gracefully', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.validateAllBranchesReturn('invalid syntax here');
-        
+
         expect(result.isValid).toBe(true); // Should pass when AST parsing fails
         expect(result.type).toBe('success');
       });
 
       it('should handle complex nested structures', () => {
+        const spy = jest.spyOn(console, 'log').mockImplementation(() => { });
         const result = analyzer.validateAllBranchesReturn(`
           try {
             if (metadata.custom) {
@@ -438,7 +439,7 @@ describe('ScriptReturnAnalyzer', () => {
             return file.basename;
           }
         `);
-        
+
         // Check that it at least has a valid structure
         expect(typeof result.isValid).toBe('boolean');
         expect(['success', 'error', 'warning']).toContain(result.type);
@@ -446,6 +447,8 @@ describe('ScriptReturnAnalyzer', () => {
         if (!result.isValid) {
           console.log('Complex structure validation failed:', result.message);
         }
+        expect(spy).toHaveBeenCalledWith('Complex structure validation failed:', 'Some return statements may not return strings. All returns should be string values.');
+        spy.mockRestore();
       });
 
       it('should detect likely string expressions from variables', () => {
@@ -453,7 +456,7 @@ describe('ScriptReturnAnalyzer', () => {
           const title = metadata.title;
           return title; // Should be treated as likely string
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -462,7 +465,7 @@ describe('ScriptReturnAnalyzer', () => {
         const result = analyzer.validateAllBranchesReturn(`
           return file.basename; // Member access treated as likely string
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -471,10 +474,10 @@ describe('ScriptReturnAnalyzer', () => {
     describe('caching integration', () => {
       it('should use cached AST results', () => {
         const script = 'return "test";';
-        
+
         analyzer.validateAllBranchesReturn(script);
         expect(astParser.getCacheSize()).toBe(1);
-        
+
         analyzer.validateAllBranchesReturn(script);
         expect(astParser.getCacheSize()).toBe(1); // Still only one cache entry
       });
@@ -482,7 +485,7 @@ describe('ScriptReturnAnalyzer', () => {
       it('should handle different scripts separately', () => {
         analyzer.validateAllBranchesReturn('return "script1";');
         analyzer.validateAllBranchesReturn('return "script2";');
-        
+
         expect(astParser.getCacheSize()).toBe(2);
       });
     });
