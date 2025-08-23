@@ -1,15 +1,18 @@
+import {injectable, inject} from 'inversify';
 import {TFile} from "obsidian";
-import {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
-import {ScriptContextService} from "./ScriptContextService";
-import {LogManagerInterface} from "../managers/types";
+import type {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
+import type {ScriptContextService} from "./ScriptContextService";
+import type {LogManagerInterface} from "../managers/types";
+import {TYPES} from '../di/types';
 
+@injectable()
 export class NoteTitleService {
   private metaFlowSettings: MetaFlowSettings;
   private scriptContextService: ScriptContextService;
 
   constructor(
-    metaFlowSettings: MetaFlowSettings,
-    scriptContextService: ScriptContextService
+    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.ScriptContextService) scriptContextService: ScriptContextService
   ) {
     this.metaFlowSettings = metaFlowSettings;
     this.scriptContextService = scriptContextService;

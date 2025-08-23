@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+import {Container} from 'inversify';
 import {EditorView} from '@codemirror/view';
 import {Plugin, Editor, MarkdownView, TFolder, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal, MarkdownFileInfo, CachedMetadata, WorkspaceLeaf} from 'obsidian';
 import {MetaFlowSettings} from './settings/types';
@@ -8,8 +10,18 @@ import {FrontMatterService} from './services/FrontMatterService';
 import {FileClassStateManager} from './managers/FileClassStateManager';
 import {LogNoticeManager} from './managers/LogNoticeManager';
 import {ObsidianAdapter} from './externalApi/ObsidianAdapter';
-import {CommandFactory} from './commands';
-import {ServiceContainer} from './services/ServiceContainer';
+import {UIService} from './services/UIService';
+import {FileOperationsService} from './services/FileOperationsService';
+import type {FileClassDeductionService} from './services/FileClassDeductionService';
+import {createContainer, TYPES} from './di';
+
+// Import command types for direct DI access
+import type {UpdateMetadataCommand} from './commands/UpdateMetadataCommand';
+import type {SortMetadataCommand} from './commands/SortMetadataCommand';
+import type {MassUpdateMetadataCommand} from './commands/MassUpdateMetadataCommand';
+import type {MoveNoteToRightFolderCommand} from './commands/MoveNoteToRightFolderCommand';
+import type {RenameFileBasedOnRulesCommand} from './commands/RenameFileBasedOnRulesCommand';
+import type {TogglePropertiesPanelCommand} from './commands/TogglePropertiesPanelCommand';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -23,28 +35,33 @@ import {ServiceContainer} from './services/ServiceContainer';
 export default class MetaFlowPlugin extends Plugin {
   settings: MetaFlowSettings;
   metaFlowService: MetaFlowService;
-  serviceContainer: ServiceContainer;
+  container: Container;
   frontMatterService: FrontMatterService;
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
-  commandFactory: CommandFactory;
   logManager: LogNoticeManager;
+  uiService: UIService;
   timer: {[key: string]: number} = {};
 
   async onload() {
     this.settings = await this.loadSettings();
 
-    // Create service container
-    this.serviceContainer = new ServiceContainer(this.app, this.settings);
+    // Create dependency injection container
+    this.container = createContainer(this.app, this.settings, this.saveSettings.bind(this));
 
-    // Keep MetaFlowService for backward compatibility during transition
-    this.metaFlowService = new MetaFlowService(this.app, this.settings);
+    // Get services from container
+    this.metaFlowService = this.container.get<MetaFlowService>(TYPES.MetaFlowService);
+    this.frontMatterService = this.container.get<FrontMatterService>(TYPES.FrontMatterService);
+    this.obsidianAdapter = this.container.get<ObsidianAdapter>(TYPES.ObsidianAdapter);
+    this.uiService = this.container.get<UIService>(TYPES.UIService);
 
-    this.frontMatterService = new FrontMatterService();
-    this.obsidianAdapter = new ObsidianAdapter(this.app, this.settings);
     this.logManager = new LogNoticeManager(this.obsidianAdapter);
+
+    // Get FileClassDeductionService from container
+    const fileClassDeductionService = this.container.get<FileClassDeductionService>(TYPES.FileClassDeductionService);
+
     this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, this.logManager, this.serviceContainer,
+      this.app, this.settings, this.logManager, fileClassDeductionService,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
         if (this.settings.autoMetadataInsertion) {
           await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, this.logManager);
@@ -52,19 +69,11 @@ export default class MetaFlowPlugin extends Plugin {
       }
     );
 
-    // Initialize command factory with dependencies
-    this.commandFactory = new CommandFactory({
-      app: this.app,
-      settings: this.settings,
-      metaFlowService: this.metaFlowService,
-      serviceContainer: this.serviceContainer,
-      fileClassStateManager: this.fileClassStateManager,
-      obsidianAdapter: this.obsidianAdapter,
-      saveSettings: this.saveSettings.bind(this)
-    });
+    // Initialize command factory with container
+    // Commands are now accessed directly from the DI container
 
     // Apply properties visibility setting on load
-    this.serviceContainer.uiService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
+    this.uiService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
 
     this.registerCommands();
     this.registerEvents();
@@ -90,7 +99,7 @@ export default class MetaFlowPlugin extends Plugin {
                     files.push(f);
                   }
                 });
-                const command = this.commandFactory.createMassUpdateMetadataCommand();
+                const command = this.container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
                 await command.massUpdateMetadataProperties(directory.path, files, this.logManager);
               });
           });
@@ -130,7 +139,7 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-update-metadata',
       name: 'Update metadata properties',
       editorCallback: (editor: Editor, view: MarkdownView) => {
-        const command = this.commandFactory.createUpdateMetadataCommand();
+        const command = this.container.get<UpdateMetadataCommand>(TYPES.UpdateMetadataCommand);
         command.execute(editor, view, this.logManager);
       }
     });
@@ -140,7 +149,7 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-sort-metadata',
       name: 'Sort metadata properties',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const command = this.commandFactory.createSortMetadataCommand();
+        const command = this.container.get<SortMetadataCommand>(TYPES.SortMetadataCommand);
         await command.execute(editor, view, this.logManager);
       }
     });
@@ -150,7 +159,7 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-move-note-to-right-folder',
       name: 'Move the note to the right folder',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const command = this.commandFactory.createMoveNoteToRightFolderCommand();
+        const command = this.container.get<MoveNoteToRightFolderCommand>(TYPES.MoveNoteToRightFolderCommand);
         await command.execute(editor, view, this.logManager);
       }
     });
@@ -160,7 +169,7 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-rename-file-based-on-rules',
       name: 'Rename the file based on rules',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const command = this.commandFactory.createRenameFileBasedOnRulesCommand();
+        const command = this.container.get<RenameFileBasedOnRulesCommand>(TYPES.RenameFileBasedOnRulesCommand);
         await command.execute(editor, view, this.logManager);
       }
     });
@@ -170,7 +179,7 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-mass-update-metadata',
       name: 'Mass-update metadata properties',
       callback: async () => {
-        const command = this.commandFactory.createMassUpdateMetadataCommand();
+        const command = this.container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
         await command.execute(this.logManager);
       }
     });
@@ -180,7 +189,7 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-toggle-properties-panel',
       name: 'Toggle properties panel visibility',
       callback: () => {
-        const command = this.commandFactory.createTogglePropertiesPanelCommand();
+        const command = this.container.get<TogglePropertiesPanelCommand>(TYPES.TogglePropertiesPanelCommand);
         command.execute(this.logManager);
       }
     });
@@ -188,7 +197,7 @@ export default class MetaFlowPlugin extends Plugin {
 
   onunload() {
     // Remove CSS when plugin is disabled
-    this.serviceContainer.uiService.togglePropertiesVisibility(false);
+    this.uiService.togglePropertiesVisibility(false);
   }
 
   async loadSettings(): Promise<MetaFlowSettings> {

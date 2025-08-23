@@ -1,11 +1,18 @@
-import {App, FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
-import {MetaFlowSettings} from '../settings/types';
+import {injectable, inject} from 'inversify';
+import type {App} from 'obsidian';
+import {FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
+import type {MetaFlowSettings} from '../settings/types';
+import {TYPES} from '../di/types';
 
+@injectable()
 export class ObsidianAdapter {
   private app: App;
   private settings: MetaFlowSettings;
 
-  constructor(app: App, settings: MetaFlowSettings) {
+  constructor(
+    @inject(TYPES.App) app: App,
+    @inject(TYPES.MetaFlowSettings) settings: MetaFlowSettings
+  ) {
     this.app = app;
     this.settings = settings;
   }

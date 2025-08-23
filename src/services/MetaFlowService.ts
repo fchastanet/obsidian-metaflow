@@ -1,20 +1,24 @@
-import {App, CachedMetadata, TFile} from "obsidian";
-import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import {FrontMatterService} from "./FrontMatterService";
-import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
-import {ScriptContextService} from "./ScriptContextService";
-import {FolderFileClassMapping, MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
+import {injectable, inject} from 'inversify';
+import type {App, CachedMetadata, TFile} from "obsidian";
+import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import type {FrontMatterService} from "./FrontMatterService";
+import type {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
+import type {ScriptContextService} from "./ScriptContextService";
+import type {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
+import {FolderFileClassMapping} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import {LogManagerInterface} from "../managers/types";
+import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import type {LogManagerInterface} from "../managers/types";
 import {Utils} from "../utils/Utils";
 import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
-import {FileValidationService} from "./FileValidationService";
-import {FileClassDeductionService} from "./FileClassDeductionService";
-import {PropertyManagementService} from "./PropertyManagementService";
-import {FileOperationsService} from "./FileOperationsService";
-import {NoteTitleService} from "./NoteTitleService";
+import type {FileValidationService} from "./FileValidationService";
+import type {FileClassDeductionService} from "./FileClassDeductionService";
+import type {PropertyManagementService} from "./PropertyManagementService";
+import type {FileOperationsService} from "./FileOperationsService";
+import type {NoteTitleService} from "./NoteTitleService";
+import {TYPES} from '../di/types';
 
+@injectable()
 export class MetaFlowService {
   private app: App;
   private metaFlowSettings: MetaFlowSettings;
@@ -31,44 +35,32 @@ export class MetaFlowService {
   private fileOperationsService: FileOperationsService;
   private noteTitleService: NoteTitleService;
 
-  constructor(app: App, metaFlowSettings: MetaFlowSettings) {
+  constructor(
+    @inject(TYPES.App) app: App,
+    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.ScriptContextService) scriptContextService: ScriptContextService,
+    @inject(TYPES.MetadataMenuAdapter) metadataMenuAdapter: MetadataMenuAdapter,
+    @inject(TYPES.FrontMatterService) frontMatterService: FrontMatterService,
+    @inject(TYPES.TemplaterAdapter) templaterAdapter: TemplaterAdapter,
+    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter,
+    @inject(TYPES.FileValidationService) fileValidationService: FileValidationService,
+    @inject(TYPES.FileClassDeductionService) fileClassDeductionService: FileClassDeductionService,
+    @inject(TYPES.PropertyManagementService) propertyManagementService: PropertyManagementService,
+    @inject(TYPES.FileOperationsService) fileOperationsService: FileOperationsService,
+    @inject(TYPES.NoteTitleService) noteTitleService: NoteTitleService
+  ) {
     this.app = app;
     this.metaFlowSettings = metaFlowSettings;
-    this.scriptContextService = new ScriptContextService(app, this.metaFlowSettings);
-    this.metadataMenuAdapter = new MetadataMenuAdapter(app, this.metaFlowSettings);
-    this.frontMatterService = new FrontMatterService();
-    this.templaterAdapter = new TemplaterAdapter(app, this.metaFlowSettings);
-    this.obsidianAdapter = new ObsidianAdapter(app, this.metaFlowSettings);
-
-    // Initialize new services
-    this.fileValidationService = new FileValidationService(
-      this.metaFlowSettings,
-      this.metadataMenuAdapter,
-      this.templaterAdapter,
-      this.obsidianAdapter
-    );
-    this.fileClassDeductionService = new FileClassDeductionService(
-      this.metaFlowSettings,
-      this.obsidianAdapter,
-      this.metadataMenuAdapter,
-      this.frontMatterService
-    );
-    this.propertyManagementService = new PropertyManagementService(
-      this.metaFlowSettings,
-      this.metadataMenuAdapter,
-      this.scriptContextService
-    );
-    this.noteTitleService = new NoteTitleService(
-      this.metaFlowSettings,
-      this.scriptContextService
-    );
-    this.fileOperationsService = new FileOperationsService(
-      this.app,
-      this.metaFlowSettings,
-      this.obsidianAdapter,
-      this.fileValidationService,
-      this.noteTitleService
-    );
+    this.scriptContextService = scriptContextService;
+    this.metadataMenuAdapter = metadataMenuAdapter;
+    this.frontMatterService = frontMatterService;
+    this.templaterAdapter = templaterAdapter;
+    this.obsidianAdapter = obsidianAdapter;
+    this.fileValidationService = fileValidationService;
+    this.fileClassDeductionService = fileClassDeductionService;
+    this.propertyManagementService = propertyManagementService;
+    this.fileOperationsService = fileOperationsService;
+    this.noteTitleService = noteTitleService;
 
     this.fixSettings();
   }

@@ -134,7 +134,7 @@ describe('FolderFileClassMappingsSection', () => {
       mockPlugin.settings.folderFileClassMappings,
       obsidianAdapter,
       new MetadataMenuAdapter(mockApp, mockPlugin.settings),
-      new TemplaterAdapter(mockApp, mockPlugin.settings),
+      new TemplaterAdapter(mockApp, mockPlugin.settings, obsidianAdapter),
       new LogNoticeManager(obsidianAdapter),
       jest.fn() // Mock saveSettings function
     );

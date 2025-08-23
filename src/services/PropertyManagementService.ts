@@ -1,20 +1,23 @@
+import {injectable, inject} from 'inversify';
 import {TFile} from "obsidian";
-import {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
+import type {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
-import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import {ScriptContextService} from "./ScriptContextService";
-import {LogManagerInterface} from "../managers/types";
+import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import type {ScriptContextService} from "./ScriptContextService";
+import type {LogManagerInterface} from "../managers/types";
 import {MetadataMenuField} from "../externalApi/types.MetadataMenu";
+import {TYPES} from '../di/types';
 
+@injectable()
 export class PropertyManagementService {
   private metaFlowSettings: MetaFlowSettings;
   private metadataMenuAdapter: MetadataMenuAdapter;
   private scriptContextService: ScriptContextService;
 
   constructor(
-    metaFlowSettings: MetaFlowSettings,
-    metadataMenuAdapter: MetadataMenuAdapter,
-    scriptContextService: ScriptContextService
+    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.MetadataMenuAdapter) metadataMenuAdapter: MetadataMenuAdapter,
+    @inject(TYPES.ScriptContextService) scriptContextService: ScriptContextService
   ) {
     this.metaFlowSettings = metaFlowSettings;
     this.metadataMenuAdapter = metadataMenuAdapter;

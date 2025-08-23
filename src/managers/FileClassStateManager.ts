@@ -1,9 +1,9 @@
 import {App, CachedMetadata, MarkdownView, TAbstractFile, TFile, WorkspaceLeaf} from "obsidian";
-import {ServiceContainer} from "../services/ServiceContainer";
 import {MetaFlowSettings} from "../settings/types";
 import {LogManagerInterface} from "./types";
 import {ViewUpdate} from '@codemirror/view';
 import {Transaction} from '@codemirror/state';
+import type {FileClassDeductionService} from "../services/FileClassDeductionService";
 
 export type FileClassChangedCallback = (
   file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string
@@ -14,7 +14,7 @@ export type FileClassChangedCallback = (
  */
 export class FileClassStateManager {
   private app: App;
-  private serviceContainer: ServiceContainer;
+  private fileClassDeductionService: FileClassDeductionService;
   private settings: MetaFlowSettings;
   private fileClassChangedCallback?: FileClassChangedCallback;
   private logManager: LogManagerInterface;
@@ -35,13 +35,13 @@ export class FileClassStateManager {
     app: App,
     settings: MetaFlowSettings,
     logManager: LogManagerInterface,
-    serviceContainer: ServiceContainer,
+    fileClassDeductionService: FileClassDeductionService,
     fileClassChangedCallback?: FileClassChangedCallback,
   ) {
     this.app = app;
     this.settings = settings;
     this.logManager = logManager;
-    this.serviceContainer = serviceContainer;
+    this.fileClassDeductionService = fileClassDeductionService;
     this.fileClassChangedCallback = fileClassChangedCallback;
 
     this.fileClassMap = new Map<string, string>();
@@ -91,7 +91,7 @@ export class FileClassStateManager {
     const fileCache = this.app.metadataCache.getFileCache(file);
     let fileClass = '';
     if (fileCache?.frontmatter) {
-      fileClass = this.serviceContainer.fileClassDeductionService.getFileClassFromMetadata(fileCache.frontmatter) || '';
+      fileClass = this.fileClassDeductionService.getFileClassFromMetadata(fileCache.frontmatter) || '';
     }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: registerFileClass ${fileClass} for ${file.path}`, file);
     this.fileClassMap.set(file.path, fileClass);
@@ -116,7 +116,7 @@ export class FileClassStateManager {
       return;
     }
     const oldFileClass = this.fileClassMap.get(file.path) || '';
-    const fileClass = this.serviceContainer.fileClassDeductionService.getFileClassFromMetadata(cache?.frontmatter) || '';
+    const fileClass = this.fileClassDeductionService.getFileClassFromMetadata(cache?.frontmatter) || '';
     this.fileClassMap.set(file.path, fileClass);
     if (fileClass === oldFileClass) {
       if (this.settings.debugMode) console.debug(`File class for ${file.path} did not change: ${oldFileClass}`);

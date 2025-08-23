@@ -15,7 +15,7 @@ export class SimulationSection {
     private metadataMenuAdapter: MetadataMenuAdapter,
     private obsidianAdapter: ObsidianAdapter,
     private templaterAdapter: TemplaterAdapter,
-    private onChange: () => void
+    private metaFlowService: MetaFlowService,
   ) { }
 
   render() {
@@ -134,8 +134,8 @@ This is sample content for testing.`;
         // Create a mock file object for simulation
         const mockFile = ObsidianAdapter.createMockTFile('folder/simulation-test.md');
 
-        // Create a MetaFlowService instance with current settings
-        const metaFlowService = new MetaFlowService(this.app, this.settings);
+        // Use the provided MetaFlowService instance
+        const metaFlowService = this.metaFlowService;
 
         // Override the fileClass detection to use the selected one
         this.metadataMenuAdapter.getFileClassFromMetadata = () => selectedFileClass;

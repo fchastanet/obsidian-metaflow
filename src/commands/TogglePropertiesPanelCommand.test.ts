@@ -1,44 +1,49 @@
 import {TogglePropertiesPanelCommand} from './TogglePropertiesPanelCommand';
-import {CommandDependencies} from './types';
-import {LogManagerInterface} from '../managers/types';
-
-// Mock dependencies
-const mockSaveSettings = jest.fn();
-const mockTogglePropertiesVisibility = jest.fn();
-
-const mockSettings = {
-  hidePropertiesInEditor: false,
-} as any;
-
-const mockDependencies: CommandDependencies = {
-  app: {} as any,
-  settings: mockSettings,
-  metaFlowService: {} as any,
-  serviceContainer: {
-    uiService: {
-      togglePropertiesVisibility: mockTogglePropertiesVisibility,
-    },
-  } as any,
-  fileClassStateManager: {} as any,
-  obsidianAdapter: {} as any,
-  saveSettings: mockSaveSettings,
-};
-
-const mockLogManager: LogManagerInterface = {
-  addDebug: jest.fn(),
-  addInfo: jest.fn(),
-  addWarning: jest.fn(),
-  addError: jest.fn(),
-  addMessage: jest.fn(),
-};
+import {Container} from 'inversify';
+import {TYPES} from '../di/types';
+import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
+import type {UIService} from '../services/UIService';
+import type {LogManagerInterface} from '../managers/types';
 
 describe('TogglePropertiesPanelCommand', () => {
   let command: TogglePropertiesPanelCommand;
+  let container: Container;
+  let mockSettings: any;
+  let mockUIService: jest.Mocked<UIService>;
+  let mockSaveSettings: jest.Mock;
+  let mockLogManager: jest.Mocked<LogManagerInterface>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSettings.hidePropertiesInEditor = false;
-    command = new TogglePropertiesPanelCommand(mockDependencies);
+
+    // Create mock settings (mutable copy)
+    mockSettings = {...DEFAULT_SETTINGS, hidePropertiesInEditor: false};
+
+    // Create mock services
+    mockUIService = {
+      togglePropertiesVisibility: jest.fn()
+    } as any;
+
+    mockSaveSettings = jest.fn();
+
+    mockLogManager = {
+      addError: jest.fn(),
+      addWarning: jest.fn(),
+      addInfo: jest.fn(),
+      addDebug: jest.fn(),
+      addMessage: jest.fn(),
+      showLogs: jest.fn()
+    } as any;
+
+    // Create DI container
+    container = new Container();
+    container.bind(TYPES.MetaFlowSettings).toConstantValue(mockSettings);
+    container.bind(TYPES.UIService).toConstantValue(mockUIService);
+    container.bind(TYPES.SaveSettings).toConstantValue(mockSaveSettings);
+    container.bind(TYPES.TogglePropertiesPanelCommand).to(TogglePropertiesPanelCommand);
+
+    // Create command instance
+    command = container.get<TogglePropertiesPanelCommand>(TYPES.TogglePropertiesPanelCommand);
   });
 
   it('should toggle properties panel from visible to hidden', () => {
@@ -46,7 +51,7 @@ describe('TogglePropertiesPanelCommand', () => {
 
     expect(mockSettings.hidePropertiesInEditor).toBe(true);
     expect(mockSaveSettings).toHaveBeenCalled();
-    expect(mockTogglePropertiesVisibility).toHaveBeenCalledWith(true);
+    expect(mockUIService.togglePropertiesVisibility).toHaveBeenCalledWith(true);
     expect(mockLogManager.addInfo).toHaveBeenCalledWith('Properties panel hidden');
   });
 
@@ -57,7 +62,7 @@ describe('TogglePropertiesPanelCommand', () => {
 
     expect(mockSettings.hidePropertiesInEditor).toBe(false);
     expect(mockSaveSettings).toHaveBeenCalled();
-    expect(mockTogglePropertiesVisibility).toHaveBeenCalledWith(false);
+    expect(mockUIService.togglePropertiesVisibility).toHaveBeenCalledWith(false);
     expect(mockLogManager.addInfo).toHaveBeenCalledWith('Properties panel shown');
   });
 });

@@ -1,13 +1,19 @@
-import {Editor, MarkdownView} from 'obsidian';
-import {LogManagerInterface} from '../managers/types';
+import {injectable, inject} from 'inversify';
+import type {Editor, MarkdownView} from 'obsidian';
+import type {LogManagerInterface} from '../managers/types';
 import {MetaFlowException} from '../MetaFlowException';
-import {CommandDependencies, EditorCommand} from './types';
+import type {MetaFlowService} from '../services/MetaFlowService';
+import {EditorCommand} from './types';
+import {TYPES} from '../di/types';
 
 /**
  * Command to update metadata properties in the current editor
  */
+@injectable()
 export class UpdateMetadataCommand implements EditorCommand {
-  constructor(private dependencies: CommandDependencies) { }
+  constructor(
+    @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService
+  ) { }
 
   execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): void {
     const content = editor.getValue();
@@ -19,7 +25,7 @@ export class UpdateMetadataCommand implements EditorCommand {
     }
 
     try {
-      const processedContent = this.dependencies.metaFlowService.processContent(content, file, logManager);
+      const processedContent = this.metaFlowService.processContent(content, file, logManager);
 
       if (processedContent !== content) {
         editor.setValue(processedContent);

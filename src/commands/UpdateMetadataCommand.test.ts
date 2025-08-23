@@ -1,5 +1,4 @@
 import {UpdateMetadataCommand} from './UpdateMetadataCommand';
-import {CommandDependencies} from './types';
 import {MetaFlowException} from '../MetaFlowException';
 import {LogManagerInterface} from '../managers/types';
 
@@ -12,19 +11,18 @@ afterAll(() => {
   console.error = originalConsoleError;
 });
 
-// Mock dependencies
+// Mock dependencies - simplified for testing
 const mockProcessContent = jest.fn();
-const mockDependencies: CommandDependencies = {
-  app: {} as any,
-  settings: {} as any,
-  metaFlowService: {
-    processContent: mockProcessContent,
-  } as any,
-  serviceContainer: {} as any,
-  fileClassStateManager: {} as any,
-  obsidianAdapter: {} as any,
-  saveSettings: jest.fn(),
+const mockMetaFlowService = {
+  processContent: mockProcessContent,
 };
+
+// Create command directly with mock service for testing
+class TestUpdateMetadataCommand extends UpdateMetadataCommand {
+  constructor() {
+    super(mockMetaFlowService as any);
+  }
+}
 
 const mockEditor = {
   getValue: jest.fn(),
@@ -51,7 +49,7 @@ describe('UpdateMetadataCommand', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    command = new UpdateMetadataCommand(mockDependencies);
+    command = new TestUpdateMetadataCommand();
   });
 
   it('should update metadata when content is changed', () => {

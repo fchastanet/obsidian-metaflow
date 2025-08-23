@@ -1,26 +1,8 @@
 import {FileStats, TFile} from 'obsidian';
-
-// Declare mock variables that will be initialized in beforeEach
-let mockMetadataMenuAdapter: any;
-let mockTemplaterAdapter: any;
-let mockScriptContextService: any;
-
-jest.mock('../externalApi/MetadataMenuAdapter', () => ({
-  MetadataMenuAdapter: jest.fn().mockImplementation(() => mockMetadataMenuAdapter)
-}));
-
-jest.mock('../externalApi/TemplaterAdapter', () => ({
-  TemplaterAdapter: jest.fn().mockImplementation(() => mockTemplaterAdapter)
-}));
-
-jest.mock('./ScriptContextService', () => ({
-  ScriptContextService: jest.fn().mockImplementation(() => mockScriptContextService)
-}));
-
 import {MetaFlowService} from './MetaFlowService';
-import {ServiceContainer} from './ServiceContainer';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {LogManagerInterface} from 'src/managers/types';
+import {MetaFlowSettings} from '../settings/types';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -33,11 +15,26 @@ jest.mock('obsidian', () => ({
 describe('MetaFlowService', () => {
   let mockApp: any;
   let metaFlowService: MetaFlowService;
-  let serviceContainer: ServiceContainer;
   let mockFile: TFile;
   let mockLogManager: LogManagerInterface;
+  let mockSettings: MetaFlowSettings;
+
+  // Mock services
+  let mockScriptContextService: any;
+  let mockMetadataMenuAdapter: any;
+  let mockFrontMatterService: any;
+  let mockTemplaterAdapter: any;
+  let mockObsidianAdapter: any;
+  let mockFileValidationService: any;
+  let mockFileClassDeductionService: any;
+  let mockPropertyManagementService: any;
+  let mockFileOperationsService: any;
+  let mockNoteTitleService: any;
 
   beforeEach(() => {
+    // Setup mock settings
+    mockSettings = {...DEFAULT_SETTINGS};
+
     // Setup mock app
     mockApp = {
       plugins: {
@@ -71,20 +68,7 @@ describe('MetaFlowService', () => {
       workspace: {},
     };
 
-    // Setup mocks
-    mockMetadataMenuAdapter = {
-      isMetadataMenuAvailable: jest.fn().mockReturnValue(true),
-      getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
-      getFileClassAndAncestorsFields: jest.fn().mockReturnValue([]),
-      syncFields: jest.fn().mockResolvedValue(undefined),
-      getFileClassByName: jest.fn().mockReturnValue({}),
-      getFileClassFromMetadata: jest.fn().mockReturnValue('default'),
-    };
-
-    mockTemplaterAdapter = {
-      isTemplaterAvailable: jest.fn().mockReturnValue(true),
-    };
-
+    // Setup mock services
     mockScriptContextService = {
       getScriptContext: jest.fn().mockReturnValue({
         metadata: {},
@@ -92,6 +76,68 @@ describe('MetaFlowService', () => {
         file: {},
         logManager: {},
       }),
+    };
+
+    mockMetadataMenuAdapter = {
+      isMetadataMenuAvailable: jest.fn().mockReturnValue(true),
+      getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
+      getFileClassAndAncestorsFields: jest.fn().mockReturnValue([]),
+      syncFields: jest.fn().mockImplementation((frontmatter) => frontmatter),
+      getFileClassByName: jest.fn().mockReturnValue({}),
+      getFileClassFromMetadata: jest.fn().mockReturnValue('default'),
+    };
+
+    mockFrontMatterService = {
+      parseFrontmatter: jest.fn().mockImplementation((content: string) => {
+        if (content.includes('fileClass: book')) {
+          return {
+            metadata: {fileClass: 'book', title: 'Test'},
+            body: 'Content'
+          };
+        }
+        return {metadata: {}, body: content};
+      }),
+      serializeFrontmatter: jest.fn().mockReturnValue('---\nfileClass: book\ntitle: Test\n---\nContent'),
+    };
+
+    mockTemplaterAdapter = {
+      isTemplaterAvailable: jest.fn().mockReturnValue(true),
+    };
+
+    mockObsidianAdapter = {
+      folderPrefix: jest.fn().mockImplementation((folder: string) => folder === '/' ? '/' : `${folder}/`),
+    };
+
+    mockFileValidationService = {
+      checkIfAutomaticMetadataInsertionEnabled: jest.fn(),
+      checkIfMetadataInsertionApplicable: jest.fn(),
+      checkIfValidFile: jest.fn(),
+      checkIfExcluded: jest.fn(),
+    };
+
+    mockFileClassDeductionService = {
+      getFileClassFromContent: jest.fn().mockReturnValue('book'),
+      getFileClassFromMetadata: jest.fn().mockImplementation((metadata) => {
+        if (metadata === null || metadata === undefined) return null;
+        return metadata.fileClass || 'article';
+      }),
+      deduceFileClassFromPath: jest.fn().mockReturnValue('default'),
+      validateFileClassAgainstMapping: jest.fn().mockReturnValue(true),
+    };
+
+    mockPropertyManagementService = {
+      sortProperties: jest.fn().mockImplementation((frontmatter) => frontmatter),
+      addDefaultValuesToProperties: jest.fn().mockImplementation((frontmatter) => frontmatter),
+    };
+
+    mockFileOperationsService = {
+      updateFrontmatter: jest.fn().mockResolvedValue(undefined),
+      renameNote: jest.fn().mockResolvedValue(undefined),
+      moveNoteToTheRightFolder: jest.fn().mockResolvedValue('new/path/test.md'),
+    };
+
+    mockNoteTitleService = {
+      // Add any methods from NoteTitleService that are used in tests
     };
 
     // Create a proper mock TFile instance
@@ -113,8 +159,21 @@ describe('MetaFlowService', () => {
       addMessage: jest.fn(),
     };
 
-    metaFlowService = new MetaFlowService(mockApp, DEFAULT_SETTINGS);
-    serviceContainer = new ServiceContainer(mockApp, DEFAULT_SETTINGS);
+    // Create MetaFlowService with all dependencies
+    metaFlowService = new MetaFlowService(
+      mockApp,
+      mockSettings,
+      mockScriptContextService,
+      mockMetadataMenuAdapter,
+      mockFrontMatterService,
+      mockTemplaterAdapter,
+      mockObsidianAdapter,
+      mockFileValidationService,
+      mockFileClassDeductionService,
+      mockPropertyManagementService,
+      mockFileOperationsService,
+      mockNoteTitleService
+    );
   });
 
   describe('Basic Service Functionality', () => {
@@ -123,21 +182,21 @@ describe('MetaFlowService', () => {
       expect(metaFlowService).toBeInstanceOf(MetaFlowService);
     });
 
-    test('should get file class from content via serviceContainer', () => {
+    test('should get file class from content via fileClassDeductionService', () => {
       const content = '---\nfileClass: book\n---\nContent';
-      const result = serviceContainer.fileClassDeductionService.getFileClassFromContent(content);
+      const result = mockFileClassDeductionService.getFileClassFromContent(content);
       expect(result).toBe('book');
     });
 
-    test('should get file class from metadata via serviceContainer', () => {
+    test('should get file class from metadata via fileClassDeductionService', () => {
       const metadata = {fileClass: 'article', title: 'Test'};
-      const result = serviceContainer.fileClassDeductionService.getFileClassFromMetadata(metadata);
+      const result = mockFileClassDeductionService.getFileClassFromMetadata(metadata);
       expect(result).toBe('article');
     });
 
-    test('should handle null metadata via serviceContainer', () => {
-      expect(serviceContainer.fileClassDeductionService.getFileClassFromMetadata(null)).toBe(null);
-      expect(serviceContainer.fileClassDeductionService.getFileClassFromMetadata(undefined)).toBe(null);
+    test('should handle null metadata via fileClassDeductionService', () => {
+      expect(mockFileClassDeductionService.getFileClassFromMetadata(null)).toBe(null);
+      expect(mockFileClassDeductionService.getFileClassFromMetadata(undefined)).toBe(null);
     });
 
     test('should get frontmatter from content', () => {
@@ -156,11 +215,16 @@ describe('MetaFlowService', () => {
   describe('File Operations', () => {
     test('should handle file class changes', async () => {
       const metadata = {frontmatter: {fileClass: 'default'}};
-      const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+
+      // Set up settings to enable auto metadata insertion
+      mockSettings.autoMetadataInsertion = true;
+
       const result = await metaFlowService.handleFileClassChanged(mockFile, metadata, 'old', 'default', mockLogManager);
       expect(result).toBeUndefined(); // void method
-      expect(consoleSpy).toHaveBeenCalledWith('Auto-move for the folder "/" is disabled');
-      consoleSpy.mockRestore();
+
+      // Verify that the validation service was called
+      expect(mockFileValidationService.checkIfAutomaticMetadataInsertionEnabled).toHaveBeenCalled();
+      expect(mockFileValidationService.checkIfMetadataInsertionApplicable).toHaveBeenCalledWith(mockFile);
     });
 
     test('should process content', async () => {

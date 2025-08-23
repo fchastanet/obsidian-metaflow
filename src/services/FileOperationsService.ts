@@ -1,11 +1,15 @@
-import {App, TFile, TFolder} from "obsidian";
-import {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
+import {injectable, inject} from 'inversify';
+import type {App} from "obsidian";
+import {TFile, TFolder} from "obsidian";
+import type {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import {FileValidationService} from "./FileValidationService";
-import {LogManagerInterface} from "../managers/types";
-import {NoteTitleService} from "./NoteTitleService";
+import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import type {FileValidationService} from "./FileValidationService";
+import type {LogManagerInterface} from "../managers/types";
+import type {NoteTitleService} from "./NoteTitleService";
+import {TYPES} from '../di/types';
 
+@injectable()
 export class FileOperationsService {
   private app: App;
   private metaFlowSettings: MetaFlowSettings;
@@ -14,11 +18,11 @@ export class FileOperationsService {
   private noteTitleService: NoteTitleService;
 
   constructor(
-    app: App,
-    metaFlowSettings: MetaFlowSettings,
-    obsidianAdapter: ObsidianAdapter,
-    fileValidationService: FileValidationService,
-    noteTitleService: NoteTitleService
+    @inject(TYPES.App) app: App,
+    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter,
+    @inject(TYPES.FileValidationService) fileValidationService: FileValidationService,
+    @inject(TYPES.NoteTitleService) noteTitleService: NoteTitleService
   ) {
     this.app = app;
     this.metaFlowSettings = metaFlowSettings;
@@ -132,6 +136,18 @@ export class FileOperationsService {
       return await this.obsidianAdapter.createFolder(folder);
     }
     return this.app.vault.getFolderByPath(folder);
+  }
+
+  public async moveNote(
+    file: TFile,
+    fileClass: string,
+    metadata: {[key: string]: any},
+    logManager: LogManagerInterface
+  ): Promise<void> {
+    const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
+    if (newFilePath) {
+      logManager.addInfo(`Moved note ${file.name} to ${newFilePath}`);
+    }
   }
 
   private getTargetFolderMappingForFileClass(fileClass: string): FolderFileClassMapping | null {

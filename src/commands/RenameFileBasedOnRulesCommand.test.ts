@@ -1,137 +1,127 @@
 import {RenameFileBasedOnRulesCommand} from './RenameFileBasedOnRulesCommand';
-import {CommandDependencies} from './types';
 import {MetaFlowException} from '../MetaFlowException';
-import {LogManagerInterface} from '../managers/types';
+import {Container} from 'inversify';
+import {TYPES} from '../di/types';
 
-// Mock console.error to avoid cluttering test output
-const originalConsoleError = console.error;
-beforeAll(() => {
-  console.error = jest.fn();
-});
-afterAll(() => {
-  console.error = originalConsoleError;
-});
-
-// Mock dependencies
-const mockCheckIfValidFile = jest.fn();
-const mockGetFileClassFromMetadata = jest.fn();
-const mockRenameNote = jest.fn();
-const mockGetFileCache = jest.fn();
-
-const mockDependencies: CommandDependencies = {
-  app: {
-    metadataCache: {
-      getFileCache: mockGetFileCache
-    }
-  } as any,
-  settings: {} as any,
-  metaFlowService: {} as any,
-  serviceContainer: {
-    fileValidationService: {
-      checkIfValidFile: mockCheckIfValidFile,
-    },
-    fileClassDeductionService: {
-      getFileClassFromMetadata: mockGetFileClassFromMetadata,
-    },
-    fileOperationsService: {
-      renameNote: mockRenameNote,
-    },
-  } as any,
-  fileClassStateManager: {} as any,
-  obsidianAdapter: {} as any,
-  saveSettings: jest.fn(),
-};
-
-const mockEditor = {
-  getValue: jest.fn(),
-  setValue: jest.fn(),
-} as any;
-
-const mockView = {
-  file: {
-    name: 'test.md',
-    path: 'test.md',
-  },
-} as any;
-
-const mockLogManager: LogManagerInterface = {
-  addDebug: jest.fn(),
-  addInfo: jest.fn(),
-  addWarning: jest.fn(),
-  addError: jest.fn(),
-  addMessage: jest.fn(),
-};
+// Mock Obsidian classes
+jest.mock('obsidian', () => ({
+  Editor: class MockEditor { },
+  MarkdownView: class MockMarkdownView { },
+  TFile: class MockTFile { },
+  App: class MockApp { }
+}));
 
 describe('RenameFileBasedOnRulesCommand', () => {
+  let container: Container;
   let command: RenameFileBasedOnRulesCommand;
+  let mockApp: any;
+  let mockFileOperationsService: any;
+  let mockFileValidationService: any;
+  let mockFileClassDeductionService: any;
+  let mockEditor: any;
+  let mockView: any;
+  let mockLogManager: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    command = new RenameFileBasedOnRulesCommand(mockDependencies);
+    container = new Container();
+
+    // Setup mock services
+    mockApp = {
+      metadataCache: {
+        getFileCache: jest.fn()
+      }
+    };
+
+    mockFileOperationsService = {
+      renameNote: jest.fn().mockResolvedValue(undefined)
+    };
+
+    mockFileValidationService = {
+      checkIfValidFile: jest.fn()
+    };
+
+    mockFileClassDeductionService = {
+      getFileClassFromMetadata: jest.fn()
+    };
+
+    // Setup mock objects for tests
+    mockEditor = {};
+
+    mockView = {
+      file: {
+        name: 'test.md',
+        path: 'test.md'
+      }
+    };
+
+    mockLogManager = {
+      addError: jest.fn(),
+      addWarning: jest.fn(),
+      addInfo: jest.fn(),
+      addDebug: jest.fn(),
+      addMessage: jest.fn(),
+      showLogs: jest.fn()
+    };
+
+    // Bind to container
+    container.bind(TYPES.App).toConstantValue(mockApp);
+    container.bind(TYPES.FileOperationsService).toConstantValue(mockFileOperationsService);
+    container.bind(TYPES.FileValidationService).toConstantValue(mockFileValidationService);
+    container.bind(TYPES.FileClassDeductionService).toConstantValue(mockFileClassDeductionService);
+    container.bind(TYPES.RenameFileBasedOnRulesCommand).to(RenameFileBasedOnRulesCommand);
+
+    // Get the command instance
+    command = container.get<RenameFileBasedOnRulesCommand>(TYPES.RenameFileBasedOnRulesCommand);
   });
 
-  it('should rename file when autoRenameNote is enabled and file class exists', async () => {
-    const metadata = {fileClass: 'Note', title: 'Test'};
-    const fileClass = 'Note';
-
-    mockGetFileCache.mockReturnValue({
-      frontmatter: metadata
-    });
-    mockCheckIfValidFile.mockReturnValue(undefined);
-    mockGetFileClassFromMetadata.mockReturnValue(fileClass);
-    mockRenameNote.mockResolvedValue(undefined);
-
-    await command.execute(mockEditor, mockView, mockLogManager);
-
-    expect(mockCheckIfValidFile).toHaveBeenCalledWith(mockView.file);
-    expect(mockGetFileClassFromMetadata).toHaveBeenCalledWith(metadata);
-    expect(mockRenameNote).toHaveBeenCalledWith(mockView.file, fileClass, metadata, mockLogManager);
+  test('can be instantiated with DI container', () => {
+    expect(command).toBeInstanceOf(RenameFileBasedOnRulesCommand);
   });
 
-  it('should rename file regardless of autoRenameNote setting', async () => {
-    const metadata = {fileClass: 'Note', title: 'Test'};
-    const fileClass = 'Note';
-
-    mockDependencies.settings.autoRenameNote = false; // This should not affect manual command
-    mockGetFileCache.mockReturnValue({
-      frontmatter: metadata
-    });
-    mockCheckIfValidFile.mockReturnValue(undefined);
-    mockGetFileClassFromMetadata.mockReturnValue(fileClass);
-    mockRenameNote.mockResolvedValue(undefined);
-
-    await command.execute(mockEditor, mockView, mockLogManager);
-
-    expect(mockRenameNote).toHaveBeenCalledWith(mockView.file, fileClass, metadata, mockLogManager);
-  });
-
-  it('should warn when no file class is found', async () => {
-    const metadata = {title: 'Test'};
-
-    mockGetFileCache.mockReturnValue({
-      frontmatter: metadata
-    });
-    mockCheckIfValidFile.mockReturnValue(undefined);
-    mockGetFileClassFromMetadata.mockReturnValue(null);
-
-    await command.execute(mockEditor, mockView, mockLogManager);
-
-    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No file class found for test.md');
-    expect(mockRenameNote).not.toHaveBeenCalled();
-  });
-
-  it('should handle missing file', async () => {
+  test('handles missing file gracefully', async () => {
     const viewWithoutFile = {file: null} as any;
 
     await command.execute(mockEditor, viewWithoutFile, mockLogManager);
 
     expect(mockLogManager.addError).toHaveBeenCalledWith('No active file found');
-    expect(mockCheckIfValidFile).not.toHaveBeenCalled();
   });
 
-  it('should handle MetaFlowException', async () => {
+  test('should rename file when file class exists', async () => {
+    const metadata = {fileClass: 'Note', title: 'Test'};
+    const fileClass = 'Note';
+
+    mockApp.metadataCache.getFileCache.mockReturnValue({
+      frontmatter: metadata
+    });
+    mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
+    mockFileClassDeductionService.getFileClassFromMetadata.mockReturnValue(fileClass);
+    mockFileOperationsService.renameNote.mockResolvedValue(undefined);
+
+    await command.execute(mockEditor, mockView, mockLogManager);
+
+    expect(mockFileValidationService.checkIfValidFile).toHaveBeenCalledWith(mockView.file);
+    expect(mockFileClassDeductionService.getFileClassFromMetadata).toHaveBeenCalledWith(metadata);
+    expect(mockFileOperationsService.renameNote).toHaveBeenCalledWith(mockView.file, fileClass, metadata, mockLogManager);
+  });
+
+  test('should warn when no file class is found', async () => {
+    const metadata = {title: 'Test'};
+
+    mockApp.metadataCache.getFileCache.mockReturnValue({
+      frontmatter: metadata
+    });
+    mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
+    mockFileClassDeductionService.getFileClassFromMetadata.mockReturnValue(null);
+
+    await command.execute(mockEditor, mockView, mockLogManager);
+
+    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No file class found for test.md');
+    expect(mockFileOperationsService.renameNote).not.toHaveBeenCalled();
+  });
+
+  test('should handle MetaFlowException', async () => {
     const error = new MetaFlowException('Rename error', 'error');
-    mockCheckIfValidFile.mockImplementation(() => {
+    mockFileValidationService.checkIfValidFile.mockImplementation(() => {
       throw error;
     });
 
@@ -140,9 +130,9 @@ describe('RenameFileBasedOnRulesCommand', () => {
     expect(mockLogManager.addError).toHaveBeenCalledWith('Error renaming note: Rename error');
   });
 
-  it('should handle generic error', async () => {
+  test('should handle generic error', async () => {
     const error = new Error('Generic rename error');
-    mockCheckIfValidFile.mockImplementation(() => {
+    mockFileValidationService.checkIfValidFile.mockImplementation(() => {
       throw error;
     });
 

@@ -62,10 +62,16 @@ describe('MetaFlowSettingTab', () => {
   let mockApp: any;
   let mockPlugin: any;
   let settingTab: MetaFlowSettingTab;
+  let mockObsidianAdapter: any;
 
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
+
+    // Create mock ObsidianAdapter
+    mockObsidianAdapter = {
+      isMetadataMenuAvailable: jest.fn().mockReturnValue(true)
+    };
 
     // Create mock app with proper structure
     mockApp = {
@@ -106,6 +112,21 @@ describe('MetaFlowSettingTab', () => {
         autoMoveNoteToRightFolder: false
       },
       saveSettings: jest.fn(),
+      container: {
+        get: jest.fn((type) => {
+          // Return mock services based on type
+          if (type.toString().includes('MetadataMenuAdapter')) {
+            return {isMetadataMenuAvailable: () => true};
+          }
+          if (type.toString().includes('ObsidianAdapter')) {
+            return mockObsidianAdapter;
+          }
+          if (type.toString().includes('MetaFlowService')) {
+            return {};
+          }
+          return {};
+        })
+      },
       autoInserter: {
         isMetadataMenuAvailable: jest.fn().mockReturnValue(true)
       }

@@ -1,3 +1,6 @@
+import {injectable} from 'inversify';
+
+@injectable()
 export class UIService {
   public togglePropertiesVisibility(hide: boolean): void {
     const styleId = 'metaflow-hide-properties';

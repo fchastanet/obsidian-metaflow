@@ -1,8 +1,11 @@
-import {MetaFlowSettings} from "../settings/types";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import {FrontMatterService} from "./FrontMatterService";
+import {injectable, inject} from 'inversify';
+import type {MetaFlowSettings} from "../settings/types";
+import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import type {FrontMatterService} from "./FrontMatterService";
+import {TYPES} from '../di/types';
 
+@injectable()
 export class FileClassDeductionService {
   private metaFlowSettings: MetaFlowSettings;
   private obsidianAdapter: ObsidianAdapter;
@@ -10,10 +13,10 @@ export class FileClassDeductionService {
   private frontMatterService: FrontMatterService;
 
   constructor(
-    metaFlowSettings: MetaFlowSettings,
-    obsidianAdapter: ObsidianAdapter,
-    metadataMenuAdapter: MetadataMenuAdapter,
-    frontMatterService: FrontMatterService
+    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter,
+    @inject(TYPES.MetadataMenuAdapter) metadataMenuAdapter: MetadataMenuAdapter,
+    @inject(TYPES.FrontMatterService) frontMatterService: FrontMatterService
   ) {
     this.metaFlowSettings = metaFlowSettings;
     this.obsidianAdapter = obsidianAdapter;

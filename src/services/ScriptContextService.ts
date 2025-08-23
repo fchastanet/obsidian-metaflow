@@ -1,8 +1,10 @@
+import {injectable, inject} from 'inversify';
 import {App, TFile} from 'obsidian';
 import {TemplaterAdapter} from '../externalApi/TemplaterAdapter';
 import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
 import {MetaFlowSettings} from '../settings/types';
 import {LogManagerInterface} from '../managers/types';
+import {TYPES} from '../di/types';
 
 
 export interface ScriptContextInterface {
@@ -20,13 +22,17 @@ export interface ScriptContextInterface {
 }
 
 
+@injectable()
 export class ScriptContextService {
   private templaterAdapter: TemplaterAdapter;
   private obsidianAdapter: ObsidianAdapter;
 
-  constructor(app: App, settings: MetaFlowSettings) {
-    this.templaterAdapter = new TemplaterAdapter(app, settings);
-    this.obsidianAdapter = new ObsidianAdapter(app, settings);
+  constructor(
+    @inject(TYPES.TemplaterAdapter) templaterAdapter: TemplaterAdapter,
+    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter
+  ) {
+    this.templaterAdapter = templaterAdapter;
+    this.obsidianAdapter = obsidianAdapter;
   }
 
   /**

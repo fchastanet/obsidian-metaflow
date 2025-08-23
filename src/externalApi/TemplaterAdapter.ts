@@ -1,6 +1,9 @@
-import {App, TFile} from 'obsidian';
-import {MetaFlowSettings} from 'src/settings/types';
-import {ObsidianAdapter} from './ObsidianAdapter';
+import {injectable, inject} from 'inversify';
+import type {App} from 'obsidian';
+import {TFile} from 'obsidian';
+import type {MetaFlowSettings} from 'src/settings/types';
+import type {ObsidianAdapter} from './ObsidianAdapter';
+import {TYPES} from '../di/types';
 
 export interface FolderTemplate {
   folder: string;
@@ -23,16 +26,21 @@ interface TemplaterInterface {
   settings: TemplaterSettingsInterface;
 }
 
+@injectable()
 export class TemplaterAdapter {
   private app: App;
   private settings: MetaFlowSettings;
   private obsidianAdapter: ObsidianAdapter;
   private TEMPLATER_PLUGIN_NAME = 'templater-obsidian';
 
-  constructor(app: App, settings: MetaFlowSettings) {
+  constructor(
+    @inject(TYPES.App) app: App,
+    @inject(TYPES.MetaFlowSettings) settings: MetaFlowSettings,
+    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter
+  ) {
     this.app = app;
     this.settings = settings;
-    this.obsidianAdapter = new ObsidianAdapter(app, settings);
+    this.obsidianAdapter = obsidianAdapter;
   }
 
   private getTemplater(): TemplaterInterface | null {

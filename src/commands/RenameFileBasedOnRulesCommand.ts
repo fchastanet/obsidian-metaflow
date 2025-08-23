@@ -1,13 +1,25 @@
-import {Editor, MarkdownView} from 'obsidian';
-import {LogManagerInterface} from '../managers/types';
+import {injectable, inject} from 'inversify';
+import type {Editor, MarkdownView} from 'obsidian';
+import type {LogManagerInterface} from '../managers/types';
 import {MetaFlowException} from '../MetaFlowException';
-import {CommandDependencies, EditorCommand} from './types';
+import type {FileOperationsService} from '../services/FileOperationsService';
+import type {FileValidationService} from '../services/FileValidationService';
+import type {FileClassDeductionService} from '../services/FileClassDeductionService';
+import type {App} from 'obsidian';
+import {EditorCommand} from './types';
+import {TYPES} from '../di/types';
 
 /**
  * Command to rename file based on configured rules
  */
+@injectable()
 export class RenameFileBasedOnRulesCommand implements EditorCommand {
-  constructor(private dependencies: CommandDependencies) { }
+  constructor(
+    @inject(TYPES.App) private app: App,
+    @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
+    @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
+    @inject(TYPES.FileClassDeductionService) private fileClassDeductionService: FileClassDeductionService
+  ) { }
 
   async execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): Promise<void> {
     try {
@@ -17,13 +29,13 @@ export class RenameFileBasedOnRulesCommand implements EditorCommand {
         return;
       }
 
-      this.dependencies.serviceContainer.fileValidationService.checkIfValidFile(file);
-      const metadata = this.dependencies.app.metadataCache.getFileCache(file)?.frontmatter || {};
+      this.fileValidationService.checkIfValidFile(file);
+      const metadata = this.app.metadataCache.getFileCache(file)?.frontmatter || {};
 
-      const fileClass = this.dependencies.serviceContainer.fileClassDeductionService.getFileClassFromMetadata(metadata);
+      const fileClass = this.fileClassDeductionService.getFileClassFromMetadata(metadata);
       if (fileClass) {
         logManager.addInfo(`Renaming ${file.name} based on rules for file class: ${fileClass}`);
-        await this.dependencies.serviceContainer.fileOperationsService.renameNote(file, fileClass, metadata, logManager);
+        await this.fileOperationsService.renameNote(file, fileClass, metadata, logManager);
       } else {
         logManager.addWarning(`No file class found for ${file.name}`);
       }

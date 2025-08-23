@@ -1,13 +1,19 @@
-import {Editor, MarkdownView} from 'obsidian';
-import {LogManagerInterface} from '../managers/types';
+import {injectable, inject} from 'inversify';
+import type {Editor, MarkdownView} from 'obsidian';
+import type {LogManagerInterface} from '../managers/types';
 import {MetaFlowException} from '../MetaFlowException';
-import {CommandDependencies, EditorCommand} from './types';
+import type {MetaFlowService} from '../services/MetaFlowService';
+import {EditorCommand} from './types';
+import {TYPES} from '../di/types';
 
 /**
  * Command to sort metadata properties in the current editor
  */
+@injectable()
 export class SortMetadataCommand implements EditorCommand {
-  constructor(private dependencies: CommandDependencies) { }
+  constructor(
+    @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService
+  ) { }
 
   async execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): Promise<void> {
     const content = editor.getValue();
@@ -19,7 +25,7 @@ export class SortMetadataCommand implements EditorCommand {
     }
 
     try {
-      await this.dependencies.metaFlowService.processSortContent(content, file);
+      await this.metaFlowService.processSortContent(content, file);
     } catch (error) {
       console.error('Error sorting metadata properties:', error);
       if (error instanceof MetaFlowException) {

@@ -1,10 +1,13 @@
+import {injectable, inject} from 'inversify';
 import {TFile} from "obsidian";
-import {MetaFlowSettings} from "../settings/types";
+import type {MetaFlowSettings} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
-import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import type {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
+import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import {TYPES} from '../di/types';
 
+@injectable()
 export class FileValidationService {
   private metaFlowSettings: MetaFlowSettings;
   private metadataMenuAdapter: MetadataMenuAdapter;
@@ -12,10 +15,10 @@ export class FileValidationService {
   private obsidianAdapter: ObsidianAdapter;
 
   constructor(
-    metaFlowSettings: MetaFlowSettings,
-    metadataMenuAdapter: MetadataMenuAdapter,
-    templaterAdapter: TemplaterAdapter,
-    obsidianAdapter: ObsidianAdapter
+    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.MetadataMenuAdapter) metadataMenuAdapter: MetadataMenuAdapter,
+    @inject(TYPES.TemplaterAdapter) templaterAdapter: TemplaterAdapter,
+    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter
   ) {
     this.metaFlowSettings = metaFlowSettings;
     this.metadataMenuAdapter = metadataMenuAdapter;

@@ -1,5 +1,4 @@
 import {SortMetadataCommand} from './SortMetadataCommand';
-import {CommandDependencies} from './types';
 import {MetaFlowException} from '../MetaFlowException';
 import {LogManagerInterface} from '../managers/types';
 
@@ -12,19 +11,18 @@ afterAll(() => {
   console.error = originalConsoleError;
 });
 
-// Mock dependencies
+// Mock dependencies - simplified for testing
 const mockProcessSortContent = jest.fn();
-const mockDependencies: CommandDependencies = {
-  app: {} as any,
-  settings: {} as any,
-  metaFlowService: {
-    processSortContent: mockProcessSortContent,
-  } as any,
-  serviceContainer: {} as any,
-  fileClassStateManager: {} as any,
-  obsidianAdapter: {} as any,
-  saveSettings: jest.fn(),
+const mockMetaFlowService = {
+  processSortContent: mockProcessSortContent,
 };
+
+// Create command directly with mock service for testing
+class TestSortMetadataCommand extends SortMetadataCommand {
+  constructor() {
+    super(mockMetaFlowService as any);
+  }
+}
 
 const mockEditor = {
   getValue: jest.fn(),
@@ -51,7 +49,7 @@ describe('SortMetadataCommand', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    command = new SortMetadataCommand(mockDependencies);
+    command = new TestSortMetadataCommand();
   });
 
   it('should sort metadata successfully', async () => {

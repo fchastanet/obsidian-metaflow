@@ -14,6 +14,8 @@ import {ExportImportSection} from "./sections/ExportImportSection";
 import {PluginsStatusSection} from "./sections/PluginsStatusSection";
 import {LogNoticeManager} from "../managers/LogNoticeManager";
 import {MetaFlowService} from "../services/MetaFlowService";
+import type {UIService} from "../services/UIService";
+import {TYPES} from "../di/types";
 declare const ace: AceModule;
 
 /**
@@ -36,11 +38,13 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: MetaFlowPlugin) {
     super(app, plugin);
     this.plugin = plugin;
-    this.metadataMenuAdapter = new MetadataMenuAdapter(app, plugin.settings);
-    this.templaterAdapter = new TemplaterAdapter(app, plugin.settings);
-    this.obsidianAdapter = new ObsidianAdapter(app, plugin.settings);
+
+    // Get services from the plugin's DI container
+    this.metadataMenuAdapter = plugin.container.get<MetadataMenuAdapter>(TYPES.MetadataMenuAdapter);
+    this.obsidianAdapter = plugin.container.get<ObsidianAdapter>(TYPES.ObsidianAdapter);
     this.logManager = new LogNoticeManager(this.obsidianAdapter);
-    this.metaflowService = new MetaFlowService(app, plugin.settings);
+    this.metaflowService = plugin.container.get<MetaFlowService>(TYPES.MetaFlowService);
+    this.templaterAdapter = plugin.container.get<TemplaterAdapter>(TYPES.TemplaterAdapter);
   }
 
 
@@ -67,7 +71,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
           this.plugin.settings.hidePropertiesInEditor = value;
           await this.plugin.saveSettings();
           // Apply CSS to hide/show properties section immediately
-          this.plugin.serviceContainer.uiService.togglePropertiesVisibility(value);
+          this.plugin.container.get<UIService>(TYPES.UIService).togglePropertiesVisibility(value);
         }));
 
     // debug mode setting
@@ -140,7 +144,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       this.metadataMenuAdapter,
       this.obsidianAdapter,
       this.templaterAdapter,
-      async () => {await this.plugin.saveSettings();}
+      this.metaflowService
     ).render();
 
     // Export/Import Settings Section

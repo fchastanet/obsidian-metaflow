@@ -1,3 +1,4 @@
+import {injectable} from 'inversify';
 import * as yaml from 'js-yaml';
 
 
@@ -10,6 +11,7 @@ export interface FrontmatterParseResult {
 /**
  * Utility functions for parsing and serializing YAML frontmatter
  */
+@injectable()
 export class FrontMatterService {
 
   /**
