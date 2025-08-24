@@ -1,29 +1,52 @@
-# Commit Message
+# commit message guidelines
 
-Commit message should be in markdown format.
+Generate a markdown commit message.
 
-Commit message should have a title that summarize the changes.
+Title: concise summary (50-72 characters)
+Add a blank line after the title
+Next paragraph: summary of all relevant changes (100-200 characters)
+Use section headers for big features, each with a relevant emoji (e.g. ✨ for features, 🔧 for refactoring, 🖥️ for UI, 🐛 for bug fixes, etc.)
+Use bullet points for detailed changes under each section
+Group related changes together
+Mention file names when appropriate
+Explain the "why" behind significant changes
+Reference issue numbers with #123 if applicable
+Make the message clear, concise, and easy to understand
+Follow the formatting and emoji usage shown in the example below:
+```markdown
+# ✨🔧 Automatic Note Renaming Based on Rules
 
-Commit message should contains every relevant changes.
+Automatic note renaming based on rules (script or template) is now supported. The codebase is fully migrated to dependency injection, with major service refactoring and accessibility improvements for maintainability and testability.
 
-Add a lot of emojis to identify the type of change (e.g., 🐛 for bug fixes, ✨ for
-new features, 🚀 for performance improvements, 📝 for documentation updates). And
-also identify the feature or component affected (e.g., 📦 for package updates, 🖥️
-for UI changes, 🔧 for configuration changes).
+## ✨ Automatic Note Renaming Feature
+- Implement automatic note renaming for notes based on configurable rules (script or title templates).
+- Add `renameNote` method in MetaFlowService to handle renaming logic.
+...
 
-Emojis on details as well.
+## 🔧 Dependency Injection & Service Refactoring
+- Migrate all core services and commands to dependency injection using InversifyJS.
+...
 
-Commit message should be clear and concise, making it easy to understand the
-changes made.
+## 🛠️ Command System Overhaul
+...
 
-When generating commit messages:
+## 🖥️ UI & Settings Improvements
+...
 
-- First line should be a concise summary (50-72 characters)
-- Add a blank line after the title
-- Next paragraph should be a summary of all relevant changes (100-200
-  characters)
-- Use bullet points for detailed changes
-- Group related changes together
-- Mention file names when appropriate
-- Explain the "why" behind significant changes
-- Reference issue numbers with #123 format if applicable
+## 🔧 Drag and Drop Refactoring
+...
+
+## 🛡️ Title Script & Template Linter Refactoring
+...
+
+## 🐛 Bug Fixes & Technical Debt Reduction
+...
+
+## 📊 Metrics & Results
+...
+
+## 🚀 Benefits
+...
+```
+
+Do not include any explanations or additional text.
