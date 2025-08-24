@@ -420,7 +420,7 @@ export class FolderFileClassMappingsSection {
       this.templateDragDropHelper(templateRow, templateIndex, mappingIndex);
 
       // Drag handle
-      const dragHandle = templateRow.createEl('span', {cls: 'drag-handle', text: '⋮⋮'});
+      templateRow.createEl('span', {cls: 'drag-handle', text: '⋮⋮', attr: {title: 'You can drag and drop this element to rearrange the order of the title templates.'}});
 
       // Template input (CodeMirror placeholder for now, can be enhanced later)
       const templateInputContainer = templateRow.createEl('div', {cls: 'metaflow-settings-template-input-container'});
@@ -464,7 +464,7 @@ export class FolderFileClassMappingsSection {
 
     // Default template row (always at the end)
     const defaultRow = container.createDiv({cls: 'metaflow-settings-template-row metaflow-settings-default-template'});
-    defaultRow.createEl('span', {cls: 'metaflow-settings-drag-handle-not-allowed', text: '⋮⋮'});
+    defaultRow.createEl('span', {cls: 'metaflow-settings-drag-handle-not-allowed', text: '⋮⋮', attr: {draggable: false, title: 'This element should stay at last position'}});
     defaultRow.createEl('span', {cls: 'metaflow-settings-default-template-label', text: 'Default: Untitled'});
 
   }

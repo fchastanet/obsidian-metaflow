@@ -40,9 +40,6 @@ export class MoveNoteToRightFolderCommand implements EditorCommand {
         if (this.settings.autoRenameNote) {
           const renamedFile = await this.fileOperationsService.renameNote(file, fileClass, metadata, logManager);
           newFile = renamedFile || file;
-          logManager.addInfo(`Moving ${newFile.name} to the right folder for file class: ${fileClass}`);
-        } else {
-          logManager.addInfo(`Moving ${newFile.name} to the right folder for file class: ${fileClass}`);
         }
 
         await this.fileOperationsService.moveNote(newFile, fileClass, metadata, logManager);

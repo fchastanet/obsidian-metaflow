@@ -19,8 +19,8 @@
   - [4.3. Folder/FileClass Mappings](#43-folderfileclass-mappings)
     - [4.3.1. Title Template \& Title Script](#431-title-template--title-script)
   - [4.4. Property Default Value Scripts](#44-property-default-value-scripts)
-  - [4.5. Export/Import Settings](#45-exportimport-settings)
-  - [4.6. Simulation \& Testing](#46-simulation--testing)
+  - [4.5. Simulation \& Testing](#45-simulation--testing)
+  - [4.6. Export/Import Settings](#46-exportimport-settings)
 
 ## 1. Commands
 
@@ -136,7 +136,6 @@
 - reopen metaflow settings
 - the above should work normally after then
 
-
 ### 4.3. Folder/FileClass Mappings
 
 - Add, edit, or remove folder/fileClass mappings in settings.
@@ -164,17 +163,17 @@
 - **Edge case:** Add a script with invalid JavaScript. Confirm error is shown and note is not corrupted.
 - **Edge case:** Disable all scripts. Ensure no default values are generated.
 
-### 4.5. Export/Import Settings
+### 4.5. Simulation & Testing
+
+- Use the simulation section in settings to test configuration with sample frontmatter and fileClasses.
+- Verify the simulated output matches expectations.
+- **Edge case:** Simulate with missing or invalid fileClass. Confirm error or warning is shown.
+- **Edge case:** Simulate with empty frontmatter. Ensure output is handled gracefully.
+
+### 4.6. Export/Import Settings
 
 - Use the export button to download settings as JSON.
 - Use the import button to upload a JSON file.
 - Confirm settings are correctly exported/imported and reflected in the UI.
 - **Edge case:** Import a malformed or incompatible JSON file. Confirm error is shown and settings are not overwritten.
 - **Edge case:** Export settings with empty or default values. Ensure file is valid and can be imported.
-
-### 4.6. Simulation & Testing
-
-- Use the simulation section in settings to test configuration with sample frontmatter and fileClasses.
-- Verify the simulated output matches expectations.
-- **Edge case:** Simulate with missing or invalid fileClass. Confirm error or warning is shown.
-- **Edge case:** Simulate with empty frontmatter. Ensure output is handled gracefully.
