@@ -1,18 +1,27 @@
+import 'reflect-metadata';
+import {Container} from 'inversify';
 import {EditorView} from '@codemirror/view';
-import {Extension} from '@codemirror/state';
-import {Plugin, Editor, MarkdownView, TFolder, Notice, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal, MarkdownFileInfo, CachedMetadata, WorkspaceLeaf} from 'obsidian';
+import {Plugin, Editor, MarkdownView, TFolder, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal, MarkdownFileInfo, CachedMetadata, WorkspaceLeaf} from 'obsidian';
 import {MetaFlowSettings} from './settings/types';
 import {DEFAULT_SETTINGS} from './settings/defaultSettings';
 import {MetaFlowSettingTab} from './settings/MetaFlowSettingTab';
 import {MetaFlowService} from './services/MetaFlowService';
-import {MetaFlowException} from './MetaFlowException';
-import {ProgressModal} from './ui/ProgressModal';
 import {FrontMatterService} from './services/FrontMatterService';
 import {FileClassStateManager} from './managers/FileClassStateManager';
 import {LogNoticeManager} from './managers/LogNoticeManager';
 import {ObsidianAdapter} from './externalApi/ObsidianAdapter';
-import {LogManagerInterface} from './managers/types';
-import {Utils} from './utils/Utils';
+import {UIService} from './services/UIService';
+import {FileOperationsService} from './services/FileOperationsService';
+import type {FileClassDeductionService} from './services/FileClassDeductionService';
+import {createContainer, TYPES} from './di';
+
+// Import command types for direct DI access
+import type {UpdateMetadataCommand} from './commands/UpdateMetadataCommand';
+import type {SortMetadataCommand} from './commands/SortMetadataCommand';
+import type {MassUpdateMetadataCommand} from './commands/MassUpdateMetadataCommand';
+import type {MoveNoteToRightFolderCommand} from './commands/MoveNoteToRightFolderCommand';
+import type {RenameFileBasedOnRulesCommand} from './commands/RenameFileBasedOnRulesCommand';
+import type {TogglePropertiesPanelCommand} from './commands/TogglePropertiesPanelCommand';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -26,28 +35,45 @@ import {Utils} from './utils/Utils';
 export default class MetaFlowPlugin extends Plugin {
   settings: MetaFlowSettings;
   metaFlowService: MetaFlowService;
+  container: Container;
   frontMatterService: FrontMatterService;
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
+  logManager: LogNoticeManager;
+  uiService: UIService;
   timer: {[key: string]: number} = {};
 
   async onload() {
     this.settings = await this.loadSettings();
-    this.metaFlowService = new MetaFlowService(this.app, this.settings);
-    this.frontMatterService = new FrontMatterService();
-    this.obsidianAdapter = new ObsidianAdapter(this.app, this.settings);
-    const logManager = new LogNoticeManager(this.obsidianAdapter);
+
+    // Create dependency injection container
+    this.container = createContainer(this.app, this.settings, this.saveSettings.bind(this));
+
+    // Get services from container
+    this.metaFlowService = this.container.get<MetaFlowService>(TYPES.MetaFlowService);
+    this.frontMatterService = this.container.get<FrontMatterService>(TYPES.FrontMatterService);
+    this.obsidianAdapter = this.container.get<ObsidianAdapter>(TYPES.ObsidianAdapter);
+    this.uiService = this.container.get<UIService>(TYPES.UIService);
+
+    this.logManager = new LogNoticeManager(this.obsidianAdapter);
+
+    // Get FileClassDeductionService from container
+    const fileClassDeductionService = this.container.get<FileClassDeductionService>(TYPES.FileClassDeductionService);
+
     this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, logManager,
+      this.app, this.settings, this.logManager, fileClassDeductionService,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
         if (this.settings.autoMetadataInsertion) {
-          await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, logManager);
+          await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, this.logManager);
         }
       }
     );
 
+    // Initialize command factory with container
+    // Commands are now accessed directly from the DI container
+
     // Apply properties visibility setting on load
-    this.metaFlowService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
+    this.uiService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
 
     this.registerCommands();
     this.registerEvents();
@@ -73,8 +99,8 @@ export default class MetaFlowPlugin extends Plugin {
                     files.push(f);
                   }
                 });
-                const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-                await this.massUpdateMetadataProperties(directory.path, files, logManager);
+                const command = this.container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
+                await command.massUpdateMetadataProperties(directory.path, files, this.logManager);
               });
           });
         }
@@ -113,8 +139,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-update-metadata',
       name: 'Update metadata properties',
       editorCallback: (editor: Editor, view: MarkdownView) => {
-        const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        this.updateMetadataPropertiesInEditor(editor, view, logManager);
+        const command = this.container.get<UpdateMetadataCommand>(TYPES.UpdateMetadataCommand);
+        command.execute(editor, view, this.logManager);
       }
     });
 
@@ -123,8 +149,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-sort-metadata',
       name: 'Sort metadata properties',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        await this.sortMetadataPropertiesInEditor(editor, view, logManager);
+        const command = this.container.get<SortMetadataCommand>(TYPES.SortMetadataCommand);
+        await command.execute(editor, view, this.logManager);
       }
     });
 
@@ -133,8 +159,18 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-move-note-to-right-folder',
       name: 'Move the note to the right folder',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
-        const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        await this.moveNoteToTheRightFolder(editor, view, logManager);
+        const command = this.container.get<MoveNoteToRightFolderCommand>(TYPES.MoveNoteToRightFolderCommand);
+        await command.execute(editor, view, this.logManager);
+      }
+    });
+
+    // Register the command to rename the file based on rules
+    this.addCommand({
+      id: 'metaflow-rename-file-based-on-rules',
+      name: 'Rename the file based on rules',
+      editorCallback: async (editor: Editor, view: MarkdownView) => {
+        const command = this.container.get<RenameFileBasedOnRulesCommand>(TYPES.RenameFileBasedOnRulesCommand);
+        await command.execute(editor, view, this.logManager);
       }
     });
 
@@ -143,9 +179,8 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-mass-update-metadata',
       name: 'Mass-update metadata properties',
       callback: async () => {
-        const files = this.app.vault.getMarkdownFiles();
-        const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        await this.massUpdateMetadataProperties("/", files, logManager);
+        const command = this.container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
+        await command.execute(this.logManager);
       }
     });
 
@@ -154,207 +189,15 @@ export default class MetaFlowPlugin extends Plugin {
       id: 'metaflow-toggle-properties-panel',
       name: 'Toggle properties panel visibility',
       callback: () => {
-        const logManager = new LogNoticeManager(new ObsidianAdapter(this.app, this.settings));
-        this.togglePropertiesPanelVisibility(logManager);
+        const command = this.container.get<TogglePropertiesPanelCommand>(TYPES.TogglePropertiesPanelCommand);
+        command.execute(this.logManager);
       }
     });
   }
 
-  private updateMetadataPropertiesInEditor(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
-    const content = editor.getValue();
-    const file = view.file;
-
-    if (!file) {
-      logManager.addWarning('No active file');
-      return;
-    }
-
-    try {
-      const processedContent = this.metaFlowService.processContent(content, file, logManager);
-
-      if (processedContent !== content) {
-        editor.setValue(processedContent);
-        logManager.addInfo(`Successfully updated metadata fields for "${file.name}"`);
-      } else {
-        logManager.addInfo('No changes needed');
-      }
-    } catch (error) {
-      console.error('Error updating metadata properties:', error);
-      if (error instanceof MetaFlowException) {
-        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
-      } else {
-        logManager.addError('Error updating metadata properties');
-      }
-    }
-  }
-
-  private async moveNoteToTheRightFolder(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
-    const content = editor.getValue();
-    const file = view.file;
-
-    if (!file) {
-      logManager.addWarning('No active file');
-      return;
-    }
-
-    try {
-      this.metaFlowService.checkIfValidFile(file);
-
-      const fileClass = this.metaFlowService.getFileClassFromContent(content);
-      if (fileClass) {
-        await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
-      } else {
-        logManager.addWarning('No file class found');
-      }
-    } catch (error) {
-      console.error('Error updating metadata properties:', error);
-      if (error instanceof MetaFlowException) {
-        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
-      } else {
-        logManager.addError('Error updating metadata properties');
-      }
-    }
-  }
-
-  private async sortMetadataPropertiesInEditor(editor: Editor, view: MarkdownView, logManager: LogManagerInterface) {
-    const content = editor.getValue();
-    const file = view.file;
-
-    if (!file) {
-      logManager.addWarning('No active file');
-      return;
-    }
-
-    try {
-      await this.metaFlowService.processSortContent(content, file);
-    } catch (error) {
-      console.error('Error updating metadata properties:', error);
-      if (error instanceof MetaFlowException) {
-        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
-      } else {
-        logManager.addError('Error updating metadata properties');
-      }
-    }
-  }
-
-  private async massUpdateMetadataProperties(
-    directory: string,
-    files: TFile[],
-    noticeManager: LogManagerInterface,
-  ) {
-    // Filter out files in excluded folders
-    const excludeFolders = (this.settings.excludeFolders || []);
-    const filteredFiles = files.filter(file => {
-      return !excludeFolders.some(folder => file.path.startsWith(this.obsidianAdapter.folderPrefix(folder)));
-    }).filter(file => file.extension === 'md');
-    const totalFiles = filteredFiles.length;
-    if (totalFiles === 0) {
-      noticeManager.addWarning('No files to update - all files are excluded or no markdown files found.');
-      return;
-    }
-    let abort = false;
-    const modal = new ProgressModal(
-      this.app,
-      totalFiles,
-      `Mass Updating ${totalFiles} files`,
-      `Mass Updating ${totalFiles} files in the folder "${directory}"`,
-      async () => {
-        abort = true;
-        await Utils.sleep(this.settings.frontmatterUpdateDelayMs, () => {
-          this.fileClassStateManager.setEnabled(true);
-        });
-      },
-      async () => {
-        // block fileClassStateManager to update note while mass update is in progress
-        this.fileClassStateManager.setEnabled(false);
-
-        try {
-          let updatedCount = 0;
-          let processedCount = 0;
-          let movedCount = 0;
-          let errorCount = 0;
-          noticeManager.addInfo(`Starting mass update of ${totalFiles} files...`);
-          const startTime = new Date();
-          for (const file of filteredFiles) {
-            try {
-              if (abort) {
-                break;
-              }
-              let fileInError = false;
-              // Read file content
-              const content = await this.app.vault.read(file);
-              modal.setCurrentItem(file.path);
-              let processedContent = content;
-              try {
-                processedContent = this.metaFlowService.processContent(content, file, modal);
-                if (processedContent !== content) {
-                  updatedCount++;
-                  await this.app.vault.modify(file, processedContent);
-                }
-              } catch (error: any) {
-                modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
-                console.error(`Error processing content for file ${file.path}:`, error);
-                fileInError = true;
-              }
-              // Optionally move note to right folder
-              const fileClass = this.metaFlowService.getFileClassFromContent(processedContent);
-              if (fileClass) {
-                try {
-                  if (this.settings.autoMoveNoteToRightFolder) {
-                    const newFilePath = await this.metaFlowService.moveNoteToTheRightFolder(file, fileClass);
-                    if (file.path !== newFilePath) {
-                      modal.addInfo(`Moved note ${file.path} to ${newFilePath}`);
-                      movedCount++;
-                    }
-                  }
-                } catch (error: any) {
-                  modal.addError(`Error moving note to the right folder for file ${file.path}: ${error.message}`);
-                  console.error(`Error moving note to the right folder for file ${file.path}:`, error);
-                  fileInError = true;
-                }
-              }
-              if (fileInError) {
-                errorCount++;
-              }
-              processedCount++;
-            } catch (error: any) {
-              modal.addError(`Error updating metadata in file ${file.path}: ${error.message}`);
-              console.error(`Error updating metadata in file ${file.path}:`, error);
-              errorCount++;
-            }
-          }
-          const endTime = new Date();
-          const duration = (endTime.getTime() - startTime.getTime()) / 1000;
-          const msg = (errorCount > 0) ? `Mass update completed in ${duration} seconds with ${errorCount} errors` : `Mass update completed in ${duration} seconds`;
-          modal.addInfo(msg);
-          modal.addInfo(`${processedCount} files processed out of ${totalFiles} total files`);
-          modal.addInfo(`${updatedCount} files updated out of ${totalFiles} total files`);
-          modal.addInfo(`${movedCount} files moved out of ${totalFiles} total files`);
-          if (errorCount > 0) {
-            modal.addError(`${errorCount} files encountered errors out of ${totalFiles} total files`);
-          }
-          modal.finish();
-          noticeManager.addInfo(msg);
-        } finally {
-          this.fileClassStateManager.setEnabled(true);
-        }
-      }
-    );
-    modal.open();
-  }
-
   onunload() {
     // Remove CSS when plugin is disabled
-    this.metaFlowService.togglePropertiesVisibility(false);
-  }
-
-  private togglePropertiesPanelVisibility(logManager: LogManagerInterface) {
-    this.settings.hidePropertiesInEditor = !this.settings.hidePropertiesInEditor;
-    this.saveSettings();
-    this.metaFlowService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
-
-    const status = this.settings.hidePropertiesInEditor ? 'hidden' : 'visible';
-    logManager.addInfo(`Properties panel is now ${status}`);
+    this.uiService.togglePropertiesVisibility(false);
   }
 
   async loadSettings(): Promise<MetaFlowSettings> {

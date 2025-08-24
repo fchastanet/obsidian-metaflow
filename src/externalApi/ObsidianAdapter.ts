@@ -1,11 +1,18 @@
-import {App, FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
-import {MetaFlowSettings} from '../settings/types';
+import {injectable, inject} from 'inversify';
+import type {App} from 'obsidian';
+import {FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
+import type {MetaFlowSettings} from '../settings/types';
+import {TYPES} from '../di/types';
 
+@injectable()
 export class ObsidianAdapter {
   private app: App;
   private settings: MetaFlowSettings;
 
-  constructor(app: App, settings: MetaFlowSettings) {
+  constructor(
+    @inject(TYPES.App) app: App,
+    @inject(TYPES.MetaFlowSettings) settings: MetaFlowSettings
+  ) {
     this.app = app;
     this.settings = settings;
   }
@@ -24,6 +31,18 @@ export class ObsidianAdapter {
   async moveNote(file: TFile, newPath: string): Promise<void> {
     console.info(`Moving note ${file.path} to ${newPath}`);
     return await this.app.fileManager.renameFile(file, newPath);
+  }
+
+  async renameNote(file: TFile, newName: string): Promise<TFile> {
+    const newPath = file.parent ? `${file.parent.path}/${newName}` : newName;
+    console.info(`Renaming note ${file.path} to ${newPath}`);
+    await this.app.vault.rename(file, newPath);
+    // Return the renamed file
+    const renamedFile = this.app.vault.getAbstractFileByPath(newPath);
+    if (renamedFile instanceof TFile) {
+      return renamedFile;
+    }
+    throw new Error(`Failed to get renamed file at ${newPath}`);
   }
 
   isFileExists(filePath: string): boolean {

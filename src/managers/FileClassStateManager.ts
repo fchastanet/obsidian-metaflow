@@ -1,9 +1,9 @@
 import {App, CachedMetadata, MarkdownView, TAbstractFile, TFile, WorkspaceLeaf} from "obsidian";
-import {MetaFlowService} from "../services/MetaFlowService";
 import {MetaFlowSettings} from "../settings/types";
 import {LogManagerInterface} from "./types";
 import {ViewUpdate} from '@codemirror/view';
 import {Transaction} from '@codemirror/state';
+import type {FileClassDeductionService} from "../services/FileClassDeductionService";
 
 export type FileClassChangedCallback = (
   file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string
@@ -14,7 +14,7 @@ export type FileClassChangedCallback = (
  */
 export class FileClassStateManager {
   private app: App;
-  private metaFlowService: MetaFlowService;
+  private fileClassDeductionService: FileClassDeductionService;
   private settings: MetaFlowSettings;
   private fileClassChangedCallback?: FileClassChangedCallback;
   private logManager: LogManagerInterface;
@@ -26,23 +26,24 @@ export class FileClassStateManager {
 
   // List of user events considered as manual edits
   private static manualEditEvents = [
+    "set",
     "input", "input.type", "input.paste", "cut", "input.drop",
     "delete.backward", "delete.forward", "undo", "redo", "input.complete"
   ];
-
 
   constructor(
     app: App,
     settings: MetaFlowSettings,
     logManager: LogManagerInterface,
+    fileClassDeductionService: FileClassDeductionService,
     fileClassChangedCallback?: FileClassChangedCallback,
   ) {
     this.app = app;
     this.settings = settings;
     this.logManager = logManager;
+    this.fileClassDeductionService = fileClassDeductionService;
     this.fileClassChangedCallback = fileClassChangedCallback;
 
-    this.metaFlowService = new MetaFlowService(app, settings);
     this.fileClassMap = new Map<string, string>();
     this.fileModifiedMap = new Map<string, boolean>();
     this.fileRenamedMap = new Map<string, string>();
@@ -90,7 +91,7 @@ export class FileClassStateManager {
     const fileCache = this.app.metadataCache.getFileCache(file);
     let fileClass = '';
     if (fileCache?.frontmatter) {
-      fileClass = this.metaFlowService.getFileClassFromMetadata(fileCache.frontmatter) || '';
+      fileClass = this.fileClassDeductionService.getFileClassFromMetadata(fileCache.frontmatter) || '';
     }
     if (this.settings.debugMode) console.debug(`FileClassStateManager: registerFileClass ${fileClass} for ${file.path}`, file);
     this.fileClassMap.set(file.path, fileClass);
@@ -115,7 +116,7 @@ export class FileClassStateManager {
       return;
     }
     const oldFileClass = this.fileClassMap.get(file.path) || '';
-    const fileClass = this.metaFlowService.getFileClassFromMetadata(cache?.frontmatter) || '';
+    const fileClass = this.fileClassDeductionService.getFileClassFromMetadata(cache?.frontmatter) || '';
     this.fileClassMap.set(file.path, fileClass);
     if (fileClass === oldFileClass) {
       if (this.settings.debugMode) console.debug(`File class for ${file.path} did not change: ${oldFileClass}`);

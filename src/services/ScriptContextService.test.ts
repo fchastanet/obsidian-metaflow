@@ -20,8 +20,29 @@ jest.mock('../externalApi/TemplaterAdapter', () => ({
 describe('ScriptContextService', () => {
   let mockApp: any;
   let scriptContextService: ScriptContextService;
+  let mockTemplaterAdapter: any;
+  let mockObsidianAdapter: any;
 
   beforeEach(() => {
+    // Create mock TemplaterAdapter
+    mockTemplaterAdapter = {
+      formatDate: jest.fn((format?: string) => '2025-07-30'),
+      now: jest.fn(() => '2025-07-30'),
+      tomorrow: jest.fn(() => '2025-07-31'),
+      yesterday: jest.fn(() => '2025-07-29'),
+      prompt: jest.fn(async (message: string) => 'mocked-input'),
+      getParentFile: jest.fn((currentFile: TFile) => 'mocked-parent-file')
+    };
+
+    // Create mock ObsidianAdapter
+    mockObsidianAdapter = {
+      generateMarkdownLink: jest.fn((file: any) => `[[${file.name}]]`),
+      getAbstractFileByPath: jest.fn((path: string) => {
+        return OriginalObsidianAdapter.createMockTFile(path);
+      }),
+      createMockTFile: OriginalObsidianAdapter.createMockTFile
+    };
+
     // Setup mock app
     mockApp = {
       plugins: {
@@ -35,19 +56,10 @@ describe('ScriptContextService', () => {
         getMarkdownFiles: jest.fn(() => [])
       }
     };
-
-    jest.mock('../externalApi/ObsidianAdapter', () => {
-      return {
-        ObsidianAdapter: jest.fn().mockImplementation(() => ({
-          generateMarkdownLink: jest.fn((file: any) => `[[${file.name}]]`),
-          getAbstractFileByPath: jest.fn((path: string) => {
-            return OriginalObsidianAdapter.createMockTFile(path);
-          }),
-          createMockTFile: OriginalObsidianAdapter.createMockTFile
-        }))
-      };
-    });
-    scriptContextService = new ScriptContextService(mockApp, DEFAULT_SETTINGS);
+    scriptContextService = new ScriptContextService(
+      mockTemplaterAdapter,
+      mockObsidianAdapter
+    );
   });
   afterEach(() => {
     jest.restoreAllMocks();

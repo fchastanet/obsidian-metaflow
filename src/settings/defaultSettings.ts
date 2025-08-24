@@ -14,12 +14,19 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
     {
       folder: '/',
       fileClass: 'default',
-      moveToFolder: false
+      moveToFolder: false,
+      noteTitleTemplates: [],
+      noteTitleScript: {
+        script: 'return "";',
+        enabled: true
+      },
+      templateMode: 'template' as const,
     }
   ],
   propertyDefaultValueScripts: [],
   excludeFolders: [],
   autoMoveNoteToRightFolder: true,
+  autoRenameNote: true,
   debugMode: false,
   frontmatterUpdateDelayMs: 500
 };

@@ -1,8 +1,11 @@
-import {App, TFile} from 'obsidian';
-import {MetaFlowSettings} from '../settings/types';
+import {injectable, inject} from 'inversify';
+import type {App} from 'obsidian';
+import {TFile} from 'obsidian';
+import type {MetaFlowSettings} from '../settings/types';
 import {MetadataMenuField, MetadataMenuPluginInterface} from './types.MetadataMenu';
 import {MetaFlowException} from '../MetaFlowException';
 import {LogManagerInterface} from 'src/managers/types';
+import {TYPES} from '../di/types';
 
 export interface FieldsFileClassAssociation {
   [fieldName: string]: {
@@ -14,16 +17,18 @@ export interface Frontmatter {
   [fieldName: string]: any;
 };
 
+@injectable()
 export class MetadataMenuAdapter {
   private app: App;
   private settings: MetaFlowSettings
-  private metadataMenuPlugin: MetadataMenuPluginInterface;
   private METADATA_MENU_PLUGIN_NAME = 'metadata-menu';
 
-  constructor(app: App, settings: MetaFlowSettings) {
+  constructor(
+    @inject(TYPES.App) app: App,
+    @inject(TYPES.MetaFlowSettings) settings: MetaFlowSettings
+  ) {
     this.app = app;
     this.settings = settings;
-    this.metadataMenuPlugin = this.app.plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
   }
 
   /**
@@ -50,18 +55,18 @@ export class MetadataMenuAdapter {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
-    return this.app?.plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
+    return this.app.plugins?.plugins?.[this.METADATA_MENU_PLUGIN_NAME];
   }
 
   getAllFieldsFileClassesAssociation(): FieldsFileClassAssociation {
-    this.checkMetadataMenuAvailable();
-    if (!this.metadataMenuPlugin.fieldIndex?.fileClassesFields ||
-      typeof this.metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
+    const metadataMenuPlugin = this.getMetadataMenuPlugin();
+    if (!metadataMenuPlugin.fieldIndex?.fileClassesFields ||
+      typeof metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
     ) {
       throw new MetaFlowException('No fileClass definitions found in MetadataMenu', 'warning');
     }
 
-    const fileClassesFields = this.metadataMenuPlugin.fieldIndex.fileClassesFields;
+    const fileClassesFields = metadataMenuPlugin.fieldIndex.fileClassesFields;
     const allFields: FieldsFileClassAssociation = {};
 
     // Collect all properties and which fileClasses use them
@@ -122,12 +127,6 @@ export class MetadataMenuAdapter {
     }
   }
 
-  private checkMetadataMenuAvailable() {
-    if (!this.isMetadataMenuAvailable()) {
-      throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
-    }
-  }
-
   public getFileClassAndAncestorsFields(fileClass: string, logManager: LogManagerInterface): MetadataMenuField[] {
     // Get the ancestor chain for this fileClass
     const ancestorChain = this.getFileClassAncestorChain(fileClass, logManager);
@@ -146,24 +145,24 @@ export class MetadataMenuAdapter {
   }
 
   private getFileClassFields(fileClass: string): MetadataMenuField[] {
-    this.checkMetadataMenuAvailable();
-    if (!this.metadataMenuPlugin.fieldIndex?.fileClassesFields ||
-      typeof this.metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
+    const metadataMenuPlugin = this.getMetadataMenuPlugin();
+    if (!metadataMenuPlugin.fieldIndex?.fileClassesFields ||
+      typeof metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
     ) {
       throw new MetaFlowException('No fileClass definitions found in MetadataMenu', 'warning');
     }
-    return this.metadataMenuPlugin.fieldIndex.fileClassesFields.get(fileClass) || [];
+    return metadataMenuPlugin.fieldIndex.fileClassesFields.get(fileClass) || [];
   }
 
   getAllFields(): Map<string, MetadataMenuField & {fileClasses?: string[]}> {
-    this.checkMetadataMenuAvailable();
-    if (!this.metadataMenuPlugin.fieldIndex?.fileClassesFields ||
-      typeof this.metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
+    const metadataMenuPlugin = this.getMetadataMenuPlugin();
+    if (!metadataMenuPlugin.fieldIndex?.fileClassesFields ||
+      typeof metadataMenuPlugin.fieldIndex.fileClassesFields === 'undefined'
     ) {
       throw new MetaFlowException('No fileClass definitions found in MetadataMenu', 'warning');
     }
     let allFields: Map<string, MetadataMenuField & {fileClasses?: string[]}> = new Map();
-    this.metadataMenuPlugin.fieldIndex.fileClassesFields.forEach(
+    metadataMenuPlugin.fieldIndex.fileClassesFields.forEach(
       (fields: MetadataMenuField[], fc: string) => {
         fields.forEach((field) => {
           if (!allFields.has(field.name)) {
@@ -183,8 +182,9 @@ export class MetadataMenuAdapter {
    */
   private getFileClassAncestorChain(fileClassName: string, logManager: LogManagerInterface): string[] {
     try {
+      const metadataMenuPlugin = this.getMetadataMenuPlugin();
       // Access MetadataMenu's fieldIndex.fileClassesAncestors
-      const fieldIndex = this.metadataMenuPlugin.fieldIndex;
+      const fieldIndex = metadataMenuPlugin.fieldIndex;
       if (!fieldIndex?.fileClassesAncestors) {
         logManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
         return [fileClassName];

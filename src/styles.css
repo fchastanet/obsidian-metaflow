@@ -48,6 +48,76 @@
   color: var(--text-error);
 }
 
+/* -------------------------------------------------- */
+/* Title Template Linter Validation Feedback         */
+/* -------------------------------------------------- */
+.metaflow-validation-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+@keyframes disappearAnimation {
+  0% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    display: none;
+    opacity: 0;
+  }
+}
+
+.metaflow-validation-success {
+  border: 1px solid var(--border-color);
+  color: var(--text-success);
+  animation-name: disappearAnimation;
+  animation-duration: 3000ms;
+  animation-fill-mode: forwards;
+}
+
+.metaflow-validation-warning {
+  border: 1px solid var(--color-yellow);
+  color: var(--text-warning);
+}
+
+.metaflow-validation-error {
+  border: 1px solid var(--color-red);
+  color: var(--text-error);
+}
+
+.metaflow-validation-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.metaflow-validation-message {
+  flex-grow: 1;
+  word-wrap: break-word;
+}
+
+/* Template input container styles */
+.metaflow-settings-template-input-container {
+  display: flex;
+  flex-grow: 1;
+  flex-basis: min-content;
+  flex-direction: column;
+}
+
+/* Script validation container */
+.metaflow-script-validation-container {
+  margin-top: 8px;
+}
+
 .progress-modal-warning-item {
   color: var(--text-warning);
 }
@@ -88,6 +158,11 @@
   font-variant: var(--h1-variant);
 }
 
+.metaflow-settings-description {
+  font-size: 14px;
+  margin-left: 100px;
+}
+
 .metaflow-settings-section-header {
   --font-weight: var(--h4-weight);
   font-variant: var(--h4-variant);
@@ -115,21 +190,25 @@
 }
 
 /* Folder mapping styles */
-.metaflow-settings-mapping-grab {
-  cursor: grab;
+.metaflow-settings-mapping-row {
+  flex-direction: column;
+  border: 1px solid var(--background-modifier-border);
+  padding: 10px;
+  margin-bottom: 10px;
 }
 
-.metaflow-settings-mapping-dragging {
-  opacity: 0.5;
-  cursor: grabbing;
+.metaflow-settings-no-border {
+  border: none;
+  padding: 0.25em 0;
 }
 
-.metaflow-settings-mapping-dragover {
-  border-top: 2px solid var(--interactive-accent);
+.metaflow-settings-folder-path-input {
+  flex-grow: 1;
 }
 
 .metaflow-settings-mapping-control {
   display: flex;
+  width: 100%;
   justify-content: space-between;
 }
 
@@ -154,6 +233,11 @@
   margin-right: 10px;
 }
 
+.metaflow-settings-mapping-folder-order {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .metaflow-settings-mapping-folder-input {
   flex-grow: 1;
 }
@@ -172,24 +256,63 @@
   border-radius: 3px;
 }
 
-/* Property script styles */
-.metaflow-settings-script {
-  border: 1px solid #ccc;
+.metaflow-settings-radio-container {
+  display: inline-block;
+}
+
+.note-title-template-section {
+  width: 100%;
   padding: 10px;
+  padding-left: 30px;
+}
+
+.note-title-script-readonly {
+  display: flex;
+  width: 100%;
+  white-space: pre;
+}
+
+.metaflow-settings-note-title-template-toolbar {
+  display: flex;
+  width: 100%;
+  column-gap: 10px;
+  align-items: anchor-center;
   margin-bottom: 10px;
 }
 
-.metaflow-settings-script-grab {
-  cursor: grab;
+.metaflow-settings-templates-container {
+  width: 100%;
+  border-left: 1px solid var(--background-modifier-border);
+  padding-left: 10px;
 }
 
-.metaflow-settings-script-dragging {
-  opacity: 0.5;
-  cursor: grabbing;
+.metaflow-script-toolbar {
+  display: flex;
+  column-gap: 10px;
+  align-items: center;
 }
 
-.metaflow-settings-script-dragover {
-  border-top: 3px solid var(--interactive-accent);
+.metaflow-settings-template-toolbar {
+  display: flex;
+  column-gap: 10px;
+  align-items: center;
+}
+
+.metaflow-settings-template-row {
+  display: flex;
+  column-gap: 10px;
+  align-items: baseline;
+}
+
+.metaflow-settings-template-input {
+  flex-grow: 1;
+  resize: none;
+}
+
+/* Property script styles */
+.metaflow-settings-script {
+  flex-direction: column;
+  gap: 0;
 }
 
 .metaflow-settings-script-readonly {
@@ -197,6 +320,7 @@
   align-items: center;
   gap: 10px;
   padding: 5px;
+  padding-bottom: 0;
   border-radius: 3px;
   width: 100%;
 }
@@ -212,11 +336,21 @@
   min-width: 150px;
 }
 
+.metaflow-settings-mode-container {
+  width: 100%;
+}
+
 .metaflow-settings-script-preview {
   color: var(--text-muted);
   font-family: monospace;
   font-size: 12px;
   flex-grow: 1;
+  width: 100%;
+  margin-left: 72px;
+  padding-left: 10px;
+  white-space: pre;
+  padding-right: 200px;
+  border-left: 1px solid var(--blockquote-border-color);
 }
 
 .metaflow-settings-script-enabled-label {
@@ -375,6 +509,28 @@
 }
 
 /* -------------------------------------------------- */
+/* Drag & Drop                                        */
+/* -------------------------------------------------- */
+.metaflow-settings-drag-handle-not-allowed {
+  color: var(--text-error);
+  cursor: not-allowed;
+}
+
+.metaflow-settings-grab {
+  cursor: grab;
+}
+
+.metaflow-settings-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.metaflow-settings-dragover {
+  border-top: 2px solid var(--interactive-accent);
+}
+
+
+/* -------------------------------------------------- */
 /* Settings Support                                   */
 /* -------------------------------------------------- */
 .metaflow-settings-btn-coffee {
@@ -395,6 +551,15 @@
 .metaflow-settings-btn-github-label {
   color: #fff;
 }
+
+.metaflow-settings-plugin-status-available {
+  color: green;
+}
+
+.metaflow-settings-plugin-status-unavailable {
+  color: red;
+}
+
 
 /* -------------------------------------------------- */
 /* Meta Flow Notice */

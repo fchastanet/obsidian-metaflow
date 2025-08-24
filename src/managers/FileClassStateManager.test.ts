@@ -1,8 +1,9 @@
-import {MetaFlowService} from "../services/MetaFlowService";
 import {FileClassStateManager} from "./FileClassStateManager";
+import type {FileClassDeductionService} from "../services/FileClassDeductionService";
 import {TFile, WorkspaceLeaf, MarkdownView} from "obsidian";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {expectNoLogs, mockLogManager} from "../__mocks__/logManager";
+import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
 
 // Mock obsidian modules
 jest.mock('obsidian', () => ({
@@ -13,7 +14,7 @@ jest.mock('obsidian', () => ({
 
 describe('FileClassStateManager', () => {
   let mockApp: any;
-  let mockMetaFlowService: any;
+  let mockFileClassDeductionService: FileClassDeductionService;
   let manager: FileClassStateManager;
   let mockSettings: any;
   let mockFileClassChangedCallback: any;
@@ -22,23 +23,37 @@ describe('FileClassStateManager', () => {
   beforeEach(() => {
     obsidianAdapter = new ObsidianAdapter(mockApp, mockSettings);
     const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-    mockMetaFlowService = {
-      getFileClassFromMetadata: jest.fn()
-    };
+
     mockApp = {
       metadataCache: {
         getFileCache: jest.fn()
-      }
+      },
+      vault: {
+        getName: jest.fn().mockReturnValue('TestVault'),
+      },
+      plugins: {
+        enabledPlugins: new Map([['metadata-menu', true]]),
+        plugins: {
+          'metadata-menu': {
+            api: {},
+            settings: {
+              fileClassAlias: 'fileClass',
+            },
+          },
+        },
+      },
     };
     mockSettings = {
+      ...DEFAULT_SETTINGS,
       autoMetadataInsertion: true,
       debugMode: true,
     };
 
-    jest.spyOn(MetaFlowService.prototype, 'getFileClassFromMetadata')
-      .mockImplementation(mockMetaFlowService.getFileClassFromMetadata);
+    mockFileClassDeductionService = {
+      getFileClassFromMetadata: jest.fn()
+    } as any;
     mockFileClassChangedCallback = jest.fn();
-    manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager, mockFileClassChangedCallback);
+    manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager, mockFileClassDeductionService, mockFileClassChangedCallback);
   });
 
   afterEach(() => {
@@ -52,9 +67,9 @@ describe('FileClassStateManager', () => {
     return view;
   }
 
-  test('constructor initializes fileClassMap and metaFlowService', () => {
+  test('constructor initializes fileClassMap and fileClassDeductionService', () => {
     expect(manager['fileClassMap']).toBeInstanceOf(Map);
-    expect(manager['metaFlowService']).toBeInstanceOf(MetaFlowService);
+    expect(manager['fileClassDeductionService']).toBeDefined();
     expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
     expectNoLogs();
   });
@@ -152,7 +167,11 @@ describe('FileClassStateManager', () => {
       manager['fileModifiedMap'].set(file.path, true);
       manager['fileClassMap'].set(file.path, 'oldClass');
       mockApp.metadataCache.getFileCache.mockReturnValue({frontmatter: {fileClass: 'newClass'}});
-      mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('newClass');
+
+      // Mock the serviceContainer's method
+      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
+        .mockReturnValue('newClass');
+
       manager.handleModifyFileEvent(file);
       expect(mockFileClassChangedCallback).toHaveBeenCalledWith(file, expect.anything(), 'oldClass', 'newClass');
       expectNoLogs();
@@ -251,7 +270,10 @@ describe('FileClassStateManager', () => {
     test('sets fileClass from metadata if present', () => {
       const file = ObsidianAdapter.createMockTFile('test.md');
       mockApp.metadataCache.getFileCache.mockReturnValue({frontmatter: {fileClass: 'book'}});
-      mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('book');
+
+      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
+        .mockReturnValue('book');
+
       (manager as any).registerFileClass(file);
       expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
       expect(manager['fileClassMap'].get(file.path)).toBe('book');
@@ -274,7 +296,10 @@ describe('FileClassStateManager', () => {
       manager['fileClassMap'].set(file.path, 'oldClass');
       // Set fileModifiedMap to true so the log will trigger
       manager['fileModifiedMap'].set(file.path, true);
-      mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('newClass');
+
+      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
+        .mockReturnValue('newClass');
+
       const logSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
       // Provide file content as string, cache as third argument
       manager.handleMetadataChanged(file, '---\nfileClass: newClass\n---\n', {frontmatter: {fileClass: 'newClass'}});
@@ -289,7 +314,10 @@ describe('FileClassStateManager', () => {
     test('updates fileClassMap and does not log if fileClass unchanged', () => {
       const file = ObsidianAdapter.createMockTFile('test.md');
       manager['fileClassMap'].set(file.path, 'sameClass');
-      mockMetaFlowService.getFileClassFromMetadata.mockReturnValue('sameClass');
+
+      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
+        .mockReturnValue('sameClass');
+
       const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       const logSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
       manager.handleMetadataChanged(file, '---\nfileClass: sameClass\n---\n', {frontmatter: {fileClass: 'sameClass'}});

@@ -1,7 +1,20 @@
+export interface NoteTitleTemplate {
+  template: string;
+  enabled: boolean;
+}
+
+export interface NoteTitleScript {
+  script: string;
+  enabled: boolean;
+}
+
 export interface FolderFileClassMapping {
   folder: string;
   fileClass: string;
   moveToFolder: boolean;
+  noteTitleTemplates: NoteTitleTemplate[];
+  noteTitleScript: NoteTitleScript;
+  templateMode: 'template' | 'script'; // Default to 'template' for backward compatibility
 }
 
 export interface PropertyDefaultValueScript {
@@ -22,6 +35,7 @@ export interface MetaFlowSettings {
   propertyDefaultValueScripts: PropertyDefaultValueScript[];
   excludeFolders?: string[];
   autoMoveNoteToRightFolder: boolean;
+  autoRenameNote: boolean;
   debugMode: boolean;
   frontmatterUpdateDelayMs: number;
 }
