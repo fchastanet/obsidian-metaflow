@@ -1,331 +1,347 @@
-import {FileClassStateManager} from "./FileClassStateManager";
-import type {FileClassDeductionService} from "../services/FileClassDeductionService";
-import {TFile, WorkspaceLeaf, MarkdownView} from "obsidian";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import {expectNoLogs, mockLogManager} from "../__mocks__/logManager";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {FileClassStateManager} from './FileClassStateManager';
+import {TFile} from 'obsidian';
 
-// Mock obsidian modules
+// Mock TFile
 jest.mock('obsidian', () => ({
-  TFile: jest.fn(),
-  MarkdownView: jest.fn(),
-  WorkspaceLeaf: jest.fn()
+  TFile: jest.fn().mockImplementation(function (this: any) {
+    this.path = '';
+  })
 }));
 
+// Mock timers
+jest.useFakeTimers();
+
 describe('FileClassStateManager', () => {
-  let mockApp: any;
-  let mockFileClassDeductionService: FileClassDeductionService;
-  let manager: FileClassStateManager;
-  let mockSettings: any;
-  let mockFileClassChangedCallback: any;
-  let obsidianAdapter: ObsidianAdapter;
+  let manager: any;
+  let mockObsidianAdapter: any;
+  let mockFileClassDeductionService: any;
 
   beforeEach(() => {
-    obsidianAdapter = new ObsidianAdapter(mockApp, mockSettings);
-    const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
+    // Mock console methods
+    jest.spyOn(console, 'debug').mockImplementation(() => { });
+    jest.spyOn(console, 'log').mockImplementation(() => { });
+    jest.spyOn(console, 'info').mockImplementation(() => { });
+    jest.spyOn(console, 'error').mockImplementation(() => { });
 
-    mockApp = {
-      metadataCache: {
-        getFileCache: jest.fn()
-      },
-      vault: {
-        getName: jest.fn().mockReturnValue('TestVault'),
-      },
-      plugins: {
-        enabledPlugins: new Map([['metadata-menu', true]]),
-        plugins: {
-          'metadata-menu': {
-            api: {},
-            settings: {
-              fileClassAlias: 'fileClass',
-            },
-          },
-        },
-      },
-    };
-    mockSettings = {
-      ...DEFAULT_SETTINGS,
-      autoMetadataInsertion: true,
-      debugMode: true,
+    mockObsidianAdapter = {
+      loadFromPluginDirectory: jest.fn().mockResolvedValue(null),
+      saveToPluginDirectory: jest.fn().mockResolvedValue(undefined),
+      getCachedFile: jest.fn().mockReturnValue({frontmatter: {}}),
     };
 
     mockFileClassDeductionService = {
-      getFileClassFromMetadata: jest.fn()
-    } as any;
-    mockFileClassChangedCallback = jest.fn();
-    manager = new FileClassStateManager(mockApp, mockSettings, mockLogManager, mockFileClassDeductionService, mockFileClassChangedCallback);
+      getFileClassFromMetadata: jest.fn().mockReturnValue('test-class'),
+    };
+
+    // Create manager with minimal setup
+    manager = Object.create(FileClassStateManager.prototype);
+    manager.app = {};
+    manager.settings = {debugMode: true}; // Enable debug mode for tests
+    manager.logManager = {};
+    manager.obsidianAdapter = mockObsidianAdapter;
+    manager.fileClassDeductionService = mockFileClassDeductionService;
+    manager.fileValidationService = {ifFileExcluded: jest.fn().mockReturnValue(false)};
+    manager.fileClassChangedCallback = jest.fn();
+    manager.fileMap = new Map();
+    manager.fileRenamedMap = new Map();
+    manager.enabled = true;
+    manager.isDirty = false;
+    manager.saveTimer = null;
+    manager.SAVE_INTERVAL = 15000;
+    // Initialize new debouncing properties
+    manager.callbackDebounceTimers = new Map();
+    manager.pendingCallbacks = new Map();
+    manager.processingFiles = new Set();
+    manager.renamingFiles = new Set();
+    manager.CALLBACK_DEBOUNCE_DELAY = 1000;
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
-    jest.clearAllMocks();
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
   });
 
-  function createMockMarkdownView(file?: TFile): MarkdownView {
-    const view = {file} as MarkdownView;
-    Object.setPrototypeOf(view, MarkdownView.prototype);
-    return view;
-  }
-
-  test('constructor initializes fileClassMap and fileClassDeductionService', () => {
-    expect(manager['fileClassMap']).toBeInstanceOf(Map);
-    expect(manager['fileClassDeductionService']).toBeDefined();
-    expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-    expectNoLogs();
-  });
-
-  describe('handleActiveLeafChange', () => {
-    test('does nothing if leaf is null', () => {
-      const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      manager.handleActiveLeafChange(null);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(spy).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
-      expectNoLogs();
+  describe('setEnabled', () => {
+    it('should enable the manager', () => {
+      manager.setEnabled(true);
+      expect(manager.enabled).toBe(true);
     });
 
-    test('does nothing if leaf.view is null', () => {
-      const leaf = {view: null} as unknown as WorkspaceLeaf;
-      const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      manager.handleActiveLeafChange(leaf);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(spy).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
-      expectNoLogs();
-    });
+    it('should disable and clear maps', () => {
+      manager.fileMap.set('test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000});
+      manager.fileRenamedMap.set('old.md', 'new.md');
 
-    test('does nothing if leaf.view is not MarkdownView', () => {
-      // Provide a plain object that is NOT an instance of MarkdownView
-      const leaf = {view: {}} as unknown as WorkspaceLeaf;
-      const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      manager.handleActiveLeafChange(leaf);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(spy).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith('Active leaf is not a Markdown view or is null');
-      expectNoLogs();
-    });
+      manager.setEnabled(false);
 
-    test('does nothing if file is missing', () => {
-      const view = createMockMarkdownView();
-      const leaf = {view} as unknown as WorkspaceLeaf;
-      const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      manager.handleActiveLeafChange(leaf);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(spy).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith('No file associated with the active view');
-      expectNoLogs();
-    });
-
-    test('does nothing if file is not TFile', () => {
-      // Use mock MarkdownView with a plain object (not TFile)
-      const view = createMockMarkdownView({} as any);
-      const leaf = {view} as unknown as WorkspaceLeaf;
-      const spy = jest.spyOn(manager as any, 'registerFileClass');
-      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      manager.handleActiveLeafChange(leaf);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(spy).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith('Active view does not have a valid file');
-      expectNoLogs();
-    });
-
-    test('calls registerFileClass if valid', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      const view = createMockMarkdownView(file);
-      const leaf = {view} as unknown as WorkspaceLeaf;
-      const spy = jest.spyOn(manager as any, 'registerFileClass');
-      manager.handleActiveLeafChange(leaf);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(spy).toHaveBeenCalledWith(file);
-      expectNoLogs();
+      expect(manager.enabled).toBe(false);
+      expect(manager.fileMap.size).toBe(0);
+      expect(manager.fileRenamedMap.size).toBe(0);
     });
   });
 
-  describe('handleCreateFileEvent', () => {
-    test('handleCreateFileEvent sets fileModifiedMap for TFile', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      manager.handleCreateFileEvent(file);
-      expect(manager['fileModifiedMap'].get(file.path)).toBe(true);
-      expectNoLogs();
+  describe('scheduleSave', () => {
+    it('should set isDirty and schedule save when no timer exists', () => {
+      manager.scheduleSave();
+
+      expect(manager.isDirty).toBe(true);
+      expect(manager.saveTimer).not.toBeNull();
+      expect(console.debug).toHaveBeenCalledWith('FileClassStateManager: Scheduled save in 15000ms');
     });
 
-    test('handleCreateFileEvent does nothing for non-TFile', () => {
-      manager.handleCreateFileEvent({path: 'not.md'} as any);
-      expect(manager['fileModifiedMap'].get('not.md')).toBeUndefined();
-      expectNoLogs();
+    it('should not create new timer when one already exists', () => {
+      manager.scheduleSave();
+      const firstTimer = manager.saveTimer;
+
+      manager.scheduleSave();
+      const secondTimer = manager.saveTimer;
+
+      expect(firstTimer).toBe(secondTimer);
+      expect(console.debug).toHaveBeenCalledWith('FileClassStateManager: Save already scheduled, keeping existing timer');
+    });
+
+    it('should call saveFileMapCache when timer expires', () => {
+      const saveFileSpy = jest.spyOn(manager, 'saveFileMapCache').mockResolvedValue(undefined);
+
+      manager.scheduleSave();
+      jest.advanceTimersByTime(15000);
+
+      expect(saveFileSpy).toHaveBeenCalled();
+      expect(manager.saveTimer).toBeNull();
     });
   });
 
-  describe('handleModifyFileEvent', () => {
+  describe('saveFileMapCache', () => {
+    it('should save fileMap to plugin directory', async () => {
+      manager.fileMap.set('test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000});
+      manager.isDirty = true;
 
-    test('handleModifyFileEvent calls callback if fileClass changes', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      manager['fileModifiedMap'].set(file.path, true);
-      manager['fileClassMap'].set(file.path, 'oldClass');
-      mockApp.metadataCache.getFileCache.mockReturnValue({frontmatter: {fileClass: 'newClass'}});
+      await manager.saveFileMapCache();
 
-      // Mock the serviceContainer's method
-      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
-        .mockReturnValue('newClass');
-
-      manager.handleModifyFileEvent(file);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledWith(file, expect.anything(), 'oldClass', 'newClass');
-      expectNoLogs();
+      expect(mockObsidianAdapter.saveToPluginDirectory).toHaveBeenCalledWith(
+        'fileClassStateCache.json',
+        [['test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000}]]
+      );
+      expect(manager.isDirty).toBe(false);
     });
 
-    test('handleModifyFileEvent does nothing if not TFile', () => {
-      manager.handleModifyFileEvent({path: 'not.md'} as any);
-      expect(mockFileClassChangedCallback).not.toHaveBeenCalled();
-      expectNoLogs();
-    });
+    it('should handle save errors', async () => {
+      mockObsidianAdapter.saveToPluginDirectory.mockRejectedValue(new Error('Save failed'));
+      manager.isDirty = true;
 
-    test('handleModifyFileEvent does nothing if saving', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      (file as any).saving = true;
-      manager.handleModifyFileEvent(file);
-      expect(mockFileClassChangedCallback).not.toHaveBeenCalled();
-      expectNoLogs();
-    });
+      await manager.saveFileMapCache();
 
-    test('handleModifyFileEvent does nothing if fileModifiedMap not set', () => {
-      const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      manager.handleModifyFileEvent(file);
-      expect(spy).toHaveBeenCalledWith("File test.md modified without prior typing or create event");
-      expect(mockFileClassChangedCallback).not.toHaveBeenCalled();
-      expectNoLogs();
+      expect(console.error).toHaveBeenCalledWith('FileClassStateManager: Failed to save file map cache:', expect.any(Error));
     });
   });
 
   describe('handleDeleteFileEvent', () => {
+    it('should remove file from map and schedule save', () => {
+      // Create a proper TFile instance that passes isFileApplicable
+      const file = Object.create(require('obsidian').TFile.prototype);
+      file.path = 'test.md';
+      file.basename = 'test';
+      file.extension = 'md';
+      file.saving = false;
+      file.stat = {mtime: 1000};
 
-    test('handleDeleteFileEvent removes file from maps', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      manager['fileModifiedMap'].set(file.path, true);
-      manager['fileClassMap'].set(file.path, 'class');
+      manager.fileMap.set('test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000});
+      const scheduleSaveSpy = jest.spyOn(manager, 'scheduleSave');
+
       manager.handleDeleteFileEvent(file);
-      expect(manager['fileModifiedMap'].has(file.path)).toBe(false);
-      expect(manager['fileClassMap'].has(file.path)).toBe(false);
-      expectNoLogs();
+
+      expect(manager.fileMap.has('test.md')).toBe(false);
+      expect(scheduleSaveSpy).toHaveBeenCalled();
     });
 
-    test('handleDeleteFileEvent does nothing for non-TFile', () => {
-      manager.handleDeleteFileEvent({path: 'not.md'} as any);
-      // Should not throw or modify maps
-      expectNoLogs();
-    });
-  });
+    it('should ignore non-TFile', () => {
+      const notAFile = {path: 'test.md'};
+      const scheduleSaveSpy = jest.spyOn(manager, 'scheduleSave');
 
-  describe('handleRenameFileEvent', () => {
+      // This should fail the instanceof check
+      manager.handleDeleteFileEvent(notAFile);
 
-    test('handleRenameFileEvent moves fileClass and fileModifiedMap', () => {
-      const oldPath = 'old.md';
-      const newFile = ObsidianAdapter.createMockTFile('new.md');
-      manager['fileModifiedMap'].set(oldPath, true);
-      manager['fileClassMap'].set(oldPath, 'class');
-      manager.handleRenameFileEvent(newFile, oldPath);
-      expect(manager['fileModifiedMap'].has(oldPath)).toBe(false);
-      expect(manager['fileModifiedMap'].get(newFile.path)).toBe(true);
-      expect(manager['fileClassMap'].has(oldPath)).toBe(false);
-      expect(manager['fileClassMap'].get(newFile.path)).toBe('class');
-      expectNoLogs();
-    });
-
-    test('handleRenameFileEvent does nothing if not TFile', () => {
-      manager.handleRenameFileEvent({path: 'not.md'} as any, 'old.md');
-      // Should not throw or modify maps
-      expectNoLogs();
-    });
-
-    test('handleRenameFileEvent does nothing if oldPath not in fileModifiedMap', () => {
-      const newFile = ObsidianAdapter.createMockTFile('new.md');
-      manager.handleRenameFileEvent(newFile, 'old.md');
-      expect(manager['fileModifiedMap'].has('old.md')).toBe(false);
-      expect(manager['fileModifiedMap'].get(newFile.path)).toBeUndefined();
-      expectNoLogs();
-    });
-
-    test('handleRenameFileEvent does nothing if oldPath not in fileClassMap', () => {
-      const spy = jest.spyOn(console, 'warn').mockImplementation(() => { });
-      const oldPath = 'old.md';
-      const newFile = ObsidianAdapter.createMockTFile('new.md');
-      manager['fileModifiedMap'].set(oldPath, true);
-      manager.handleRenameFileEvent(newFile, oldPath);
-      expect(mockLogManager.addWarning).toHaveBeenCalledWith(`File class for ${oldPath} not found in fileClassMap`);
-      expect(manager['fileClassMap'].has(oldPath)).toBe(false);
-      expect(manager['fileClassMap'].get(newFile.path)).toBeUndefined();
-      expect(mockLogManager.addDebug).not.toHaveBeenCalled();
-      expect(mockLogManager.addInfo).not.toHaveBeenCalled();
-      expect(mockLogManager.addWarning).toHaveBeenCalledWith(`File class for ${oldPath} not found in fileClassMap`);
-      expect(mockLogManager.addError).not.toHaveBeenCalled();
-      expect(mockLogManager.addMessage).not.toHaveBeenCalled();
+      expect(scheduleSaveSpy).not.toHaveBeenCalled();
     });
   });
 
-  describe('registerFileClass', () => {
-    test('sets fileClass from metadata if present', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      mockApp.metadataCache.getFileCache.mockReturnValue({frontmatter: {fileClass: 'book'}});
+  describe('cleanup', () => {
+    it('should clear timer and save if dirty', async () => {
+      const saveFileSpy = jest.spyOn(manager, 'saveFileMapCache').mockResolvedValue(undefined);
 
-      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
-        .mockReturnValue('book');
+      manager.scheduleSave();
+      expect(manager.saveTimer).not.toBeNull();
+      expect(manager.isDirty).toBe(true);
 
-      (manager as any).registerFileClass(file);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(manager['fileClassMap'].get(file.path)).toBe('book');
-      expectNoLogs();
+      await manager.cleanup();
+
+      expect(manager.saveTimer).toBeNull();
+      expect(saveFileSpy).toHaveBeenCalled();
     });
 
-    test('sets fileClass to empty string if no fileCache', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      mockApp.metadataCache.getFileCache.mockReturnValue(null);
-      (manager as any).registerFileClass(file);
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(manager['fileClassMap'].get(file.path)).toBe('');
-      expectNoLogs();
+    it('should not save if not dirty', async () => {
+      const saveFileSpy = jest.spyOn(manager, 'saveFileMapCache').mockResolvedValue(undefined);
+
+      manager.isDirty = false;
+
+      await manager.cleanup();
+
+      expect(saveFileSpy).not.toHaveBeenCalled();
     });
   });
 
-  describe('handleMetadataChanged', () => {
-    test('updates fileClassMap and logs change if fileClass changed', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      manager['fileClassMap'].set(file.path, 'oldClass');
-      // Set fileModifiedMap to true so the log will trigger
-      manager['fileModifiedMap'].set(file.path, true);
+  describe('debouncing functionality', () => {
+    let mockFile: any;
+    let mockCache: any;
 
-      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
-        .mockReturnValue('newClass');
+    beforeEach(() => {
+      // Create proper TFile instances that pass isFileApplicable
+      mockFile = Object.create(require('obsidian').TFile.prototype);
+      mockFile.path = 'test.md';
+      mockFile.basename = 'test';
+      mockFile.extension = 'md';
+      mockFile.saving = false;
+      mockFile.stat = {mtime: 1000};
 
-      const logSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
-      // Provide file content as string, cache as third argument
-      manager.handleMetadataChanged(file, '---\nfileClass: newClass\n---\n', {frontmatter: {fileClass: 'newClass'}});
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(1);
-      expect(manager['fileClassMap'].get(file.path)).toBe('newClass');
-      expect(logSpy).toHaveBeenCalledWith(
-        `File class changed for ${file.path}: oldClass -> newClass`
-      );
-      expectNoLogs();
+      mockCache = {
+        frontmatter: {fileClass: 'new-class'}
+      };
     });
 
-    test('updates fileClassMap and does not log if fileClass unchanged', () => {
-      const file = ObsidianAdapter.createMockTFile('test.md');
-      manager['fileClassMap'].set(file.path, 'sameClass');
+    it('should debounce multiple rapid fileClass changes and use the last event', async () => {
+      const callback = jest.fn().mockResolvedValue(undefined);
+      manager.fileClassChangedCallback = callback;
 
-      jest.spyOn(mockFileClassDeductionService, 'getFileClassFromMetadata')
-        .mockReturnValue('sameClass');
+      // Simulate existing file state
+      manager.fileMap.set('test.md', {
+        checksum: 'old-checksum',
+        fileClass: 'old-class',
+        mtime: 500
+      });
 
-      const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-      const logSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
-      manager.handleMetadataChanged(file, '---\nfileClass: sameClass\n---\n', {frontmatter: {fileClass: 'sameClass'}});
-      expect(mockFileClassChangedCallback).toHaveBeenCalledTimes(0);
-      expect(manager['fileClassMap'].get(file.path)).toBe('sameClass');
-      expect(logSpy).not.toHaveBeenCalled();
-      expect(spy).toHaveBeenCalledWith("File test.md modified without prior typing or create event");
-      expectNoLogs();
+      // Create separate mock files with different mtimes to trigger checksum computation
+      const mockFile1 = Object.create(require('obsidian').TFile.prototype);
+      Object.assign(mockFile1, mockFile, {stat: {mtime: 1001}});
+
+      const mockFile2 = Object.create(require('obsidian').TFile.prototype);
+      Object.assign(mockFile2, mockFile, {stat: {mtime: 1002}});
+
+      const mockFile3 = Object.create(require('obsidian').TFile.prototype);
+      Object.assign(mockFile3, mockFile, {stat: {mtime: 1003}});
+
+      // Mock the checksum computation to return different values
+      const sha256Spy = jest.spyOn(require('../utils/Utils').Utils, 'sha256')
+        .mockReturnValueOnce('checksum1')
+        .mockReturnValueOnce('checksum2')
+        .mockReturnValueOnce('checksum3');
+
+      // Mock deduction service to return different fileClasses
+      mockFileClassDeductionService.getFileClassFromMetadata
+        .mockReturnValueOnce('class1')
+        .mockReturnValueOnce('class2')
+        .mockReturnValueOnce('class3');
+
+      // Trigger multiple rapid changes through metadata events with different mtimes
+      manager.handleMetadataChanged(mockFile1, 'content1', {frontmatter: {fileClass: 'class1'}});
+      manager.handleMetadataChanged(mockFile2, 'content2', {frontmatter: {fileClass: 'class2'}});
+      manager.handleMetadataChanged(mockFile3, 'content3', {frontmatter: {fileClass: 'class3'}});
+
+      // Verify that callback is not called immediately
+      expect(callback).not.toHaveBeenCalled();
+      expect(manager.callbackDebounceTimers.has('test.md')).toBe(true);
+      expect(manager.pendingCallbacks.has('test.md')).toBe(true);
+
+      // Verify the last event parameters are stored (most important part of the test)
+      const pendingCallback = manager.pendingCallbacks.get('test.md');
+      expect(pendingCallback?.newFileClass).toBe('class3');
+      expect(pendingCallback?.file.stat.mtime).toBe(1003);
+
+      // Fast-forward time to trigger the debounced callback
+      jest.advanceTimersByTime(1000);
+
+      // Wait for promise resolution
+      await jest.runAllTicks();
+
+      // Verify callback was called only once (most important - no multiple calls)
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      // Verify it was called with the last file class (class3)
+      const callArgs = callback.mock.calls[0];
+      expect(callArgs[3]).toBe('class3'); // newFileClass is the 4th argument
+
+      // Verify cleanup
+      expect(manager.callbackDebounceTimers.has('test.md')).toBe(false);
+      expect(manager.pendingCallbacks.has('test.md')).toBe(false);
+
+      sha256Spy.mockRestore();
+    }, 10000);
+
+    it('should prevent concurrent execution for the same file', async () => {
+      const callback = jest.fn().mockImplementation(async () => {
+        // Simulate long-running callback
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+      manager.fileClassChangedCallback = callback;
+
+      // Add file to processing set to simulate concurrent execution
+      manager.processingFiles.add('test.md');
+      manager.pendingCallbacks.set('test.md', {
+        file: mockFile,
+        cache: mockCache,
+        oldFileClass: 'old-class',
+        newFileClass: 'new-class'
+      });
+
+      // Try to execute callback through the private method
+      await manager['executeFileClassChangedCallback']('test.md');
+
+      // Verify callback was not called due to concurrent execution
+      expect(callback).not.toHaveBeenCalled();
+      expect(manager.pendingCallbacks.has('test.md')).toBe(false);
+    });
+
+    it('should skip processing if file is being processed by callback', () => {
+      // Add file to processing set
+      manager.processingFiles.add('test.md');
+
+      const oldSize = manager.fileMap.size;
+
+      // Try to trigger processing through public method
+      manager.handleMetadataChanged(mockFile, 'content', mockCache);
+
+      // Verify file was not processed (fileMap should not have changed)
+      expect(manager.fileMap.size).toBe(oldSize);
+    });
+
+    it('should ignore rename events triggered by callback', () => {
+      const oldPath = 'old/path.md';
+      const newPath = 'new/path.md';
+
+      // Mark file as being renamed
+      manager.renamingFiles.add(oldPath);
+
+      // Add old path to fileMap
+      manager.fileMap.set(oldPath, {
+        checksum: 'old-checksum',
+        fileClass: 'old-class',
+        mtime: 1000
+      });
+
+      // Verify the file was added
+      expect(manager.fileMap.has(oldPath)).toBe(true);
+
+      // Create a mock file that will pass the TFile instanceof check and isFileApplicable
+      const mockRenamedFile = Object.create(require('obsidian').TFile.prototype);
+      mockRenamedFile.path = newPath;
+      mockRenamedFile.basename = 'new-file';
+      mockRenamedFile.extension = 'md';
+      mockRenamedFile.saving = false;
+      mockRenamedFile.stat = {mtime: 2000};
+
+      // Trigger rename event
+      manager.handleRenameFileEvent(mockRenamedFile, oldPath);
+
+      // The important test: verify old path was deleted when rename is ignored
+      expect(manager.fileMap.has(oldPath)).toBe(false);
     });
   });
 });

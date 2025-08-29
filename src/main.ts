@@ -22,6 +22,9 @@ import type {MassUpdateMetadataCommand} from './commands/MassUpdateMetadataComma
 import type {MoveNoteToRightFolderCommand} from './commands/MoveNoteToRightFolderCommand';
 import type {RenameFileBasedOnRulesCommand} from './commands/RenameFileBasedOnRulesCommand';
 import type {TogglePropertiesPanelCommand} from './commands/TogglePropertiesPanelCommand';
+import {Utils} from './utils/Utils';
+import {FileDebouncer} from './utils/FileDebouncer';
+import {FileValidationService} from './services/FileValidationService';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -42,9 +45,15 @@ export default class MetaFlowPlugin extends Plugin {
   logManager: LogNoticeManager;
   uiService: UIService;
   timer: {[key: string]: number} = {};
+  fileDebouncer: FileDebouncer;
+
+  DEBOUNCE_WAIT = 500;
 
   async onload() {
     this.settings = await this.loadSettings();
+
+    // Initialize FileDebouncer
+    this.fileDebouncer = new FileDebouncer(this.DEBOUNCE_WAIT);
 
     // Create dependency injection container
     this.container = createContainer(this.app, this.settings, this.saveSettings.bind(this));
@@ -59,9 +68,11 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Get FileClassDeductionService from container
     const fileClassDeductionService = this.container.get<FileClassDeductionService>(TYPES.FileClassDeductionService);
+    const fileValidationService = this.container.get<FileValidationService>(TYPES.FileValidationService);
 
     this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, this.logManager, fileClassDeductionService,
+      this.app, this.settings, this.logManager, this.obsidianAdapter,
+      fileClassDeductionService, fileValidationService,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
         if (this.settings.autoMetadataInsertion) {
           await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, this.logManager);
@@ -112,24 +123,37 @@ export default class MetaFlowPlugin extends Plugin {
     // leafChange event allow to initialize fileClass when the file is loading
     this.registerEvent(this.app.workspace.on(
       "active-leaf-change",
-      this.fileClassStateManager.handleActiveLeafChange.bind(this.fileClassStateManager)
+      this.fileDebouncer.createFileDebouncer(
+        this.fileClassStateManager.handleActiveLeafChange.bind(this.fileClassStateManager),
+        (leaf: WorkspaceLeaf) => {
+          const view = leaf?.view;
+          return (view && 'file' in view ? (view as any).file?.path : null);
+        }
+      )
     ));
 
     this.registerEvent(this.app.metadataCache.on(
       'changed',
-      this.fileClassStateManager.handleMetadataChanged.bind(this.fileClassStateManager)
-    ));
-
-    // CodeMirror extension to detect manual edits (typing, paste, cut, drop, undo, redo, autocomplete)
-    this.registerEditorExtension(EditorView.updateListener.of(
-      this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager)
+      (file: TFile, data: string, cache: CachedMetadata) => {
+        if (!file?.path) return;
+        this.fileClassStateManager.handleMetadataChanged(file, data, cache);
+      }
     ));
 
     this.app.workspace.onLayoutReady(() => {
       this.registerEvent(this.app.vault.on('create', this.fileClassStateManager.handleCreateFileEvent.bind(this.fileClassStateManager)));
-      this.registerEvent(this.app.vault.on('modify', this.fileClassStateManager.handleModifyFileEvent.bind(this.fileClassStateManager)));
-      this.registerEvent(this.app.vault.on('delete', this.fileClassStateManager.handleDeleteFileEvent.bind(this.fileClassStateManager)));
-      this.registerEvent(this.app.vault.on('rename', this.fileClassStateManager.handleRenameFileEvent.bind(this.fileClassStateManager)));
+      this.registerEvent(this.app.vault.on('modify', this.fileDebouncer.createFileDebouncer(
+        this.fileClassStateManager.handleModifyFileEvent.bind(this.fileClassStateManager),
+        (file: TFile) => file?.path || null
+      )));
+      this.registerEvent(this.app.vault.on('delete', (file: TAbstractFile) => {
+        this.fileClassStateManager.handleDeleteFileEvent(file);
+        this.fileDebouncer.deleteFile(file);
+      }));
+      this.registerEvent(this.app.vault.on('rename', (file: TAbstractFile, oldPath: string) => {
+        this.fileClassStateManager.handleRenameFileEvent(file, oldPath);
+        this.fileDebouncer.deleteFile(file);
+      }));
     });
   }
 
@@ -196,6 +220,12 @@ export default class MetaFlowPlugin extends Plugin {
   }
 
   onunload() {
+    // Clear all debounce timers
+    this.fileDebouncer.cleanup();
+
+    // Cleanup FileClassStateManager and save cache
+    this.fileClassStateManager.cleanup();
+
     // Remove CSS when plugin is disabled
     this.uiService.togglePropertiesVisibility(false);
   }

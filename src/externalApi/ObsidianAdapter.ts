@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import type {App} from 'obsidian';
+import type {App, CachedMetadata} from 'obsidian';
 import {FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
 import type {MetaFlowSettings} from '../settings/types';
 import {TYPES} from '../di/types';
@@ -30,6 +30,10 @@ export class ObsidianAdapter {
 
   async moveNote(file: TFile, newPath: string): Promise<void> {
     console.info(`Moving note ${file.path} to ${newPath}`);
+    if (file.path === newPath) {
+      console.info(`Note ${file.path} is already at ${newPath}`);
+      return;
+    }
     return await this.app.fileManager.renameFile(file, newPath);
   }
 
@@ -67,6 +71,10 @@ export class ObsidianAdapter {
     return normalizePath(filePath);
   }
 
+  getCachedFile(file: TFile): CachedMetadata | null {
+    return this.app.metadataCache.getFileCache(file);
+  }
+
   folderPrefix(filePath: string): string {
     const normalizedPath = normalizePath(filePath);
     // remove first slash as first character if any
@@ -94,6 +102,50 @@ export class ObsidianAdapter {
       return file;
     }
     throw new Error('Failed to create a mock TFile');
+  }
+
+  /**
+   * Save data to a file in the plugin directory
+   * @param fileName The name of the file to save
+   * @param data The data to save (will be JSON stringified)
+   */
+  async saveToPluginDirectory(fileName: string, data: any): Promise<void> {
+    try {
+      const pluginDir = `${this.app.vault.configDir}/plugins/metaflow`;
+      const filePath = normalizePath(`${pluginDir}/${fileName}`);
+      const jsonData = JSON.stringify(data, null, 2);
+
+      // Ensure the plugin directory exists
+      await this.app.vault.adapter.mkdir(pluginDir);
+
+      // Write the file
+      await this.app.vault.adapter.write(filePath, jsonData);
+    } catch (error) {
+      console.error(`ObsidianAdapter: Failed to save ${fileName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load data from a file in the plugin directory
+   * @param fileName The name of the file to load
+   * @returns The parsed JSON data or null if file doesn't exist
+   */
+  async loadFromPluginDirectory(fileName: string): Promise<any | null> {
+    try {
+      const pluginDir = `${this.app.vault.configDir}/plugins/metaflow`;
+      const filePath = normalizePath(`${pluginDir}/${fileName}`);
+
+      const jsonData = await this.app.vault.adapter.read(filePath);
+      return JSON.parse(jsonData);
+    } catch (error) {
+      if (error.message?.includes('ENOENT') || error.message?.includes('does not exist')) {
+        // File doesn't exist, return null
+        return null;
+      }
+      console.error(`ObsidianAdapter: Failed to load ${fileName}:`, error);
+      throw error;
+    }
   }
 
 }

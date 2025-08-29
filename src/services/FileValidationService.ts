@@ -47,10 +47,18 @@ export class FileValidationService {
     }
   }
 
-  checkIfExcluded(file: TFile): void {
+  ifFileExcluded(file: TFile): boolean {
     // Exclude files in excluded folders
     const excludeFolders = (this.metaFlowSettings.excludeFolders || []);
     if (excludeFolders.some(folder => file.path.startsWith(this.obsidianAdapter.folderPrefix(folder)))) {
+      return true;
+    }
+    return false;
+  }
+
+  checkIfExcluded(file: TFile): void {
+    // Exclude files in excluded folders
+    if (this.ifFileExcluded(file)) {
       throw new MetaFlowException(`File ${file.name} is in an excluded folder: ${file.path}`, 'info');
     }
   }

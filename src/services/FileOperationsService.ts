@@ -40,9 +40,15 @@ export class FileOperationsService {
         console.info(`Note "${file.name}" is already in the right folder: ${targetFolder}`);
         return null;
       }
+      const newFilePath = `${targetFolder}/${file.name}`;
+      if (file.path === newFilePath) {
+        if (this.metaFlowSettings.debugMode) {
+          console.debug(`Note ${file.path} is already at ${newFilePath}`);
+        }
+        return null;
+      }
       await this.createFolderIfNeeded(targetFolder);
       this.checkIfTargetFileExists(targetFolder, file);
-      const newFilePath = `${targetFolder}/${file.name}`;
       this.obsidianAdapter.moveNote(file, newFilePath);
       return newFilePath;
 

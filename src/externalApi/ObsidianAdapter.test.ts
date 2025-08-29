@@ -66,6 +66,16 @@ describe('ObsidianAdapter', () => {
     consoleSpy.mockRestore();
   });
 
+  test('moveNote should resolve without error if file is already at new path', async () => {
+    const file = ObsidianAdapter.createMockTFile('old/path/note.md');
+    const newPath = 'old/path/note.md';
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+    await expect(adapter.moveNote(file, newPath)).resolves.toBeUndefined();
+    expect(mockApp.fileManager.renameFile).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(`Note ${file.path} is already at ${newPath}`);
+    consoleSpy.mockRestore();
+  });
+
   test('notice should call Notice with the correct message', () => {
     const message = 'Test message';
     adapter.notice(message);

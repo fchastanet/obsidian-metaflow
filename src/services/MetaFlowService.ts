@@ -85,10 +85,6 @@ export class MetaFlowService {
         return;
       }
     }
-    if (newFileClass === oldFileClass) {
-      logManager.addWarning(`File class for "${file.name}" is already "${newFileClass}"`);
-      return;
-    }
 
     try {
       // Step 1: Determine or validate fileClass if not available
@@ -131,7 +127,12 @@ export class MetaFlowService {
         try {
           // Rename note if autoRenameNote is enabled
           if (this.metaFlowSettings.autoRenameNote) {
-            await this.fileOperationsService.renameNote(file, fileClass, enrichedFrontmatter, logManager);
+            // TODO possibly race condition here
+            let newFile = await this.fileOperationsService.renameNote(file, fileClass, enrichedFrontmatter, logManager);
+            if (newFile) {
+              // TODO non effective assignment
+              file = newFile;
+            }
           }
 
           if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
