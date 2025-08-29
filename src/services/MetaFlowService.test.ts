@@ -1,8 +1,8 @@
-import {FileStats, TFile} from 'obsidian';
+import {FileStats, TFile, TFolder} from 'obsidian';
 import {MetaFlowService} from './MetaFlowService';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {LogManagerInterface} from 'src/managers/types';
-import {MetaFlowSettings} from '../settings/types';
+import {MetaFlowSettings, FolderFileClassMapping} from '../settings/types';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -106,6 +106,18 @@ describe('MetaFlowService', () => {
 
     mockObsidianAdapter = {
       folderPrefix: jest.fn().mockImplementation((folder: string) => folder === '/' ? '/' : `${folder}/`),
+      isFileExists: jest.fn().mockReturnValue(false),
+      isFolderExists: jest.fn().mockReturnValue(true),
+      createFolder: jest.fn().mockResolvedValue({}),
+      getAbstractFileByPath: jest.fn().mockImplementation((path: string) => {
+        // Return mockFile for any path that looks like a file
+        if (path.includes('.md')) {
+          return mockFile;
+        }
+        return null;
+      }),
+      moveNote: jest.fn().mockResolvedValue(undefined),
+      normalizePath: jest.fn().mockImplementation((path: string) => path.replace(/\\/g, '/')),
     };
 
     mockFileValidationService = {
@@ -134,10 +146,13 @@ describe('MetaFlowService', () => {
       updateFrontmatter: jest.fn().mockResolvedValue(undefined),
       renameNote: jest.fn().mockResolvedValue(undefined),
       moveNoteToTheRightFolder: jest.fn().mockResolvedValue('new/path/test.md'),
+      getNewNoteTitle: jest.fn().mockReturnValue('Generated Title'),
+      getNewNoteFolder: jest.fn().mockReturnValue('/Books'),
+      applyFileChanges: jest.fn().mockResolvedValue(mockFile),
     };
 
     mockNoteTitleService = {
-      // Add any methods from NoteTitleService that are used in tests
+      formatNoteTitle: jest.fn().mockReturnValue('Generated Title'),
     };
 
     // Create a proper mock TFile instance
@@ -213,6 +228,11 @@ describe('MetaFlowService', () => {
   });
 
   describe('File Operations', () => {
+    beforeEach(() => {
+      // Reset mocks
+      jest.clearAllMocks();
+    });
+
     test('should handle file class changes', async () => {
       const metadata = {frontmatter: {fileClass: 'default'}};
 

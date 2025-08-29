@@ -62,7 +62,14 @@ describe('FileOperationsService', () => {
       renameNote: jest.fn().mockResolvedValue({} as TFile),
       isFileExists: jest.fn().mockReturnValue(false),
       isFolderExists: jest.fn().mockReturnValue(true),
-      createFolder: jest.fn().mockResolvedValue({} as TFolder)
+      createFolder: jest.fn().mockResolvedValue({} as TFolder),
+      getAbstractFileByPath: jest.fn().mockImplementation((path: string) => {
+        // Return mockFile for any path that looks like a file
+        if (path.includes('.md')) {
+          return mockFile;
+        }
+        return null;
+      })
     };
 
     mockFileValidationService = {
@@ -97,7 +104,8 @@ describe('FileOperationsService', () => {
       mockMetaFlowSettings,
       mockObsidianAdapter,
       mockFileValidationService,
-      mockNoteTitleService
+      mockNoteTitleService,
+      mockLogManager
     );
   });
 
@@ -153,28 +161,74 @@ describe('FileOperationsService', () => {
     });
 
     it('should return null if note is already in the right folder', async () => {
-      const fileInRightFolder = {...mockFile, parent: {path: 'books'}};
-      const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+      // Enable debug mode to trigger console.debug messages
+      mockMetaFlowSettings.debugMode = true;
+
+      const fileInRightFolder = Object.create(TFile.prototype);
+      Object.assign(fileInRightFolder, {
+        name: 'test.md',
+        basename: 'test',
+        extension: 'md',
+        path: 'books/test.md',
+        parent: {path: 'books'}
+      });
+
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => { });
       const result = await fileOperationsService.moveNoteToTheRightFolder(fileInRightFolder as TFile, 'book');
 
       expect(result).toBeNull();
       expect(mockObsidianAdapter.moveNote).not.toHaveBeenCalled();
+      // The new implementation uses console.debug instead of console.info
       expect(consoleSpy).toHaveBeenCalledWith('Note "test.md" is already in the right folder: books');
       consoleSpy.mockRestore();
+
+      // Reset debug mode
+      mockMetaFlowSettings.debugMode = false;
     });
 
     it('should move note to target folder', async () => {
+      // Create a mock file that represents the moved file
+      const movedFile = Object.create(TFile.prototype);
+      Object.assign(movedFile, {
+        name: 'test.md',
+        basename: 'test',
+        extension: 'md',
+        path: 'books/test.md',
+        parent: {path: 'books'}
+      });
+
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(movedFile);
+
       const result = await fileOperationsService.moveNoteToTheRightFolder(mockFile, 'book');
 
       expect(result).toBe('books/test.md');
       expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'books/test.md');
     });
 
-    it('should throw error if target file already exists', async () => {
-      mockObsidianAdapter.isFileExists.mockReturnValue(true);
+    it('should handle file conflicts with incremental numbering when moving', async () => {
+      // Since the new implementation handles conflicts with incremental numbering,
+      // it won't throw the "already exists" error anymore. Let's test for successful handling instead.
+      const movedFile = Object.create(TFile.prototype);
+      Object.assign(movedFile, {
+        name: 'test 1.md',
+        basename: 'test 1',
+        extension: 'md',
+        path: 'books/test 1.md',
+        parent: {path: 'books'}
+      });
 
-      await expect(fileOperationsService.moveNoteToTheRightFolder(mockFile, 'book'))
-        .rejects.toThrow('already exists');
+      // Mock isFileExists to simulate conflict resolution
+      mockObsidianAdapter.isFileExists.mockImplementation((path: string) => {
+        if (path === 'books/test.md') return true;  // Original conflicts
+        if (path === 'books/test 1.md') return false; // First increment is available
+        return false;
+      });
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(movedFile);
+
+      const result = await fileOperationsService.moveNoteToTheRightFolder(mockFile, 'book');
+
+      expect(result).toBe('books/test 1.md');
+      expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'books/test 1.md');
     });
   });
 
@@ -182,28 +236,38 @@ describe('FileOperationsService', () => {
     it('should validate file before renaming', async () => {
       await fileOperationsService.renameNote(mockFile, 'book', {}, mockLogManager);
 
+      // The validation is now called in getNewNoteTitle, not directly in renameNote
       expect(mockFileValidationService.checkIfValidFile).toHaveBeenCalledWith(mockFile);
       expect(mockFileValidationService.checkIfExcluded).toHaveBeenCalledWith(mockFile);
     });
 
-    it('should return null if title does not change', async () => {
+    it('should return file if title does not change', async () => {
       mockNoteTitleService.formatNoteTitle.mockReturnValue('test'); // Same as basename
 
       const result = await fileOperationsService.renameNote(mockFile, 'book', {}, mockLogManager);
 
-      expect(result).toBeNull();
-      expect(mockObsidianAdapter.renameNote).not.toHaveBeenCalled();
+      expect(result).toBe(mockFile);
+      expect(mockObsidianAdapter.moveNote).not.toHaveBeenCalled();
     });
 
     it('should rename note with new title', async () => {
-      const newFile = {} as TFile;
-      mockObsidianAdapter.renameNote.mockResolvedValue(newFile);
+      // Create a mock file that represents the renamed file
+      const renamedFile = Object.create(TFile.prototype);
+      Object.assign(renamedFile, {
+        name: 'New Title.md',
+        basename: 'New Title',
+        extension: 'md',
+        path: 'New Title.md',
+        parent: {path: ''}
+      });
+
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(renamedFile);
 
       const result = await fileOperationsService.renameNote(mockFile, 'book', {}, mockLogManager);
 
-      expect(result).toBe(newFile);
-      expect(mockObsidianAdapter.renameNote).toHaveBeenCalledWith(mockFile, 'New Title.md');
-      expect(mockLogManager.addInfo).toHaveBeenCalledWith('Renamed note "test.md" to "New Title.md"');
+      expect(result).toBe(renamedFile);
+      expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title.md');
+      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title.md"');
     });
 
     it('should return file if new title would be "Untitled"', async () => {
@@ -216,10 +280,190 @@ describe('FileOperationsService', () => {
     });
 
     it('should throw error if target file already exists', async () => {
+      // Make isFileExists return true to simulate conflict, but the new implementation
+      // should handle conflicts by incrementing, so this might not throw the same error
       mockObsidianAdapter.isFileExists.mockReturnValue(true);
 
-      await expect(fileOperationsService.renameNote(mockFile, 'book', {}, mockLogManager))
-        .rejects.toThrow('already exists');
+      // Since the new implementation handles conflicts with incremental numbering,
+      // it won't throw the "already exists" error anymore. Let's test for successful handling instead.
+      const renamedFile = Object.create(TFile.prototype);
+      Object.assign(renamedFile, {
+        name: 'New Title 1.md',
+        basename: 'New Title 1',
+        extension: 'md',
+        path: 'New Title 1.md',
+        parent: {path: ''}
+      });
+
+      // Mock isFileExists to simulate conflict resolution
+      mockObsidianAdapter.isFileExists.mockImplementation((path: string) => {
+        if (path === 'New Title.md') return true;  // Original conflicts
+        if (path === 'New Title 1.md') return false; // First increment is available
+        return false;
+      });
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(renamedFile);
+
+      const result = await fileOperationsService.renameNote(mockFile, 'book', {}, mockLogManager);
+
+      expect(result).toBe(renamedFile);
+      expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title 1.md');
+      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" moved/renamed to "New Title 1.md" (conflict resolved with incremental number)');
+    });
+  });
+
+  describe('getNewNoteTitle', () => {
+    it('should return new title when title needs to change', () => {
+      mockNoteTitleService.formatNoteTitle.mockReturnValue('New Title');
+      mockFile.basename = 'Old Title';
+
+      const result = fileOperationsService.getNewNoteTitle(mockFile, 'book', {}, mockLogManager);
+
+      expect(result).toBe('New Title');
+      expect(mockNoteTitleService.formatNoteTitle).toHaveBeenCalledWith(mockFile, 'book', {}, mockLogManager);
+    });
+
+    it('should return null when title does not need to change', () => {
+      mockNoteTitleService.formatNoteTitle.mockReturnValue('Same Title');
+      mockFile.basename = 'Same Title';
+
+      const result = fileOperationsService.getNewNoteTitle(mockFile, 'book', {}, mockLogManager);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when new title would be "Untitled"', () => {
+      mockNoteTitleService.formatNoteTitle.mockReturnValue('Untitled');
+      mockFile.basename = 'Current Title';
+
+      const result = fileOperationsService.getNewNoteTitle(mockFile, 'book', {}, mockLogManager);
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw MetaFlowException on error', () => {
+      mockNoteTitleService.formatNoteTitle.mockImplementation(() => {
+        throw new Error('Title generation failed');
+      });
+
+      expect(() => {
+        fileOperationsService.getNewNoteTitle(mockFile, 'book', {}, mockLogManager);
+      }).toThrow('Error getting new title for note "test.md": Title generation failed');
+    });
+  });
+
+  describe('getNewNoteFolder', () => {
+    it('should return target folder when move is needed', () => {
+      mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
+      mockFileValidationService.checkIfExcluded.mockReturnValue(undefined);
+
+      // Mock current file in different folder
+      const mockParent = Object.create(TFolder.prototype);
+      Object.assign(mockParent, {path: 'articles'});
+      mockFile.parent = mockParent;
+
+      const result = fileOperationsService.getNewNoteFolder(mockFile, 'book');
+
+      expect(result).toBe('books');
+    });
+
+    it('should return null when file is already in correct folder', () => {
+      mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
+      mockFileValidationService.checkIfExcluded.mockReturnValue(undefined);
+
+      // Mock current file already in target folder
+      const mockParent = Object.create(TFolder.prototype);
+      Object.assign(mockParent, {path: 'books'});
+      mockFile.parent = mockParent;
+
+      const result = fileOperationsService.getNewNoteFolder(mockFile, 'book');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when moveToFolder is disabled', () => {
+      mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
+      mockFileValidationService.checkIfExcluded.mockReturnValue(undefined);
+
+      const result = fileOperationsService.getNewNoteFolder(mockFile, 'default');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw error when no target folder is defined', () => {
+      mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
+      mockFileValidationService.checkIfExcluded.mockReturnValue(undefined);
+
+      expect(() => {
+        fileOperationsService.getNewNoteFolder(mockFile, 'nonexistent');
+      }).toThrow('No target folder defined for fileClass "nonexistent"');
+    });
+  });
+
+  describe('applyFileChanges', () => {
+    beforeEach(() => {
+      // Reset mocks to default behavior for each test
+      mockObsidianAdapter.isFileExists.mockReturnValue(false);
+      mockObsidianAdapter.isFolderExists.mockReturnValue(true);
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(mockFile);
+      jest.clearAllMocks();
+    });
+
+    it('should return original file when no changes are needed', async () => {
+      const result = await fileOperationsService.applyFileChanges(mockFile, null, null, mockLogManager);
+
+      expect(result).toBe(mockFile);
+      expect(mockObsidianAdapter.moveNote).not.toHaveBeenCalled();
+    });
+
+    it('should rename file when new title is provided', async () => {
+      mockObsidianAdapter.isFileExists.mockReturnValue(false);
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(mockFile);
+
+      const result = await fileOperationsService.applyFileChanges(mockFile, 'New Title', null, mockLogManager);
+
+      expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title.md');
+      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title.md"');
+      expect(result).toBe(mockFile);
+    });
+
+    it('should move file when new folder is provided', async () => {
+      mockObsidianAdapter.isFileExists.mockReturnValue(false);
+      mockObsidianAdapter.isFolderExists.mockReturnValue(true);
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(mockFile);
+
+      const result = await fileOperationsService.applyFileChanges(mockFile, null, 'books', mockLogManager);
+
+      expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'books/test.md');
+      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" moved to "books"');
+      expect(result).toBe(mockFile);
+    });
+
+    it('should handle file conflicts with incremental numbering', async () => {
+      // Set up specific path-based returns for isFileExists
+      mockObsidianAdapter.isFileExists.mockImplementation((path: string) => {
+        if (path === 'New Title.md') return true;  // Original path conflicts
+        if (path === 'New Title 1.md') return true;  // First increment conflicts
+        if (path === 'New Title 2.md') return false; // Second increment is available
+        return false;
+      });
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(mockFile);
+
+      const result = await fileOperationsService.applyFileChanges(mockFile, 'New Title', null, mockLogManager);
+
+      expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title 2.md');
+      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" moved/renamed to "New Title 2.md" (conflict resolved with incremental number)');
+      expect(result).toBe(mockFile);
+    });
+
+    it('should create folder if it does not exist', async () => {
+      mockObsidianAdapter.isFileExists.mockReturnValue(false);
+      mockObsidianAdapter.isFolderExists.mockReturnValue(false);
+      mockObsidianAdapter.createFolder.mockResolvedValue({});
+      mockObsidianAdapter.getAbstractFileByPath.mockReturnValue(mockFile);
+
+      await fileOperationsService.applyFileChanges(mockFile, null, 'new-folder', mockLogManager);
+
+      expect(mockObsidianAdapter.createFolder).toHaveBeenCalledWith('new-folder');
     });
   });
 });

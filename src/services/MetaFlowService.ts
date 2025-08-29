@@ -1,5 +1,6 @@
 import {injectable, inject} from 'inversify';
-import type {App, CachedMetadata, TFile} from "obsidian";
+import type {App, CachedMetadata} from "obsidian";
+import {TFile} from "obsidian";
 import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import type {FrontMatterService} from "./FrontMatterService";
 import type {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
@@ -125,26 +126,28 @@ export class MetaFlowService {
         await this.fileOperationsService.updateFrontmatter(file, enrichedFrontmatter, true)
         // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
         try {
-          // Rename note if autoRenameNote is enabled
+          let updatedFile = file;
+
+          // Get new title if autoRenameNote is enabled
+          let newTitle: string | null = null;
           if (this.metaFlowSettings.autoRenameNote) {
-            // TODO possibly race condition here
-            let newFile = await this.fileOperationsService.renameNote(file, fileClass, enrichedFrontmatter, logManager);
-            if (newFile) {
-              // TODO non effective assignment
-              file = newFile;
-            }
+            newTitle = this.fileOperationsService.getNewNoteTitle(file, fileClass, enrichedFrontmatter, logManager);
           }
 
+          // Get new folder path if autoMoveNoteToRightFolder is enabled
+          let newFolderPath: string | null = null;
           if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
-            const newFilePath = await this.fileOperationsService.moveNoteToTheRightFolder(file, fileClass);
-            if (newFilePath) {
-              logManager.addInfo(`Moved note "${file.name}" with fileClass "${fileClass}" to ${newFilePath}.`);
-            }
+            newFolderPath = this.fileOperationsService.getNewNoteFolder(file, fileClass);
+          }
+
+          // Apply file operations if needed
+          if (newTitle || newFolderPath) {
+            updatedFile = await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath, logManager);
           }
         } catch (error) {
           const msg = (error instanceof MetaFlowException) ?
-            `Error moving note ${file.path} to the right folder: ${error.message}` :
-            `Error moving note ${file.path} to the right folder`;
+            `Error processing file operations: ${error.message}` :
+            `Error processing file operations`;
           console.error(msg, error);
           logManager.addMessage(msg, error?.noticeLevel ?? 'error');
         }
