@@ -178,7 +178,6 @@ describe('FileOperationsService', () => {
 
       expect(result).toBeNull();
       expect(mockObsidianAdapter.moveNote).not.toHaveBeenCalled();
-      // The new implementation uses console.debug instead of console.info
       expect(consoleSpy).toHaveBeenCalledWith('Note "test.md" is already in the right folder: books');
       consoleSpy.mockRestore();
 

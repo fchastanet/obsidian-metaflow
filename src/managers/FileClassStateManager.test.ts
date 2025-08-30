@@ -1,20 +1,42 @@
 import {FileClassStateManager} from './FileClassStateManager';
-import {TFile} from 'obsidian';
+import {FileStateCache} from './FileStateCache';
+import {DebouncedCallbackManager} from './DebouncedCallbackManager';
+import {FileProcessor} from './FileProcessor';
+import {FileFilter} from './FileFilter';
+import {TFile, CachedMetadata, MarkdownView, WorkspaceLeaf} from 'obsidian';
 
 // Mock TFile
 jest.mock('obsidian', () => ({
   TFile: jest.fn().mockImplementation(function (this: any) {
     this.path = '';
-  })
+  }),
+  MarkdownView: jest.fn()
 }));
+
+// Mock the components
+jest.mock('./FileStateCache');
+jest.mock('./DebouncedCallbackManager');
+jest.mock('./FileProcessor');
+jest.mock('./FileFilter');
 
 // Mock timers
 jest.useFakeTimers();
 
 describe('FileClassStateManager', () => {
-  let manager: any;
+  let manager: FileClassStateManager;
   let mockObsidianAdapter: any;
   let mockFileClassDeductionService: any;
+  let mockFileValidationService: any;
+  let mockApp: any;
+  let mockSettings: any;
+  let mockLogManager: any;
+  let mockCallback: jest.Mock;
+
+  // Component mocks
+  let mockCache: jest.Mocked<FileStateCache>;
+  let mockCallbackManager: jest.Mocked<DebouncedCallbackManager<any>>;
+  let mockProcessor: jest.Mocked<FileProcessor>;
+  let mockFilter: jest.Mocked<FileFilter>;
 
   beforeEach(() => {
     // Mock console methods
@@ -33,315 +55,272 @@ describe('FileClassStateManager', () => {
       getFileClassFromMetadata: jest.fn().mockReturnValue('test-class'),
     };
 
-    // Create manager with minimal setup
-    manager = Object.create(FileClassStateManager.prototype);
-    manager.app = {};
-    manager.settings = {debugMode: true}; // Enable debug mode for tests
-    manager.logManager = {};
-    manager.obsidianAdapter = mockObsidianAdapter;
-    manager.fileClassDeductionService = mockFileClassDeductionService;
-    manager.fileValidationService = {ifFileExcluded: jest.fn().mockReturnValue(false)};
-    manager.fileClassChangedCallback = jest.fn();
-    manager.fileMap = new Map();
-    manager.fileRenamedMap = new Map();
-    manager.enabled = true;
-    manager.isDirty = false;
-    manager.saveTimer = null;
-    manager.SAVE_INTERVAL = 15000;
-    // Initialize new debouncing properties
-    manager.callbackDebounceTimers = new Map();
-    manager.pendingCallbacks = new Map();
-    manager.processingFiles = new Set();
-    manager.renamingFiles = new Set();
-    manager.CALLBACK_DEBOUNCE_DELAY = 1000;
+    mockFileValidationService = {
+      ifFileExcluded: jest.fn().mockReturnValue(false)
+    };
+
+    mockApp = {};
+    mockSettings = {debugMode: true};
+    mockLogManager = {};
+    mockCallback = jest.fn().mockResolvedValue(undefined);
+
+    // Set up component mocks
+    mockCache = {
+      load: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn(),
+      set: jest.fn(),
+      delete: jest.fn(),
+      clear: jest.fn(),
+      cleanup: jest.fn().mockResolvedValue(undefined),
+      size: 0
+    } as any;
+
+    mockCallbackManager = {
+      schedule: jest.fn(),
+      isProcessing: jest.fn().mockReturnValue(false),
+      hasPending: jest.fn().mockReturnValue(false),
+      getPending: jest.fn(),
+      clear: jest.fn()
+    } as any;
+
+    mockProcessor = {
+      computeFileState: jest.fn().mockReturnValue({
+        checksum: 'new-checksum',
+        fileClass: 'new-class',
+        mtime: 2000
+      })
+    } as any;
+
+    mockFilter = {
+      isApplicable: jest.fn().mockReturnValue(true)
+    } as any;
+
+    // Mock the constructors
+    (FileStateCache as jest.Mock).mockImplementation(() => mockCache);
+    (DebouncedCallbackManager as jest.Mock).mockImplementation(() => mockCallbackManager);
+    (FileProcessor as jest.Mock).mockImplementation(() => mockProcessor);
+    (FileFilter as jest.Mock).mockImplementation(() => mockFilter);
+
+    manager = new FileClassStateManager(
+      mockApp,
+      mockSettings,
+      mockLogManager,
+      mockObsidianAdapter,
+      mockFileClassDeductionService,
+      mockFileValidationService,
+      mockCallback
+    );
   });
 
   afterEach(() => {
     jest.runOnlyPendingTimers();
     jest.clearAllTimers();
+    jest.restoreAllMocks();
+  });
+
+  describe('constructor', () => {
+    it('should initialize all components correctly', () => {
+      expect(FileStateCache).toHaveBeenCalledWith(mockObsidianAdapter, mockSettings);
+      expect(FileProcessor).toHaveBeenCalledWith(mockFileClassDeductionService, mockObsidianAdapter, mockSettings);
+      expect(FileFilter).toHaveBeenCalledWith(mockFileValidationService, mockObsidianAdapter);
+      expect(DebouncedCallbackManager).toHaveBeenCalledWith(expect.any(Function), mockSettings);
+      expect(mockCache.load).toHaveBeenCalled();
+    });
   });
 
   describe('setEnabled', () => {
-    it('should enable the manager', () => {
-      manager.setEnabled(true);
-      expect(manager.enabled).toBe(true);
-    });
-
-    it('should disable and clear maps', () => {
-      manager.fileMap.set('test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000});
-      manager.fileRenamedMap.set('old.md', 'new.md');
-
+    it('should clear caches and callbacks when disabled', () => {
       manager.setEnabled(false);
 
-      expect(manager.enabled).toBe(false);
-      expect(manager.fileMap.size).toBe(0);
-      expect(manager.fileRenamedMap.size).toBe(0);
+      expect(mockCache.clear).toHaveBeenCalled();
+      expect(mockCallbackManager.clear).toHaveBeenCalled();
+    });
+
+    it('should not clear anything when enabled', () => {
+      manager.setEnabled(true);
+
+      expect(mockCache.clear).not.toHaveBeenCalled();
+      expect(mockCallbackManager.clear).not.toHaveBeenCalled();
     });
   });
 
-  describe('scheduleSave', () => {
-    it('should set isDirty and schedule save when no timer exists', () => {
-      manager.scheduleSave();
+  describe('handleActiveLeafChange', () => {
+    it('should process file when leaf has valid MarkdownView', () => {
+      const mockFile = {path: 'test.md', stat: {mtime: 1000}} as TFile;
+      const mockView = {file: mockFile} as MarkdownView;
+      const mockLeaf = {view: mockView} as unknown as WorkspaceLeaf;
 
-      expect(manager.isDirty).toBe(true);
-      expect(manager.saveTimer).not.toBeNull();
-      expect(console.debug).toHaveBeenCalledWith('FileClassStateManager: Scheduled save in 15000ms');
+      // Mock MarkdownView instance check
+      Object.setPrototypeOf(mockView, require('obsidian').MarkdownView.prototype);
+
+      manager.handleActiveLeafChange(mockLeaf);
+
+      expect(mockFilter.isApplicable).toHaveBeenCalledWith(mockFile);
+      expect(mockProcessor.computeFileState).toHaveBeenCalledWith(mockFile, undefined);
     });
 
-    it('should not create new timer when one already exists', () => {
-      manager.scheduleSave();
-      const firstTimer = manager.saveTimer;
+    it('should ignore non-MarkdownView leaves', () => {
+      const mockLeaf = {view: {file: 'test.md'}} as any;
 
-      manager.scheduleSave();
-      const secondTimer = manager.saveTimer;
+      manager.handleActiveLeafChange(mockLeaf);
 
-      expect(firstTimer).toBe(secondTimer);
-      expect(console.debug).toHaveBeenCalledWith('FileClassStateManager: Save already scheduled, keeping existing timer');
+      expect(mockFilter.isApplicable).not.toHaveBeenCalled();
     });
 
-    it('should call saveFileMapCache when timer expires', () => {
-      const saveFileSpy = jest.spyOn(manager, 'saveFileMapCache').mockResolvedValue(undefined);
+    it('should ignore null leaf', () => {
+      manager.handleActiveLeafChange(null);
 
-      manager.scheduleSave();
-      jest.advanceTimersByTime(15000);
-
-      expect(saveFileSpy).toHaveBeenCalled();
-      expect(manager.saveTimer).toBeNull();
+      expect(mockFilter.isApplicable).not.toHaveBeenCalled();
     });
   });
 
-  describe('saveFileMapCache', () => {
-    it('should save fileMap to plugin directory', async () => {
-      manager.fileMap.set('test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000});
-      manager.isDirty = true;
+  describe('handleMetadataChanged', () => {
+    it('should process file with cache', () => {
+      const mockFile = {path: 'test.md', stat: {mtime: 1000}} as TFile;
+      const mockCache = {frontmatter: {}} as CachedMetadata;
 
-      await manager.saveFileMapCache();
+      manager.handleMetadataChanged(mockFile, 'data', mockCache);
 
-      expect(mockObsidianAdapter.saveToPluginDirectory).toHaveBeenCalledWith(
-        'fileClassStateCache.json',
-        [['test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000}]]
-      );
-      expect(manager.isDirty).toBe(false);
+      expect(mockProcessor.computeFileState).toHaveBeenCalledWith(mockFile, mockCache);
+    });
+  });
+
+  describe('file processing with callback', () => {
+    let mockFile: TFile;
+    let mockCacheData: CachedMetadata;
+
+    beforeEach(() => {
+      mockFile = {path: 'test.md', stat: {mtime: 2000}} as any;
+      mockCacheData = {frontmatter: {}} as CachedMetadata;
     });
 
-    it('should handle save errors', async () => {
-      mockObsidianAdapter.saveToPluginDirectory.mockRejectedValue(new Error('Save failed'));
-      manager.isDirty = true;
+    it('should detect file class changes and schedule callback', () => {
+      const oldState = {checksum: 'old-checksum', fileClass: 'old-class', mtime: 1000};
+      const newState = {checksum: 'new-checksum', fileClass: 'new-class', mtime: 2000};
 
-      await manager.saveFileMapCache();
+      mockCache.get.mockReturnValue(oldState);
+      mockProcessor.computeFileState.mockReturnValue(newState);
 
-      expect(console.error).toHaveBeenCalledWith('FileClassStateManager: Failed to save file map cache:', expect.any(Error));
+      manager.handleMetadataChanged(mockFile, 'data', mockCacheData);
+
+      expect(mockCache.set).toHaveBeenCalledWith('test.md', newState);
+      expect(mockCallbackManager.schedule).toHaveBeenCalledWith('test.md', {
+        file: mockFile,
+        cache: mockCacheData,
+        oldFileClass: 'old-class',
+        newFileClass: 'new-class'
+      });
+    });
+
+    it('should skip processing if file is being processed by callback', () => {
+      mockCallbackManager.isProcessing.mockReturnValue(true);
+
+      manager.handleMetadataChanged(mockFile, 'data', mockCacheData);
+
+      expect(mockProcessor.computeFileState).not.toHaveBeenCalled();
+    });
+
+    it('should skip processing if modification time is same', () => {
+      const oldState = {checksum: 'checksum', fileClass: 'class', mtime: 2000};
+      mockCache.get.mockReturnValue(oldState);
+
+      manager.handleMetadataChanged(mockFile, 'data', mockCacheData);
+
+      expect(mockProcessor.computeFileState).not.toHaveBeenCalled();
+    });
+
+    it('should not schedule callback if no old state exists', () => {
+      mockCache.get.mockReturnValue(undefined);
+
+      manager.handleMetadataChanged(mockFile, 'data', mockCacheData);
+
+      expect(mockCallbackManager.schedule).not.toHaveBeenCalled();
+    });
+
+    it('should not schedule callback if checksums are same', () => {
+      const oldState = {checksum: 'same-checksum', fileClass: 'old-class', mtime: 1000};
+      const newState = {checksum: 'same-checksum', fileClass: 'new-class', mtime: 2000};
+
+      mockCache.get.mockReturnValue(oldState);
+      mockProcessor.computeFileState.mockReturnValue(newState);
+
+      manager.handleMetadataChanged(mockFile, 'data', mockCacheData);
+
+      expect(mockCallbackManager.schedule).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleCreateFileEvent', () => {
+    it('should process applicable files', () => {
+      const mockFile = {path: 'test.md', name: 'test.md', stat: {mtime: 1000}} as any;
+
+      manager.handleCreateFileEvent(mockFile);
+
+      expect(mockFilter.isApplicable).toHaveBeenCalledWith(mockFile);
+      expect(mockProcessor.computeFileState).toHaveBeenCalledWith(mockFile, undefined);
+    });
+
+    it('should ignore non-applicable files', () => {
+      const mockFile = {path: 'test.txt', stat: {mtime: 1000}} as any;
+      mockFilter.isApplicable.mockReturnValue(false);
+
+      manager.handleCreateFileEvent(mockFile);
+
+      expect(mockProcessor.computeFileState).not.toHaveBeenCalled();
     });
   });
 
   describe('handleDeleteFileEvent', () => {
-    it('should remove file from map and schedule save', () => {
-      // Create a proper TFile instance that passes isFileApplicable
-      const file = Object.create(require('obsidian').TFile.prototype);
-      file.path = 'test.md';
-      file.basename = 'test';
-      file.extension = 'md';
-      file.saving = false;
-      file.stat = {mtime: 1000};
+    it('should delete from cache for applicable files', () => {
+      const mockFile = {path: 'test.md', stat: {mtime: 1000}} as any;
 
-      manager.fileMap.set('test.md', {checksum: 'hash', fileClass: 'class', mtime: 1000});
-      const scheduleSaveSpy = jest.spyOn(manager, 'scheduleSave');
+      manager.handleDeleteFileEvent(mockFile);
 
-      manager.handleDeleteFileEvent(file);
-
-      expect(manager.fileMap.has('test.md')).toBe(false);
-      expect(scheduleSaveSpy).toHaveBeenCalled();
+      expect(mockFilter.isApplicable).toHaveBeenCalledWith(mockFile);
+      expect(mockCache.delete).toHaveBeenCalledWith('test.md');
     });
 
-    it('should ignore non-TFile', () => {
-      const notAFile = {path: 'test.md'};
-      const scheduleSaveSpy = jest.spyOn(manager, 'scheduleSave');
+    it('should ignore non-applicable files', () => {
+      const mockFile = {path: 'test.txt', stat: {mtime: 1000}} as any;
+      mockFilter.isApplicable.mockReturnValue(false);
 
-      // This should fail the instanceof check
-      manager.handleDeleteFileEvent(notAFile);
+      manager.handleDeleteFileEvent(mockFile);
 
-      expect(scheduleSaveSpy).not.toHaveBeenCalled();
+      expect(mockCache.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleRenameFileEvent', () => {
+    it('should delete old path and process new file', () => {
+      const mockFile = {path: 'new.md', stat: {mtime: 1000}} as any;
+      const oldPath = 'old.md';
+
+      manager.handleRenameFileEvent(mockFile, oldPath);
+
+      expect(mockCache.delete).toHaveBeenCalledWith(oldPath);
+      expect(mockProcessor.computeFileState).toHaveBeenCalledWith(mockFile, undefined);
+    });
+
+    it('should ignore renames triggered by callback', () => {
+      const mockFile = {path: 'new.md', stat: {mtime: 1000}} as any;
+      const oldPath = 'old.md';
+
+      // Simulate a file being renamed by callback
+      (manager as any).renamingFiles.add(oldPath);
+
+      manager.handleRenameFileEvent(mockFile, oldPath);
+
+      expect(mockCache.delete).toHaveBeenCalledWith(oldPath);
+      expect(mockProcessor.computeFileState).not.toHaveBeenCalled();
     });
   });
 
   describe('cleanup', () => {
-    it('should clear timer and save if dirty', async () => {
-      const saveFileSpy = jest.spyOn(manager, 'saveFileMapCache').mockResolvedValue(undefined);
-
-      manager.scheduleSave();
-      expect(manager.saveTimer).not.toBeNull();
-      expect(manager.isDirty).toBe(true);
-
+    it('should cleanup all components', async () => {
       await manager.cleanup();
 
-      expect(manager.saveTimer).toBeNull();
-      expect(saveFileSpy).toHaveBeenCalled();
-    });
-
-    it('should not save if not dirty', async () => {
-      const saveFileSpy = jest.spyOn(manager, 'saveFileMapCache').mockResolvedValue(undefined);
-
-      manager.isDirty = false;
-
-      await manager.cleanup();
-
-      expect(saveFileSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('debouncing functionality', () => {
-    let mockFile: any;
-    let mockCache: any;
-
-    beforeEach(() => {
-      // Create proper TFile instances that pass isFileApplicable
-      mockFile = Object.create(require('obsidian').TFile.prototype);
-      mockFile.path = 'test.md';
-      mockFile.basename = 'test';
-      mockFile.extension = 'md';
-      mockFile.saving = false;
-      mockFile.stat = {mtime: 1000};
-
-      mockCache = {
-        frontmatter: {fileClass: 'new-class'}
-      };
-    });
-
-    it('should debounce multiple rapid fileClass changes and use the last event', async () => {
-      const callback = jest.fn().mockResolvedValue(undefined);
-      manager.fileClassChangedCallback = callback;
-
-      // Simulate existing file state
-      manager.fileMap.set('test.md', {
-        checksum: 'old-checksum',
-        fileClass: 'old-class',
-        mtime: 500
-      });
-
-      // Create separate mock files with different mtimes to trigger checksum computation
-      const mockFile1 = Object.create(require('obsidian').TFile.prototype);
-      Object.assign(mockFile1, mockFile, {stat: {mtime: 1001}});
-
-      const mockFile2 = Object.create(require('obsidian').TFile.prototype);
-      Object.assign(mockFile2, mockFile, {stat: {mtime: 1002}});
-
-      const mockFile3 = Object.create(require('obsidian').TFile.prototype);
-      Object.assign(mockFile3, mockFile, {stat: {mtime: 1003}});
-
-      // Mock the checksum computation to return different values
-      const sha256Spy = jest.spyOn(require('../utils/Utils').Utils, 'sha256')
-        .mockReturnValueOnce('checksum1')
-        .mockReturnValueOnce('checksum2')
-        .mockReturnValueOnce('checksum3');
-
-      // Mock deduction service to return different fileClasses
-      mockFileClassDeductionService.getFileClassFromMetadata
-        .mockReturnValueOnce('class1')
-        .mockReturnValueOnce('class2')
-        .mockReturnValueOnce('class3');
-
-      // Trigger multiple rapid changes through metadata events with different mtimes
-      manager.handleMetadataChanged(mockFile1, 'content1', {frontmatter: {fileClass: 'class1'}});
-      manager.handleMetadataChanged(mockFile2, 'content2', {frontmatter: {fileClass: 'class2'}});
-      manager.handleMetadataChanged(mockFile3, 'content3', {frontmatter: {fileClass: 'class3'}});
-
-      // Verify that callback is not called immediately
-      expect(callback).not.toHaveBeenCalled();
-      expect(manager.callbackDebounceTimers.has('test.md')).toBe(true);
-      expect(manager.pendingCallbacks.has('test.md')).toBe(true);
-
-      // Verify the last event parameters are stored (most important part of the test)
-      const pendingCallback = manager.pendingCallbacks.get('test.md');
-      expect(pendingCallback?.newFileClass).toBe('class3');
-      expect(pendingCallback?.file.stat.mtime).toBe(1003);
-
-      // Fast-forward time to trigger the debounced callback
-      jest.advanceTimersByTime(1000);
-
-      // Wait for promise resolution
-      await jest.runAllTicks();
-
-      // Verify callback was called only once (most important - no multiple calls)
-      expect(callback).toHaveBeenCalledTimes(1);
-
-      // Verify it was called with the last file class (class3)
-      const callArgs = callback.mock.calls[0];
-      expect(callArgs[3]).toBe('class3'); // newFileClass is the 4th argument
-
-      // Verify cleanup
-      expect(manager.callbackDebounceTimers.has('test.md')).toBe(false);
-      expect(manager.pendingCallbacks.has('test.md')).toBe(false);
-
-      sha256Spy.mockRestore();
-    }, 10000);
-
-    it('should prevent concurrent execution for the same file', async () => {
-      const callback = jest.fn().mockImplementation(async () => {
-        // Simulate long-running callback
-        await new Promise(resolve => setTimeout(resolve, 100));
-      });
-      manager.fileClassChangedCallback = callback;
-
-      // Add file to processing set to simulate concurrent execution
-      manager.processingFiles.add('test.md');
-      manager.pendingCallbacks.set('test.md', {
-        file: mockFile,
-        cache: mockCache,
-        oldFileClass: 'old-class',
-        newFileClass: 'new-class'
-      });
-
-      // Try to execute callback through the private method
-      await manager['executeFileClassChangedCallback']('test.md');
-
-      // Verify callback was not called due to concurrent execution
-      expect(callback).not.toHaveBeenCalled();
-      expect(manager.pendingCallbacks.has('test.md')).toBe(false);
-    });
-
-    it('should skip processing if file is being processed by callback', () => {
-      // Add file to processing set
-      manager.processingFiles.add('test.md');
-
-      const oldSize = manager.fileMap.size;
-
-      // Try to trigger processing through public method
-      manager.handleMetadataChanged(mockFile, 'content', mockCache);
-
-      // Verify file was not processed (fileMap should not have changed)
-      expect(manager.fileMap.size).toBe(oldSize);
-    });
-
-    it('should ignore rename events triggered by callback', () => {
-      const oldPath = 'old/path.md';
-      const newPath = 'new/path.md';
-
-      // Mark file as being renamed
-      manager.renamingFiles.add(oldPath);
-
-      // Add old path to fileMap
-      manager.fileMap.set(oldPath, {
-        checksum: 'old-checksum',
-        fileClass: 'old-class',
-        mtime: 1000
-      });
-
-      // Verify the file was added
-      expect(manager.fileMap.has(oldPath)).toBe(true);
-
-      // Create a mock file that will pass the TFile instanceof check and isFileApplicable
-      const mockRenamedFile = Object.create(require('obsidian').TFile.prototype);
-      mockRenamedFile.path = newPath;
-      mockRenamedFile.basename = 'new-file';
-      mockRenamedFile.extension = 'md';
-      mockRenamedFile.saving = false;
-      mockRenamedFile.stat = {mtime: 2000};
-
-      // Trigger rename event
-      manager.handleRenameFileEvent(mockRenamedFile, oldPath);
-
-      // The important test: verify old path was deleted when rename is ignored
-      expect(manager.fileMap.has(oldPath)).toBe(false);
+      expect(mockCallbackManager.clear).toHaveBeenCalled();
+      expect(mockCache.cleanup).toHaveBeenCalled();
     });
   });
 });
