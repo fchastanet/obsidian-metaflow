@@ -129,21 +129,19 @@ export class MetaFlowService {
           let updatedFile = file;
 
           // Get new title if autoRenameNote is enabled
-          let newTitle: string | null = null;
+          let newTitle: string = file.basename;
           if (this.metaFlowSettings.autoRenameNote) {
             newTitle = this.fileOperationsService.getNewNoteTitle(file, fileClass, enrichedFrontmatter, logManager);
           }
 
           // Get new folder path if autoMoveNoteToRightFolder is enabled
-          let newFolderPath: string | null = null;
+          let newFolderPath: string = file.parent?.path ?? '';
           if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
             newFolderPath = this.fileOperationsService.getNewNoteFolder(file, fileClass);
           }
 
           // Apply file operations if needed
-          if (newTitle || newFolderPath) {
-            updatedFile = await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath, logManager);
-          }
+          updatedFile = await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath, logManager);
         } catch (error) {
           const msg = (error instanceof MetaFlowException) ?
             `Error processing file operations: ${error.message}` :

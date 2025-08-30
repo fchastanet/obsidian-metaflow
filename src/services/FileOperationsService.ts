@@ -41,7 +41,7 @@ export class FileOperationsService {
     }
 
     try {
-      const updatedFile = await this.applyFileChanges(file, null, newFolderPath, this.logManager);
+      const updatedFile = await this.applyFileChanges(file, file.basename, newFolderPath, this.logManager);
       return updatedFile.path;
     } catch (error) {
       if (error instanceof MetaFlowException) {
@@ -63,7 +63,7 @@ export class FileOperationsService {
     }
 
     try {
-      const updatedFile = await this.applyFileChanges(file, newTitle, null, logManager);
+      const updatedFile = await this.applyFileChanges(file, newTitle, file.parent?.path ?? '', logManager);
       return updatedFile;
     } catch (error) {
       if (error instanceof MetaFlowException) {
@@ -124,7 +124,7 @@ export class FileOperationsService {
     fileClass: string,
     metadata: {[key: string]: any},
     logManager: LogManagerInterface
-  ): string | null {
+  ): string {
     try {
       this.fileValidationService.checkIfValidFile(file);
       this.fileValidationService.checkIfExcluded(file);
@@ -137,12 +137,12 @@ export class FileOperationsService {
         if (this.metaFlowSettings.debugMode) {
           console.debug(`MetaFlow: Note "${file.name}" already has the correct title "${newTitle}"`);
         }
-        return null;
+        return currentName;
       } else if (newTitle === 'Untitled') {
         if (this.metaFlowSettings.debugMode) {
           console.debug(`MetaFlow: Note "${file.name}", new title would be 'Untitled', keeping old name`);
         }
-        return null;
+        return currentName;
       }
 
       return newTitle;
@@ -160,38 +160,37 @@ export class FileOperationsService {
    * @param fileClass - The file class
    * @returns New folder path or null if no change needed
    */
-  public getNewNoteFolder(file: TFile, fileClass: string): string | null {
+  public getNewNoteFolder(file: TFile, fileClass: string): string {
     try {
       this.fileValidationService.checkIfValidFile(file);
       this.fileValidationService.checkIfExcluded(file);
 
-      const targetFolder = this.getTargetFolderForFileClass(fileClass);
-      if (!targetFolder) {
-        const targetFolderMapping = this.getTargetFolderMappingForFileClass(fileClass);
+      const currentFolder = file.parent?.path || '';
+      const targetFolderMapping = this.getTargetFolderMappingForFileClass(fileClass);
+      if (targetFolderMapping) {
         if (targetFolderMapping?.moveToFolder === false) {
           if (this.metaFlowSettings.debugMode) {
             console.debug(`Auto-move for the folder "${targetFolderMapping.folder}" is disabled`);
           }
-          return null;
+          return currentFolder;
         }
-        throw new MetaFlowException(`No target folder defined for fileClass "${fileClass}"`, 'warning');
+        return targetFolderMapping.folder.replace(/\/$/, ''); // Remove trailing slash
       }
-
-      const currentFolder = file.parent?.path || '';
-      if (targetFolder === currentFolder) {
-        if (this.metaFlowSettings.debugMode) {
-          console.debug(`Note "${file.name}" is already in the right folder: ${targetFolder}`);
-        }
-        return null;
-      }
-
-      return targetFolder;
+      throw new MetaFlowException(`No target folder defined for fileClass "${fileClass}"`, 'warning');
     } catch (error) {
       if (error instanceof MetaFlowException) {
         throw error;
       }
       throw new MetaFlowException(`Error getting target folder for note "${file.name}": ${error.message}`, 'error');
     }
+  }
+
+  private computeFinalFileName(
+    file: TFile,
+    newFolderPath: string, newTitle: string, suffix: string | number
+  ): string {
+    const folder = (newFolderPath === '' || newFolderPath === '/') ? '' : `${newFolderPath}/`;
+    return this.obsidianAdapter.normalizePath(`${folder}${newTitle}${suffix}.${file.extension}`);
   }
 
   /**
@@ -204,69 +203,56 @@ export class FileOperationsService {
    */
   public async applyFileChanges(
     file: TFile,
-    newTitle: string | null,
-    newFolderPath: string | null,
+    newTitle: string,
+    newFolderPath: string,
     logManager: LogManagerInterface
   ): Promise<TFile> {
-    let currentFile = file;
-
     // If we need to move to a different folder, create it first
-    if (newFolderPath && newFolderPath !== (file.parent?.path || '')) {
+    if (newFolderPath !== (file.parent?.path || '')) {
       await this.createFolderIfNeeded(newFolderPath);
     }
-
-    // Determine final file name and path
-    const finalTitle = newTitle || file.basename;
-    const finalFolderPath = newFolderPath || (file.parent?.path || '');
-    const finalFileName = `${finalTitle}.${file.extension}`;
-
     // Build the target path
-    let targetPath = finalFolderPath ? `${finalFolderPath}/${finalFileName}` : finalFileName;
-    targetPath = this.obsidianAdapter.normalizePath(targetPath);
+    let targetPath = this.computeFinalFileName(file, newFolderPath, newTitle, '');
 
     // Check if we actually need to do anything
     if (targetPath === file.path) {
       if (this.metaFlowSettings.debugMode) {
-        console.debug(`File "${file.name}" is already at target location with correct name`);
+        console.debug(`File "${file.path}" is already at target location with correct name`);
       }
-      return currentFile;
+      return file;
     }
 
     // Handle file conflicts by adding incremental numbers
-    let finalTargetPath = targetPath;
     let counter = 1;
-    while (this.obsidianAdapter.isFileExists(finalTargetPath)) {
-      const baseName = finalTitle;
-      const incrementedName = `${baseName} ${counter}`;
-      const incrementedFileName = `${incrementedName}.${file.extension}`;
-      finalTargetPath = finalFolderPath ? `${finalFolderPath}/${incrementedFileName}` : incrementedFileName;
-      finalTargetPath = this.obsidianAdapter.normalizePath(finalTargetPath);
+    let conflictsResolved = false;
+    while (this.obsidianAdapter.isFileExists(targetPath) || file.path === targetPath) {
+      targetPath = this.computeFinalFileName(file, newFolderPath, newTitle, ` ${counter}`);
       counter++;
+      conflictsResolved = true;
+    }
+
+    // it could be possible that the file was already renamed using an incremental number
+    if (file.path === targetPath) {
+      if (this.metaFlowSettings.debugMode) {
+        console.debug(`File "${file.path}" is already at target location with correct name`);
+      }
+      return file;
     }
 
     // Perform the actual file operation
     try {
-      await this.obsidianAdapter.moveNote(file, finalTargetPath);
+      await this.obsidianAdapter.moveNote(file, targetPath);
 
       // Get the updated file reference
-      const updatedFile = this.obsidianAdapter.getAbstractFileByPath(finalTargetPath);
+      const updatedFile = this.obsidianAdapter.getAbstractFileByPath(targetPath);
       if (!(updatedFile instanceof TFile)) {
-        throw new Error(`Failed to get updated file reference at ${finalTargetPath}`);
+        throw new Error(`Failed to get updated file reference at ${targetPath}`);
       }
-      currentFile = updatedFile;
 
       // Log the operation
-      if (finalTargetPath !== targetPath) {
-        logManager.addInfo(`File "${file.name}" moved/renamed to "${finalTargetPath}" (conflict resolved with incremental number)`);
-      } else if (newTitle && newFolderPath) {
-        logManager.addInfo(`File "${file.name}" renamed to "${finalFileName}" and moved to "${finalFolderPath}"`);
-      } else if (newTitle) {
-        logManager.addInfo(`File "${file.name}" renamed to "${finalFileName}"`);
-      } else if (newFolderPath) {
-        logManager.addInfo(`File "${file.name}" moved to "${finalFolderPath}"`);
-      }
+      logManager.addInfo(`File "${file.name}" renamed to "${targetPath}"${conflictsResolved ? ' (conflict resolved with incremental number)' : ''}`);
 
-      return currentFile;
+      return updatedFile;
     } catch (error) {
       throw new MetaFlowException(`Failed to apply file changes to "${file.name}": ${error.message}`, 'error');
     }
@@ -275,14 +261,5 @@ export class FileOperationsService {
   private getTargetFolderMappingForFileClass(fileClass: string): FolderFileClassMapping | null {
     return this.metaFlowSettings.folderFileClassMappings.find(
       mapping => mapping.fileClass === fileClass) || null;
-  }
-
-  private getTargetFolderForFileClass(fileClass: string): string | null {
-    const mapping = this.metaFlowSettings.folderFileClassMappings.find(
-      mapping => mapping.fileClass === fileClass && mapping.moveToFolder);
-    if (mapping) {
-      return mapping.folder.replace(/\/$/, ''); // Remove trailing slash
-    }
-    return null;
   }
 }
