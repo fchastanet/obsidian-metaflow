@@ -9,6 +9,7 @@ import {MetaFlowService} from './services/MetaFlowService';
 import {FrontMatterService} from './services/FrontMatterService';
 import {FileClassStateManager} from './managers/FileClassStateManager';
 import {LogNoticeManager} from './managers/LogNoticeManager';
+import {LogManagerInterface} from './managers/types';
 import {ObsidianAdapter} from './externalApi/ObsidianAdapter';
 import {UIService} from './services/UIService';
 import {FileOperationsService} from './services/FileOperationsService';
@@ -42,7 +43,7 @@ export default class MetaFlowPlugin extends Plugin {
   frontMatterService: FrontMatterService;
   fileClassStateManager: FileClassStateManager;
   obsidianAdapter: ObsidianAdapter;
-  logManager: LogNoticeManager;
+  logManager: LogManagerInterface;
   uiService: UIService;
   timer: {[key: string]: number} = {};
   fileDebouncer: FileDebouncer;
@@ -64,7 +65,7 @@ export default class MetaFlowPlugin extends Plugin {
     this.obsidianAdapter = this.container.get<ObsidianAdapter>(TYPES.ObsidianAdapter);
     this.uiService = this.container.get<UIService>(TYPES.UIService);
 
-    this.logManager = new LogNoticeManager(this.obsidianAdapter);
+    this.logManager = this.container.get<LogNoticeManager>(TYPES.LogManagerInterface);
 
     // Get FileClassDeductionService from container
     const fileClassDeductionService = this.container.get<FileClassDeductionService>(TYPES.FileClassDeductionService);

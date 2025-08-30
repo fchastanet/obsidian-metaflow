@@ -1,10 +1,13 @@
+import {injectable, inject} from "inversify";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {LogManagerInterface, LogManagerLogLevel} from "./types";
+import {TYPES} from "../di/types";
 
+@injectable()
 export class LogNoticeManager implements LogManagerInterface {
   private obsidianAdapter: ObsidianAdapter;
 
-  public constructor(obsidianAdapter: ObsidianAdapter) {
+  public constructor(@inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter) {
     this.obsidianAdapter = obsidianAdapter;
   }
 

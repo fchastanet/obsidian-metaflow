@@ -18,6 +18,10 @@ import {PropertyManagementService} from '../services/PropertyManagementService';
 import {FileOperationsService} from '../services/FileOperationsService';
 import {NoteTitleService} from '../services/NoteTitleService';
 
+// Managers
+import {LogNoticeManager} from '../managers/LogNoticeManager';
+import {LogManagerInterface} from '../managers/types';
+
 // Legacy services
 import {MetaFlowService} from '../services/MetaFlowService';
 
@@ -47,6 +51,9 @@ export function createContainer(app: App, settings: MetaFlowSettings, saveSettin
   container.bind<TemplaterAdapter>(TYPES.TemplaterAdapter).to(TemplaterAdapter).inSingletonScope();
   container.bind<ScriptContextService>(TYPES.ScriptContextService).to(ScriptContextService).inSingletonScope();
   container.bind<UIService>(TYPES.UIService).to(UIService).inSingletonScope();
+
+  // Bind managers
+  container.bind<LogManagerInterface>(TYPES.LogManagerInterface).to(LogNoticeManager).inSingletonScope();
 
   // Bind domain services
   container.bind<FileValidationService>(TYPES.FileValidationService).to(FileValidationService).inSingletonScope();
