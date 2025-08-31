@@ -98,9 +98,12 @@ export class MetadataMenuAdapter {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
-
     try {
       const allFields = this.getFileClassAndAncestorsFields(fileClassName, logManager);
+      let originalFrontmatter = null;
+      if (this.settings.debugMode) {
+        originalFrontmatter = JSON.parse(JSON.stringify(frontmatter));
+      }
 
       // Step 2: Remove empty properties that are not part of the new fileClass
       const fieldsToRemove = Object.keys(frontmatter).filter(key => {
@@ -114,11 +117,14 @@ export class MetadataMenuAdapter {
       }
 
       // Step 3: Add missing fields from the ancestor chain
+      const fieldsToAdd: string[] = [];
       for (const field of allFields) {
         if (!(field.name in frontmatter)) {
+          fieldsToAdd.push(field.name);
           frontmatter[field.name] = null; // Initialize missing fields with undefined
         }
       }
+      if (this.settings.debugMode) console.debug('Sync fields', {fieldsToAdd, fieldsToRemove, originalFrontmatter, frontmatter});
 
       return frontmatter;
     } catch (error) {
@@ -135,7 +141,6 @@ export class MetadataMenuAdapter {
     // Step 1: Get all fields for the fileClass and its ancestors
     // The chain is already in the correct order (most basic ancestor first)
     for (const ancestorName of ancestorChain) {
-      if (this.settings.debugMode) console.debug(`Inserting missing fields from ancestor: ${ancestorName}`);
       // get metadataMenu fileClass fields configuration
       const fileClassFields = this.getFileClassFields(ancestorName);
       allFields.push(...fileClassFields);

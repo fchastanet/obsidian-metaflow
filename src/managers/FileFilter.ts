@@ -18,7 +18,8 @@ export class FileFilter {
     if (!file) return false;
     if (!(file instanceof TFile)) return false;
     if (!file?.basename || !file?.path) return false;
-    if (file.saving) return false;
+    if (file?.deleted) return false;
+    //if (file.saving) return false;
 
     // Check if the file is a Markdown file
     if (file.extension !== 'md') return false;

@@ -126,7 +126,7 @@ export class FileClassStateManager {
 
   private stackTrace() {
     var err = new Error();
-    return err.stack;
+    return {stack: err.stack};
   }
 
   /**
@@ -141,7 +141,7 @@ export class FileClassStateManager {
     const file = leaf.view.file;
     if (!this.filter.isApplicable(file)) return;
 
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleActiveLeafChange', this.stackTrace(), leaf, leaf.view.file);
+    if (this.settings.debugMode) console.debug('FileClassStateManager: handleActiveLeafChange', {stack: this.stackTrace().stack, leaf, file});
     this.processFile(file);
   }
 
@@ -175,7 +175,7 @@ export class FileClassStateManager {
     if (this.settings.debugMode) console.debug(`FileClassStateManager: processFile - Stored state for ${file.path}`, newFileState);
 
     if (this.fileClassChangedCallback && oldFileState && oldFileState.checksum !== newFileState.checksum) {
-      console.info(`FileClassStateManager: processFile - Detected change in fileClass for ${file.path}`, this.stackTrace(), {oldFileState, newFileState});
+      console.info(`FileClassStateManager: processFile - Detected change in fileClass for ${file.path}`, {stack: this.stackTrace().stack, oldFileState, newFileState});
 
       this.callbackManager.schedule(file.path, {
         file,
@@ -187,13 +187,13 @@ export class FileClassStateManager {
   }
 
   public handleMetadataChanged(file: TFile, data: string, cache: CachedMetadata): void {
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleMetadataChanged', this.stackTrace(), {file, data, cache});
+    if (this.settings.debugMode) console.debug('FileClassStateManager: handleMetadataChanged', {stack: this.stackTrace().stack, file, data, cache});
     this.processFile(file, cache);
   }
 
   public handleCreateFileEvent(file: TAbstractFile) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleCreateFileEvent', this.stackTrace(), file);
+    if (this.settings.debugMode) console.debug('FileClassStateManager: handleCreateFileEvent', {stack: this.stackTrace().stack, file});
 
     // Check if this might be related to files we're currently processing
     const basename = file.name.replace('.md', '');
@@ -214,19 +214,19 @@ export class FileClassStateManager {
 
   public handleModifyFileEvent(file: TAbstractFile) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleModifyFileEvent', this.stackTrace(), file);
+    if (this.settings.debugMode) console.debug('FileClassStateManager: handleModifyFileEvent', {stack: this.stackTrace().stack, file});
     this.processFile(file);
   }
 
   public handleDeleteFileEvent(file: TAbstractFile) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleDeleteFileEvent', this.stackTrace(), file);
+    if (this.settings.debugMode) console.debug('FileClassStateManager: handleDeleteFileEvent', {stack: this.stackTrace().stack, file});
     this.cache.delete(file.path);
   }
 
   public handleRenameFileEvent(file: TAbstractFile, oldPath: string) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleRenameFileEvent', this.stackTrace(), file, oldPath);
+    if (this.settings.debugMode) console.debug('FileClassStateManager: handleRenameFileEvent', {stack: this.stackTrace().stack, file, oldPath});
 
     // Check if this rename was triggered by our callback
     if (this.isFileBeingRenamed(oldPath) || this.isFileBeingRenamed(file.path)) {

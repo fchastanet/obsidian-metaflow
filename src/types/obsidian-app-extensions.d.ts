@@ -17,5 +17,6 @@ declare module 'obsidian' {
 
   interface TAbstractFile {
     saving: boolean;
+    deleted: boolean;
   }
 }
