@@ -108,25 +108,10 @@ export class FileStateCache {
   }
 
   /**
-   * Clear all file states
-   */
-  clear(): void {
-    this.fileMap.clear();
-    this.scheduleSave();
-  }
-
-  /**
-   * Get the current size of the cache
-   */
-  get size(): number {
-    return this.fileMap.size;
-  }
-
-  /**
    * Cleanup method to call when the cache is no longer needed
    * Saves the cache immediately and clears the timer
    */
-  async cleanup(): Promise<void> {
+  async clear(): Promise<void> {
     if (this.saveTimer !== null) {
       window.clearTimeout(this.saveTimer);
       this.saveTimer = null;
@@ -135,5 +120,13 @@ export class FileStateCache {
     if (this.isDirty) {
       await this.save();
     }
+    this.fileMap.clear();
+  }
+
+  /**
+   * Get the current size of the cache
+   */
+  get size(): number {
+    return this.fileMap.size;
   }
 }

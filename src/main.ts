@@ -72,7 +72,7 @@ export default class MetaFlowPlugin extends Plugin {
     const fileValidationService = this.container.get<FileValidationService>(TYPES.FileValidationService);
 
     this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, this.logManager, this.obsidianAdapter,
+      this.settings, this.obsidianAdapter,
       fileClassDeductionService, fileValidationService,
       async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
         if (this.settings.autoMetadataInsertion) {
@@ -222,10 +222,10 @@ export default class MetaFlowPlugin extends Plugin {
 
   onunload() {
     // Clear all debounce timers
-    this.fileDebouncer.cleanup();
+    this.fileDebouncer.clear();
 
     // Cleanup FileClassStateManager and save cache
-    this.fileClassStateManager.cleanup();
+    this.fileClassStateManager.clear();
 
     // Remove CSS when plugin is disabled
     this.uiService.togglePropertiesVisibility(false);

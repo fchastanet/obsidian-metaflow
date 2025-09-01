@@ -49,7 +49,7 @@ export class FileDebouncer {
   /**
    * Clears all pending debounce timers
    */
-  cleanup() {
+  clear() {
     this.fileDebounceTimers.forEach(timerId => window.clearTimeout(timerId));
     this.fileDebounceTimers.clear();
   }

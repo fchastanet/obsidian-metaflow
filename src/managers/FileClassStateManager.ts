@@ -1,6 +1,5 @@
-import {App, CachedMetadata, MarkdownView, TAbstractFile, TFile, WorkspaceLeaf} from "obsidian";
+import {CachedMetadata, MarkdownView, TAbstractFile, TFile, WorkspaceLeaf} from "obsidian";
 import {MetaFlowSettings} from "../settings/types";
-import {LogManagerInterface} from "./types";
 import type {FileClassDeductionService} from "../services/FileClassDeductionService";
 import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
 import {FileValidationService} from "../services/FileValidationService";
@@ -8,6 +7,7 @@ import {FileStateCache} from "./FileStateCache";
 import {DebouncedCallbackManager} from "./DebouncedCallbackManager";
 import {FileProcessor} from "./FileProcessor";
 import {FileFilter} from "./FileFilter";
+import {DelayedFileProcessor} from "./DelayedFileProcessor";
 import {FileClassChangedCallback, FileClassChangeCallbackData} from "./FileClassChangeTypes";
 
 /**
@@ -15,9 +15,7 @@ import {FileClassChangedCallback, FileClassChangeCallbackData} from "./FileClass
  * Orchestrates between specialized components to manage file state tracking.
  */
 export class FileClassStateManager {
-  private app: App;
   private settings: MetaFlowSettings;
-  private logManager: LogManagerInterface;
   private fileClassChangedCallback?: FileClassChangedCallback;
 
   // Specialized components
@@ -25,23 +23,20 @@ export class FileClassStateManager {
   private callbackManager: DebouncedCallbackManager<FileClassChangeCallbackData>;
   private processor: FileProcessor;
   private filter: FileFilter;
+  private delayedProcessor: DelayedFileProcessor;
 
   // State management
   private enabled: boolean = true;
   private renamingFiles: Set<string> = new Set(); // Track files being renamed by callback
 
   constructor(
-    app: App,
     settings: MetaFlowSettings,
-    logManager: LogManagerInterface,
     obsidianAdapter: ObsidianAdapter,
     fileClassDeductionService: FileClassDeductionService,
     fileValidationService: FileValidationService,
     fileClassChangedCallback?: FileClassChangedCallback,
   ) {
-    this.app = app;
     this.settings = settings;
-    this.logManager = logManager;
     this.fileClassChangedCallback = fileClassChangedCallback;
 
     // Initialize specialized components
@@ -54,6 +49,21 @@ export class FileClassStateManager {
         await this.executeCallback(filePath, data);
       },
       settings
+    );
+
+    // Initialize the delayed file processor
+    this.delayedProcessor = new DelayedFileProcessor(
+      {
+        cache: this.cache,
+        processor: this.processor,
+        filter: this.filter,
+        callbackManager: this.callbackManager,
+        settings: this.settings,
+        isFileBeingProcessed: (filePath: string) => this.isFileBeingProcessed(filePath),
+        isFileBeingRenamed: (filePath: string) => this.isFileBeingRenamed(filePath),
+        stackTrace: () => this.stackTrace()
+      },
+      this.fileClassChangedCallback
     );
 
     // Load cache from disk
@@ -89,11 +99,7 @@ export class FileClassStateManager {
   public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     if (!enabled) {
-      // ensure all file states are cleared in case handle is called a little bit after mass update
-      this.cache.clear();
-      // Clear all pending callbacks and timers
-      this.callbackManager.clear();
-      this.renamingFiles.clear();
+      this.clear();
     }
   }
 
@@ -142,53 +148,12 @@ export class FileClassStateManager {
     if (!this.filter.isApplicable(file)) return;
 
     if (this.settings.debugMode) console.debug('FileClassStateManager: handleActiveLeafChange', {stack: this.stackTrace().stack, leaf, file});
-    this.processFile(file);
-  }
-
-  /**
-   * Process a file by computing its state and updating the cache
-   */
-  private processFile(file: TFile, cache?: CachedMetadata | null): void {
-    if (!this.filter.isApplicable(file)) return;
-
-    // Skip processing if the file is currently being processed by the callback
-    if (this.isFileBeingProcessed(file.path)) {
-      if (this.settings.debugMode) console.debug(`FileClassStateManager: processFile - File ${file.path} is being processed by callback, skipping`, this.stackTrace());
-      return;
-    }
-
-    // Skip processing if the file is currently being renamed by our callback
-    if (this.isFileBeingRenamed(file.path)) {
-      if (this.settings.debugMode) console.debug(`FileClassStateManager: processFile - File ${file.path} is being renamed by callback, skipping`, this.stackTrace());
-      return;
-    }
-
-    const oldFileState = this.cache.get(file.path);
-    if (oldFileState?.mtime === file.stat.mtime) {
-      if (this.settings.debugMode) console.debug(`FileClassStateManager: processFile - modification time same as previous for ${file.path}`, this.stackTrace());
-      return;
-    }
-
-    const newFileState = this.processor.computeFileState(file, cache);
-    this.cache.set(file.path, newFileState);
-
-    if (this.settings.debugMode) console.debug(`FileClassStateManager: processFile - Stored state for ${file.path}`, newFileState);
-
-    if (this.fileClassChangedCallback && oldFileState && oldFileState.checksum !== newFileState.checksum) {
-      console.info(`FileClassStateManager: processFile - Detected change in fileClass for ${file.path}`, {stack: this.stackTrace().stack, oldFileState, newFileState});
-
-      this.callbackManager.schedule(file.path, {
-        file,
-        cache: cache || null,
-        oldFileClass: oldFileState.fileClass,
-        newFileClass: newFileState.fileClass
-      });
-    }
+    this.delayedProcessor.scheduleProcessing(file);
   }
 
   public handleMetadataChanged(file: TFile, data: string, cache: CachedMetadata): void {
     if (this.settings.debugMode) console.debug('FileClassStateManager: handleMetadataChanged', {stack: this.stackTrace().stack, file, data, cache});
-    this.processFile(file, cache);
+    this.delayedProcessor.scheduleProcessing(file, cache);
   }
 
   public handleCreateFileEvent(file: TAbstractFile) {
@@ -209,13 +174,13 @@ export class FileClassStateManager {
       return;
     }
 
-    this.processFile(file);
+    this.delayedProcessor.scheduleProcessing(file);
   }
 
   public handleModifyFileEvent(file: TAbstractFile) {
     if (!this.filter.isApplicable(file)) return;
     if (this.settings.debugMode) console.debug('FileClassStateManager: handleModifyFileEvent', {stack: this.stackTrace().stack, file});
-    this.processFile(file);
+    this.delayedProcessor.scheduleProcessing(file);
   }
 
   public handleDeleteFileEvent(file: TAbstractFile) {
@@ -236,16 +201,17 @@ export class FileClassStateManager {
     }
 
     this.cache.delete(oldPath);
-    this.processFile(file);
+    this.delayedProcessor.scheduleProcessing(file);
   }
 
   /**
    * Cleanup method to call when the plugin is unloaded
    * Saves the cache immediately and clears the timer
    */
-  public async cleanup(): Promise<void> {
-    // Clear all pending callbacks and timers
+  public async clear(): Promise<void> {
     this.callbackManager.clear();
-    await this.cache.cleanup();
+    await this.cache.clear();
+    this.delayedProcessor.clear();
+    this.renamingFiles.clear();
   }
 }

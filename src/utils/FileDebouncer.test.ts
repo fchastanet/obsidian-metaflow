@@ -144,7 +144,7 @@ describe('FileDebouncer', () => {
 
       expect(debouncer.getPendingCount()).toBe(2);
 
-      debouncer.cleanup();
+      debouncer.clear();
 
       expect(debouncer.getPendingCount()).toBe(0);
 
@@ -156,7 +156,7 @@ describe('FileDebouncer', () => {
     it('should handle empty timer map', () => {
       expect(debouncer.getPendingCount()).toBe(0);
 
-      expect(() => debouncer.cleanup()).not.toThrow();
+      expect(() => debouncer.clear()).not.toThrow();
       expect(debouncer.getPendingCount()).toBe(0);
     });
   });

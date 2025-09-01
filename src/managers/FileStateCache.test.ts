@@ -133,12 +133,12 @@ describe('FileStateCache', () => {
   });
 
   describe('clear', () => {
-    it('should remove all file states', () => {
+    it('should remove all file states', async () => {
       cache.set('test1.md', {checksum: 'hash1', fileClass: 'class1', mtime: 1000});
       cache.set('test2.md', {checksum: 'hash2', fileClass: 'class2', mtime: 2000});
       expect(cache.size).toBe(2);
 
-      cache.clear();
+      await cache.clear();
 
       expect(cache.size).toBe(0);
       expect(cache.get('test1.md')).toBeUndefined();
@@ -201,7 +201,7 @@ describe('FileStateCache', () => {
 
       cache.set('test.md', fileState);
 
-      await cache.cleanup();
+      await cache.clear();
 
       expect(mockObsidianAdapter.saveToPluginDirectory).toHaveBeenCalledWith(
         'fileClassStateCache.json',
@@ -214,7 +214,7 @@ describe('FileStateCache', () => {
     it('should not save if not dirty', async () => {
       mockObsidianAdapter.saveToPluginDirectory.mockResolvedValue(undefined);
 
-      await cache.cleanup();
+      await cache.clear();
 
       expect(mockObsidianAdapter.saveToPluginDirectory).not.toHaveBeenCalled();
     });
