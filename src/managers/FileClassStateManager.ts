@@ -8,7 +8,7 @@ import {DebouncedCallbackManager} from "./DebouncedCallbackManager";
 import {FileProcessor} from "./FileProcessor";
 import {FileFilter} from "./FileFilter";
 import {DelayedFileProcessor} from "./DelayedFileProcessor";
-import {FileClassChangedCallback, FileClassChangeCallbackData} from "./FileClassChangeTypes";
+import {FileClassChangedCallback, FileClassChangeCallbackData} from "./types";
 
 /**
  * Detects when fileClass is manually changed by the user.
@@ -24,6 +24,8 @@ export class FileClassStateManager {
   private processor: FileProcessor;
   private filter: FileFilter;
   private delayedProcessor: DelayedFileProcessor;
+  private obsidianAdapter: ObsidianAdapter;
+  private fileValidationService: FileValidationService;
 
   // State management
   private enabled: boolean = true;
@@ -43,6 +45,8 @@ export class FileClassStateManager {
     this.cache = new FileStateCache(obsidianAdapter, settings);
     this.processor = new FileProcessor(fileClassDeductionService, obsidianAdapter, settings);
     this.filter = new FileFilter(fileValidationService, obsidianAdapter);
+    this.fileValidationService = fileValidationService;
+    this.obsidianAdapter = obsidianAdapter;
 
     this.callbackManager = new DebouncedCallbackManager(
       async (filePath: string, data: FileClassChangeCallbackData) => {
@@ -68,6 +72,56 @@ export class FileClassStateManager {
 
     // Load cache from disk
     this.cache.load();
+  }
+
+
+  /**
+   * Check if a file is applicable for processing
+   */
+  private isApplicable(file: TAbstractFile | null | undefined, data: undefined | null | string): file is TFile {
+    if (!file) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is null or undefined');
+      return false;
+    }
+    if (!(file instanceof TFile)) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a TFile', file);
+      return false;
+    }
+    if (!file?.basename || !file?.path) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is missing basename or path', file);
+      return false;
+    }
+    if (file?.deleted) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is deleted', file);
+      return false;
+    }
+    if (file.saving) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is currently being saved', file);
+    }
+    if (data === '') {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file data is empty', file);
+      return false;
+    }
+
+    // Check if the file is a Markdown file
+    if (file.extension !== 'md') {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a Markdown file', file);
+      return false;
+    }
+
+    if (this.fileValidationService.ifFileExcluded(file)) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is excluded', file);
+      return false;
+    }
+
+    // Check if the file has a valid frontmatter
+    const cache = this.obsidianAdapter.getCachedFile(file);
+    if (!cache || !cache.frontmatter) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is missing frontmatter', file);
+      return false;
+    }
+
+    return true;
   }
 
   /**

@@ -1,13 +1,16 @@
 {
-  "search.useIgnoreFiles": true,
   "search.exclude": {
-    "**/node_modules": true,
+    ".history": true,
+    "node_modules": true,
     "**/*.code-search": true,
+    "coverage": true,
+    "dist": true,
     "main.js": true,
   },
   "explorer.autoReveal": false,
   "files.exclude": {
-    "**/.git": true,
+    ".git": true,
+    ".history": true,
     "node_modules": true
   },
   "editor.formatOnSave": true,

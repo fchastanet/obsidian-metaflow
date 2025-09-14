@@ -4,7 +4,7 @@ import {FileStateCache} from "./FileStateCache";
 import {FileProcessor} from "./FileProcessor";
 import {FileFilter} from "./FileFilter";
 import {DebouncedCallbackManager} from "./DebouncedCallbackManager";
-import {FileClassChangeCallbackData} from "./FileClassChangeTypes";
+import {FileClassChangeCallbackData} from "./types";
 
 export interface DelayedFileProcessorOptions {
   cache: FileStateCache;

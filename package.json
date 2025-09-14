@@ -3,16 +3,6 @@
   "version": "1.0.0",
   "description": "Automated metadata workflow management for Obsidian - sort properties, insert missing fields, and execute custom default value scripts with MetadataMenu and Templater integration",
   "main": "main.js",
-  "scripts": {
-    "dev": "node esbuild.config.mjs",
-    "debug": "node esbuild.config.mjs debug",
-    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "sync": "node -e \"import('./scripts/sync.mjs').then(m => m.syncFiles())\"",
-    "version": "node scripts/version-bump.mjs && git add manifest.json versions.json"
-  },
   "keywords": [
     "obsidian",
     "obsidian-plugin",
@@ -28,6 +18,28 @@
   "funding": {
     "type": "coffeescript",
     "url": "https://coff.ee/fchastanetl"
+  },
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "debug": "node esbuild.config.mjs debug",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "sync": "node -e \"import('./scripts/sync.mjs').then(m => m.syncFiles())\"",
+    "version": "node scripts/version-bump.mjs && git add manifest.json versions.json",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/obsidian-metaflow-win.exe",
+    "build:binary": "pkg . --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --out-path dist/",
+    "build:all": "npm run build && npm run build:binary"
+  },
+  "pkg": {
+    "scripts": "lib/**/*.js",
+    "assets": [
+      "lib/**/*",
+      "manifest.json",
+      "versions.json"
+    ],
+    "outputPath": "dist/"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

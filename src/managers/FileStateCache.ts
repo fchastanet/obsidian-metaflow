@@ -12,6 +12,8 @@ export interface FileState {
  */
 export class FileStateCache {
   private fileMap: Map<string, FileState> = new Map();
+  private renamingFileMap: Map<string, string> = new Map(); // Track files being renamed by this plugin
+
   private isDirty: boolean = false;
   private saveTimer: number | null = null;
   private readonly SAVE_INTERVAL = 15000; // 15 seconds
@@ -105,6 +107,24 @@ export class FileStateCache {
   delete(filePath: string): void {
     this.fileMap.delete(filePath);
     this.scheduleSave();
+  }
+
+  /**
+   * Call this function to mark a file as being renamed (typically by this plugin)
+   * @param filePath
+   */
+  markFileAsBeingRenamed(filePath: string): void {
+    this.renamingFileMap.set(filePath, filePath);
+  }
+
+  renameFile(oldPath: string, newPath: string): void {
+    if (oldPath === newPath) return;
+    const state = this.fileMap.get(oldPath);
+    if (state) {
+      this.fileMap.delete(oldPath);
+      this.fileMap.set(newPath, state);
+      this.scheduleSave();
+    }
   }
 
   /**
