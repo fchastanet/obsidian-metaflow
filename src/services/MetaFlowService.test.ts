@@ -1,8 +1,8 @@
-import {FileStats, TFile, TFolder} from 'obsidian';
+import {FileStats, TFile} from 'obsidian';
 import {MetaFlowService} from './MetaFlowService';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {LogManagerInterface} from 'src/managers/types';
-import {MetaFlowSettings, FolderFileClassMapping} from '../settings/types';
+import {MetaFlowSettings} from '../settings/types';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({

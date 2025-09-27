@@ -109,7 +109,7 @@ describe('DebouncedCallbackManager', () => {
 
   describe('isProcessing', () => {
     it('should return true when callback is being executed', async () => {
-      let callbackResolve: () => void;
+      let callbackResolve: (() => void) | undefined = undefined;
       const callbackPromise = new Promise<void>((resolve) => {
         callbackResolve = resolve;
       });
@@ -230,7 +230,7 @@ describe('DebouncedCallbackManager', () => {
     });
 
     it('should clear processing state', async () => {
-      let callbackResolve: () => void;
+      let callbackResolve: (() => void) | undefined = undefined;
       const callbackPromise = new Promise<void>((resolve) => {
         callbackResolve = resolve;
       });
@@ -242,11 +242,13 @@ describe('DebouncedCallbackManager', () => {
       const timerCallback = mockSetTimeout.mock.calls[0][0];
       const executePromise = timerCallback();
       await jest.runAllTicks();
-
       expect(manager.isProcessing('key1')).toBe(true);
 
       manager.clear();
 
+      expect(executePromise).resolves.toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      expect(callbackResolve).toBeDefined();
       expect(manager.isProcessing('key1')).toBe(false);
     });
   });

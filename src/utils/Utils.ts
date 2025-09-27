@@ -4,22 +4,9 @@ export class Utils {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  static async sleep<T extends (...args: any[]) => any>(timeout: number, fn: T, ...args: Parameters<T>): Promise<ReturnType<T>> {
+  static async sleep(timeout: number, fn: () => void): Promise<void> {
     await this.timeout(timeout);
-    return fn(...args);
-  }
-
-  /**
-   * Creates a debounced version of the provided function.
-   * The debounced function delays invoking the function until after wait milliseconds have elapsed
-   * since the last time it was invoked.
-   */
-  static debounce<T extends (...args: any[]) => void>(fn: T, wait: number): (...args: Parameters<T>) => void {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    return (...args: Parameters<T>) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fn(...args), wait);
-    };
+    return fn();
   }
 
   /**

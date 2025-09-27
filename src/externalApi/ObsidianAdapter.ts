@@ -109,7 +109,7 @@ export class ObsidianAdapter {
    * @param fileName The name of the file to save
    * @param data The data to save (will be JSON stringified)
    */
-  async saveToPluginDirectory(fileName: string, data: any): Promise<void> {
+  async saveToPluginDirectory(fileName: string, data: unknown): Promise<void> {
     try {
       const pluginDir = `${this.app.vault.configDir}/plugins/metaflow`;
       const filePath = normalizePath(`${pluginDir}/${fileName}`);
@@ -131,7 +131,7 @@ export class ObsidianAdapter {
    * @param fileName The name of the file to load
    * @returns The parsed JSON data or null if file doesn't exist
    */
-  async loadFromPluginDirectory(fileName: string): Promise<any | null> {
+  async loadFromPluginDirectory(fileName: string): Promise<unknown | null> {
     try {
       const pluginDir = `${this.app.vault.configDir}/plugins/metaflow`;
       const filePath = normalizePath(`${pluginDir}/${fileName}`);

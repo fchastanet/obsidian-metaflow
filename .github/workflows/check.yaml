@@ -16,7 +16,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Sets push commit to pending status
+      - name: Sets lint status to pending status
+        uses: ouzi-dev/commit-status-updater@v2
+        with:
+          name: "lint"
+
+      - name: Sets unit-test status to pending status
         uses: ouzi-dev/commit-status-updater@v2
         with:
           name: "unit-test"
@@ -30,11 +35,20 @@ jobs:
         if: ${{ hashFiles('package-lock.json') != '' }}
         run: npm install
 
+      - name: Lint the plugin
+        run: npm run lint
+
       - name: Build the plugin
         run: npm run build
 
       - name: Test the plugin
         run: npm run test
+
+      - if: always()
+        uses: ouzi-dev/commit-status-updater@v2
+        with:
+          name: "lint"
+          status: "${{ job.status }}"
 
       - if: always()
         uses: ouzi-dev/commit-status-updater@v2

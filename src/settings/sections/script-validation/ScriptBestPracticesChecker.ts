@@ -1,10 +1,10 @@
-import { ScriptASTParser, ParsedScript } from './ScriptASTParser';
+import {ScriptASTParser} from './ScriptASTParser';
 
 /**
  * ScriptBestPracticesChecker handles warnings and best practice validation
  */
 export class ScriptBestPracticesChecker {
-  constructor(private astParser: ScriptASTParser) {}
+  constructor(private astParser: ScriptASTParser) { }
 
   /**
    * Checks for script best practices and returns warnings
@@ -48,6 +48,7 @@ export class ScriptBestPracticesChecker {
   /**
    * Checks if AST contains console statements
    */
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private hasConsoleStatements(node: any): boolean {
     if (!node || typeof node !== 'object') {
       return false;
@@ -83,6 +84,7 @@ export class ScriptBestPracticesChecker {
   /**
    * Analyzes return statements using AST to determine if they likely return strings
    */
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private returnsStringAST(node: any): boolean {
     if (!node || typeof node !== 'object') {
       return false;
@@ -114,6 +116,7 @@ export class ScriptBestPracticesChecker {
   /**
    * Determines if an AST expression is likely to produce a string
    */
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private isLikelyStringExpression(node: any): boolean {
     if (!node || typeof node !== 'object') {
       return false;

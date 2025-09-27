@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import {TFile} from "obsidian";
+import {FrontMatterCache, TFile} from "obsidian";
 import type {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
 import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
@@ -28,11 +28,11 @@ export class PropertyManagementService {
    * Add default values to properties using the configured scripts
    */
   addDefaultValuesToProperties(
-    frontmatter: {[key: string]: any},
+    frontmatter: FrontMatterCache,
     file: TFile,
     fileClass: string,
     logManager: LogManagerInterface
-  ): {[key: string]: any} {
+  ): FrontMatterCache {
     const enrichedFrontmatter = {...frontmatter};
 
     // Ensure fileClass is set
@@ -90,7 +90,7 @@ export class PropertyManagementService {
   /**
    * Sort properties based on the order defined in propertyDefaultValueScripts
    */
-  sortProperties(frontmatter: {[key: string]: any}, sortUnknownPropertiesLast: boolean): {[key: string]: any} {
+  sortProperties(frontmatter: FrontMatterCache, sortUnknownPropertiesLast: boolean): FrontMatterCache {
     if (!frontmatter || typeof frontmatter !== 'object' || Array.isArray(frontmatter)) {
       return frontmatter;
     }
@@ -135,7 +135,7 @@ export class PropertyManagementService {
     });
 
     // Build the sorted frontmatter object
-    return sortedKeys.reduce(function (result: any, key) {
+    return sortedKeys.reduce(function (result: Record<string, unknown>, key) {
       result[key] = frontmatter[key];
       return result;
     }, {});
@@ -144,13 +144,14 @@ export class PropertyManagementService {
   /**
    * Execute a property default value script
    */
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private executePropertyScript(
     script: PropertyDefaultValueScript,
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     logManager: LogManagerInterface
-  ): any {
+  ): unknown {
     // Get utilities from ScriptContextService
     const context = this.scriptContextService.getScriptContext(
       file,

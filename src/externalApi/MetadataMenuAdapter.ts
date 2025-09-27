@@ -1,6 +1,5 @@
 import {injectable, inject} from 'inversify';
-import type {App} from 'obsidian';
-import {TFile} from 'obsidian';
+import type {App, FrontMatterCache} from 'obsidian';
 import type {MetaFlowSettings} from '../settings/types';
 import {MetadataMenuField, MetadataMenuPluginInterface} from './types.MetadataMenu';
 import {MetaFlowException} from '../MetaFlowException';
@@ -11,11 +10,7 @@ export interface FieldsFileClassAssociation {
   [fieldName: string]: {
     fileClasses: string[],
   }
-};
-
-export interface Frontmatter {
-  [fieldName: string]: any;
-};
+}
 
 @injectable()
 export class MetadataMenuAdapter {
@@ -94,7 +89,7 @@ export class MetadataMenuAdapter {
    * 2. More specific ancestor fields (e.g., "default")
    * 3. Finally the main fileClass fields (e.g., "book")
    */
-  syncFields(frontmatter: Frontmatter, fileClassName: string, logManager: LogManagerInterface): Frontmatter {
+  syncFields(frontmatter: FrontMatterCache, fileClassName: string, logManager: LogManagerInterface): FrontMatterCache {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
@@ -166,7 +161,7 @@ export class MetadataMenuAdapter {
     ) {
       throw new MetaFlowException('No fileClass definitions found in MetadataMenu', 'warning');
     }
-    let allFields: Map<string, MetadataMenuField & {fileClasses?: string[]}> = new Map();
+    const allFields: Map<string, MetadataMenuField & {fileClasses?: string[]}> = new Map();
     metadataMenuPlugin.fieldIndex.fileClassesFields.forEach(
       (fields: MetadataMenuField[], fc: string) => {
         fields.forEach((field) => {
@@ -222,7 +217,7 @@ export class MetadataMenuAdapter {
   /**
    * Get fileClass from metadata based on MetadataMenu fileClass alias
    */
-  getFileClassFromMetadata(metadata: any): string | null {
+  getFileClassFromMetadata(metadata: FrontMatterCache): string | null {
     if (!metadata || typeof metadata !== 'object') {
       return null;
     }

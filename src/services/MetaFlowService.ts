@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import type {App, CachedMetadata} from "obsidian";
+import type {App, CachedMetadata, FrontMatterCache} from "obsidian";
 import {TFile} from "obsidian";
 import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
 import type {FrontMatterService} from "./FrontMatterService";
@@ -106,7 +106,7 @@ export class MetaFlowService {
       this.metadataMenuAdapter.getFileClassByName(fileClass);
 
       // Step 3: Synchronize frontmatter with new/obsolete fileClass's fields
-      let updatedFrontmatter: any = cache?.frontmatter || {};
+      let updatedFrontmatter: FrontMatterCache = cache?.frontmatter || {};
       updatedFrontmatter = this.metadataMenuAdapter.syncFields(updatedFrontmatter, fileClass, logManager);
 
       // Step 4: sort properties if autoSort is enabled
@@ -126,8 +126,6 @@ export class MetaFlowService {
         await this.fileOperationsService.updateFrontmatter(file, enrichedFrontmatter, true)
         // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
         try {
-          let updatedFile = file;
-
           // Get new title if autoRenameNote is enabled
           let newTitle: string = file.basename;
           if (this.metaFlowSettings.autoRenameNote) {
@@ -141,7 +139,7 @@ export class MetaFlowService {
           }
 
           // Apply file operations if needed
-          updatedFile = await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath, logManager);
+          await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath, logManager);
         } catch (error) {
           const msg = (error instanceof MetaFlowException) ?
             `Error processing file operations: ${error.message}` :
@@ -165,7 +163,7 @@ export class MetaFlowService {
       // Step 1: parse frontmatter
       const parseResult = this.frontMatterService.parseFrontmatter(content);
 
-      let frontmatter: any = {};
+      let frontmatter: FrontMatterCache = {};
       let bodyContent = content;
 
       if (parseResult) {
@@ -174,7 +172,7 @@ export class MetaFlowService {
       }
 
       // Step 2: Determine or validate fileClass
-      let fileClass = this.metadataMenuAdapter.getFileClassFromMetadata(frontmatter);
+      const fileClass = this.metadataMenuAdapter.getFileClassFromMetadata(frontmatter);
       let newFileClass;
       if (!fileClass) {
         // Try to deduce fileClass from folder/fileClass mapping
@@ -194,7 +192,7 @@ export class MetaFlowService {
       this.metadataMenuAdapter.getFileClassByName(newFileClass);
 
       // Step 4: Synchronize frontmatter with new/obsolete fileClass's fields
-      let updatedFrontmatter: any = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass, logManager);
+      let updatedFrontmatter: FrontMatterCache = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass, logManager);
       if (newFileClass !== fileClass) {
         logManager.addInfo(`File class changed for "${file.name}": ${fileClass} -> ${newFileClass}`);
       }
@@ -220,7 +218,7 @@ export class MetaFlowService {
     }
   }
 
-  public getFrontmatterFromContent(content: string): any | null {
+  public getFrontmatterFromContent(content: string): FrontMatterCache | null {
     const parseResult = this.frontMatterService.parseFrontmatter(content);
     return parseResult?.metadata || null;
   }
@@ -233,7 +231,7 @@ export class MetaFlowService {
       // Step 1: parse frontmatter
       const parseResult = this.frontMatterService.parseFrontmatter(content);
 
-      let enrichedFrontmatter: any = {};
+      let enrichedFrontmatter: FrontMatterCache = {};
 
       if (parseResult) {
         enrichedFrontmatter = parseResult.metadata || {};
@@ -309,7 +307,7 @@ export class MetaFlowService {
   public formatNoteTitle(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     logManager: LogManagerInterface
   ): string {
     return this.noteTitleService.formatNoteTitle(file, fileClass, metadata, logManager);

@@ -2,8 +2,9 @@
 
 ## Overview
 
-The Linting system for title templates and scripts takes place in the `FolderFileClassMappingsSection.ts` file.
-This implementation provides real-time validation feedback to help users create valid templates and scripts, **using Acorn parser for robust JavaScript analysis**.
+The Linting system for title templates and scripts takes place in the `FolderFileClassMappingsSection.ts` file. This
+implementation provides real-time validation feedback to help users create valid templates and scripts, **using Acorn
+parser for robust JavaScript analysis**.
 
 ## Architecture
 
@@ -21,6 +22,7 @@ The linting system is organized into focused classes for maintainability and per
 ## Key Features
 
 ### Template Validation
+
 - Empty template detection
 - Balanced braces validation (`{}`, `[]`, `()`)
 - Valid variable name validation (e.g., `{{title}}`, `{{metadata.date}}`)
@@ -29,6 +31,7 @@ The linting system is organized into focused classes for maintainability and per
 - Warning for very long templates
 
 ### Script Validation
+
 - Empty script detection
 - Return statement requirement (AST-based detection)
 - Execution path analysis: ensures all code branches return a value
@@ -89,48 +92,49 @@ console.log(linter.getCacheSize()); // Get cache size
 ## Integration with FolderFileClassMappingsSection
 
 ### Template Input Enhancement
+
 - Real-time validation feedback for template inputs
 - Validation messages appear below each template input field
 - Color-coded feedback (green for success, yellow for warnings, red for errors)
 
 ### Script Editor Enhancement
+
 - Validation feedback for the script editor
 - Validation occurs with a 500ms delay to avoid excessive updates
 - Feedback appears in a dedicated validation container
 
 ### UI Components
+
 Helper methods:
+
 - `createValidationFeedback()`: Creates styled feedback elements
 - `updateValidationFeedback()`: Updates validation state for inputs
 
 ## Styling
 
 CSS Classes:
+
 ```css
-.metaflow-validation-feedback - Base feedback container
-.metaflow-validation-success - Success state styling
-.metaflow-validation-warning - Warning state styling
-.metaflow-validation-error - Error state styling
-.metaflow-validation-icon - Icon styling
-.metaflow-validation-message - Message text styling
-.metaflow-settings-template-input-container - Template input wrapper
-.metaflow-script-validation-container - Script validation container
+.metaflow-validation-feedback - Base feedback container .metaflow-validation-success - Success state styling .metaflow-validation-warning - Warning state styling .metaflow-validation-error - Error state styling .metaflow-validation-icon - Icon styling .metaflow-validation-message - Message text styling .metaflow-settings-template-input-container - Template input wrapper .metaflow-script-validation-container - Script validation container
 ```
 
 ## User Experience Improvements
 
 ### Real-time Feedback
+
 - Immediate validation results as users type
 - Clear, actionable error messages
 - Visual indicators (✅, ⚠️, ❌) for instant status recognition
 
 ### Template Validation Examples
+
 - ✅ `{{title}} - {{author}}` - Valid template
 - ⚠️ `{title} - {{author}}` - Warning about single braces
 - ❌ `{{title} - {{author}}` - Error: unbalanced braces
 - ❌ `{{}} - {{author}}` - Error: empty variable
 
 ### Script Validation Examples
+
 - ✅ `return file.basename + " - " + metadata.date;` - Valid script
 - ✅ `if (metadata.title) { return metadata.title; } else { return file.basename; }` - All branches return
 - ⚠️ `console.log("debug"); return file.basename;` - Warning about console
@@ -142,6 +146,7 @@ CSS Classes:
 ## Technical Implementation Details
 
 ### Acorn Integration
+
 - **AST-based parsing** instead of fragile regex patterns
 - **Intelligent fragment handling** - wraps script fragments in functions for valid parsing
 - **Execution path analysis** - verifies all code branches return string values
@@ -152,6 +157,7 @@ CSS Classes:
 - **Fallback to regex** when AST parsing fails
 
 ### ValidationResult Interface
+
 ```typescript
 interface ValidationResult {
   isValid: boolean;
@@ -161,7 +167,9 @@ interface ValidationResult {
 ```
 
 ### Security Features
+
 AST-based security analysis prevents:
+
 - Code injection via `eval()`
 - Dynamic function creation (`Function()`, `new Function()`)
 - Timer functions (`setTimeout`, `setInterval`)
@@ -169,6 +177,7 @@ AST-based security analysis prevents:
 - Accurate detection through proper code parsing
 
 ### Performance Considerations
+
 - AST parsing with graceful fallback to regex
 - Validation is debounced for script editing (500ms delay)
 - Intelligent fragment handling
@@ -180,6 +189,7 @@ AST-based security analysis prevents:
 Comprehensive unit tests for each component:
 
 ### Test Coverage
+
 - **ValidationResult.test.ts**: Interface structure, type constraints, serialization
 - **ScriptASTParser.test.ts**: Parsing, caching, error handling, edge cases
 - **ScriptSyntaxValidator.test.ts**: Valid/invalid syntax, error messages, edge cases
@@ -200,6 +210,7 @@ Comprehensive unit tests for each component:
 ## Future Enhancements
 
 Potential improvements:
+
 - Syntax highlighting for template variables
 - Template preview functionality
 - More sophisticated script analysis

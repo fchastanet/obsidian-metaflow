@@ -1,4 +1,5 @@
 // Mock ProgressModal
+import {MassUpdateMetadataCommand} from './MassUpdateMetadataCommand';
 jest.mock('../ui/ProgressModal', () => ({
   ProgressModal: jest.fn().mockImplementation((app, totalFiles, title, description, onCancel, onExecute) => ({
     open: jest.fn(() => onExecute()),
@@ -16,8 +17,6 @@ jest.mock('../utils/Utils', () => ({
   }
 }));
 
-import {MassUpdateMetadataCommand} from './MassUpdateMetadataCommand';
-import {MetaFlowException} from '../MetaFlowException';
 import {Container} from 'inversify';
 import {TYPES} from '../di/types';
 import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
@@ -32,7 +31,6 @@ jest.mock('obsidian', () => ({
   Notice: jest.fn(),
   App: class MockApp { }
 }));
-import {TFile} from 'obsidian';
 
 describe('MassUpdateMetadataCommand', () => {
   let command: MassUpdateMetadataCommand;

@@ -1,5 +1,5 @@
 import {App, Setting, Notice} from "obsidian";
-import {FolderFileClassMapping} from "../types";
+import {FolderFileClassMapping, NoteTitleTemplate} from "../types";
 import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
 import {FolderSuggest} from "../FolderSuggest";
 import {ObsidianAdapter} from "../../externalApi/ObsidianAdapter";
@@ -332,7 +332,7 @@ export class FolderFileClassMappingsSection {
     }
 
     // moveToFolder toggle
-    const [moveToFolderToggle, moveToFolderLabel] = SettingsUtils.createCheckboxWithLabel(controlRow, {
+    const [moveToFolderToggle] = SettingsUtils.createCheckboxWithLabel(controlRow, {
       label: 'Auto-Move',
       labelClass: 'metaflow-settings-mapping-moveToFolder-label',
       labelTitle: 'Move files to this folder if they match this fileClass',
@@ -368,13 +368,13 @@ export class FolderFileClassMappingsSection {
     });
   }
 
-  private displayNoteTitleTemplates(mappingDiv: HTMLElement, mapping: any, mappingIndex: number): void {
+  private displayNoteTitleTemplates(mappingDiv: HTMLElement, mapping: FolderFileClassMapping, mappingIndex: number): void {
     // Initialize properties if not exists
     if (!mapping.noteTitleTemplates) {
       mapping.noteTitleTemplates = [];
     }
-    if (!mapping.noteTitleScripts) {
-      mapping.noteTitleScripts = [];
+    if (!mapping.noteTitleScript) {
+      mapping.noteTitleScript = {script: 'return "";', enabled: true};
     }
     if (!mapping.templateMode) {
       mapping.templateMode = 'template';
@@ -390,7 +390,7 @@ export class FolderFileClassMappingsSection {
     }
   }
 
-  private displayTemplateRows(container: HTMLElement, mapping: any, mappingIndex: number): void {
+  private displayTemplateRows(container: HTMLElement, mapping: FolderFileClassMapping, mappingIndex: number): void {
     container.empty();
 
     // Toolbar
@@ -413,7 +413,7 @@ export class FolderFileClassMappingsSection {
       this.displayNoteTitleTemplates(container.parentElement as HTMLElement, mapping, mappingIndex);
     };
 
-    mapping.noteTitleTemplates.forEach((template: any, templateIndex: number) => {
+    mapping.noteTitleTemplates.forEach((template: NoteTitleTemplate, templateIndex: number) => {
       const templateRow = container.createDiv({cls: 'metaflow-settings-template-row'});
 
       // Add drag and drop functionality for templates
@@ -441,7 +441,7 @@ export class FolderFileClassMappingsSection {
       }
 
       // Enabled toggle
-      const [enabledToggle, enabledLabel] = SettingsUtils.createCheckboxWithLabel(templateRow, {
+      const [enabledToggle] = SettingsUtils.createCheckboxWithLabel(templateRow, {
         label: 'Enabled',
         labelClass: 'metaflow-settings-template-checkbox-label',
         labelTitle: 'Toggle template enabled state',
@@ -475,7 +475,7 @@ export class FolderFileClassMappingsSection {
 
     const toolbarReadOnly = container.createEl('div', {cls: 'metaflow-script-toolbar'});
     // Enabled toggle
-    const [enabledTogglePreview, enabledLabelPreview] = SettingsUtils.createCheckboxWithLabel(
+    const [enabledTogglePreview] = SettingsUtils.createCheckboxWithLabel(
       toolbarReadOnly, {
       labelClass: 'metaflow-settings-script-enabled-label',
       labelTitle: 'Allows this script to run',
@@ -539,7 +539,7 @@ export class FolderFileClassMappingsSection {
     const validationContainer = scriptDiv.createEl('div', {cls: 'metaflow-script-validation-container'});
 
     // Store original values for cancel functionality
-    let originalScript = script.script;
+    const originalScript = script.script;
 
     // Script editor
     const scriptEditor = new ScriptEditor(this.app, this.metadataMenuAdapter, {

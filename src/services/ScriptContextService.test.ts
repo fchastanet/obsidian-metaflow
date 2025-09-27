@@ -1,8 +1,8 @@
 import {ScriptContextService} from './ScriptContextService';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
 import {expectNoLogs, mockLogManager} from '../__mocks__/logManager';
 import {TFile} from 'obsidian';
 import {ObsidianAdapter as OriginalObsidianAdapter} from '../externalApi/ObsidianAdapter';
+import {TemplaterAdapter} from 'src/externalApi/TemplaterAdapter';
 
 // Mock the adapters
 jest.mock('../externalApi/TemplaterAdapter', () => ({
@@ -18,21 +18,29 @@ jest.mock('../externalApi/TemplaterAdapter', () => ({
 
 
 describe('ScriptContextService', () => {
-  let mockApp: any;
   let scriptContextService: ScriptContextService;
-  let mockTemplaterAdapter: any;
+  let mockTemplaterAdapter: TemplaterAdapter;
   let mockObsidianAdapter: any;
 
   beforeEach(() => {
     // Create mock TemplaterAdapter
     mockTemplaterAdapter = {
-      formatDate: jest.fn((format?: string) => '2025-07-30'),
+      formatDate: jest.fn((date: Date, format?: string) => '2025-07-30'),
+      formatDateFallback: jest.fn((date: Date, format?: string) => '2025-07-30'),
+      isValidMdFile: (file: any): file is TFile => true,
       now: jest.fn(() => '2025-07-30'),
       tomorrow: jest.fn(() => '2025-07-31'),
       yesterday: jest.fn(() => '2025-07-29'),
       prompt: jest.fn(async (message: string) => 'mocked-input'),
-      getParentFile: jest.fn((currentFile: TFile) => 'mocked-parent-file')
-    };
+      getParentFile: jest.fn((currentFile: TFile) => 'mocked-parent-file'),
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      app: {} as any,
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      settings: {} as any,
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      obsidianAdapter: {} as any,
+      TEMPLATER_PLUGIN_NAME: 'Templater',
+    } as any;
 
     // Create mock ObsidianAdapter
     mockObsidianAdapter = {
@@ -43,19 +51,6 @@ describe('ScriptContextService', () => {
       createMockTFile: OriginalObsidianAdapter.createMockTFile
     };
 
-    // Setup mock app
-    mockApp = {
-      plugins: {
-        plugins: {}
-      },
-      fileManager: {
-        generateMarkdownLink: jest.fn((file, path) => `[[${file.name}]]`)
-      },
-      vault: {
-        getAbstractFileByPath: jest.fn((path: string) => OriginalObsidianAdapter.createMockTFile(path)),
-        getMarkdownFiles: jest.fn(() => [])
-      }
-    };
     scriptContextService = new ScriptContextService(
       mockTemplaterAdapter,
       mockObsidianAdapter
@@ -200,6 +195,7 @@ describe('ScriptContextService', () => {
 
       const context = scriptContextService.getScriptContext(mockFile, fileClass, metadata, mockLogManager);
 
+      // @ts-expect-error: intentionally using a partial mock for testing
       expect(context.generateMarkdownLink(linkTarget)).toBe('[[target.md]]');
       expectNoLogs();
     });

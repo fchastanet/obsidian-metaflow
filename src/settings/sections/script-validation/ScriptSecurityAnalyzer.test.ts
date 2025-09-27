@@ -18,7 +18,7 @@ describe('ScriptSecurityAnalyzer', () => {
     describe('safe scripts', () => {
       it('should accept simple return statements', () => {
         const result = analyzer.checkSecurity('return "hello world";');
-        
+
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('');
         expect(result.type).toBe('success');
@@ -29,7 +29,7 @@ describe('ScriptSecurityAnalyzer', () => {
           const title = metadata.title || file.basename;
           return title.toUpperCase();
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -41,7 +41,7 @@ describe('ScriptSecurityAnalyzer', () => {
             .replace(/[-_]/g, " ")
             .trim();
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -51,7 +51,7 @@ describe('ScriptSecurityAnalyzer', () => {
           const words = file.basename.split(/[-_\\s]+/);
           return words.map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -61,7 +61,7 @@ describe('ScriptSecurityAnalyzer', () => {
           const now = new Date();
           return file.basename + " (" + now.getFullYear() + ")";
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -75,7 +75,7 @@ describe('ScriptSecurityAnalyzer', () => {
             return file.basename;
           }
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -84,7 +84,7 @@ describe('ScriptSecurityAnalyzer', () => {
         const result = analyzer.checkSecurity(`
           return file.basename.replace(/[^a-zA-Z0-9\\s]/g, '').trim();
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -99,7 +99,7 @@ describe('ScriptSecurityAnalyzer', () => {
             return "Untitled";
           }
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -108,7 +108,7 @@ describe('ScriptSecurityAnalyzer', () => {
     describe('dangerous patterns - AST detection', () => {
       it('should reject eval() usage', () => {
         const result = analyzer.checkSecurity('return eval("2 + 2");');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
@@ -116,7 +116,7 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject Function constructor', () => {
         const result = analyzer.checkSecurity('return Function("return 42")();');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
@@ -124,7 +124,7 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject new Function()', () => {
         const result = analyzer.checkSecurity('const fn = new Function("a", "b", "return a + b"); return fn(1, 2);');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
@@ -132,7 +132,7 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject setTimeout', () => {
         const result = analyzer.checkSecurity('setTimeout(() => console.log("hello"), 1000); return "test";');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
@@ -140,7 +140,7 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject setInterval', () => {
         const result = analyzer.checkSecurity('setInterval(() => console.log("hello"), 1000); return "test";');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
@@ -148,7 +148,7 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject require() calls', () => {
         const result = analyzer.checkSecurity('const fs = require("fs"); return fs.readFileSync("file.txt");');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: require() may access system resources');
         expect(result.type).toBe('error');
@@ -156,7 +156,7 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject dynamic imports', () => {
         const result = analyzer.checkSecurity('const module = await import("./module.js"); return module.getData();');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic imports may access external resources');
         expect(result.type).toBe('error');
@@ -171,7 +171,7 @@ describe('ScriptSecurityAnalyzer', () => {
           };
           return data.process("2 + 2");
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
@@ -186,7 +186,7 @@ describe('ScriptSecurityAnalyzer', () => {
           };
           return utils.createFunction("return 42")();
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
@@ -202,7 +202,7 @@ describe('ScriptSecurityAnalyzer', () => {
           }
           return delayedTitle();
         `);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
@@ -213,9 +213,9 @@ describe('ScriptSecurityAnalyzer', () => {
       it('should reject eval when AST parsing fails', () => {
         // Mock AST parser to return null to test regex fallback
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.checkSecurity('return eval("test");');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
@@ -223,9 +223,9 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject Function constructor when AST parsing fails', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.checkSecurity('return Function("return 42")();');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
@@ -233,9 +233,9 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject setTimeout when AST parsing fails', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.checkSecurity('setTimeout(fn, 100);');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
@@ -243,9 +243,9 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject setInterval when AST parsing fails', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.checkSecurity('setInterval(fn, 100);');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
@@ -253,9 +253,9 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject require when AST parsing fails', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.checkSecurity('const fs = require("fs");');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: require() may access system resources');
         expect(result.type).toBe('error');
@@ -263,9 +263,9 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should reject dynamic import when AST parsing fails', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.checkSecurity('import("module");');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic imports may access external resources');
         expect(result.type).toBe('error');
@@ -273,9 +273,9 @@ describe('ScriptSecurityAnalyzer', () => {
 
       it('should accept safe script when AST parsing fails', () => {
         jest.spyOn(astParser, 'parseScript').mockReturnValue(null);
-        
+
         const result = analyzer.checkSecurity('return "safe content";');
-        
+
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('');
         expect(result.type).toBe('success');
@@ -285,21 +285,21 @@ describe('ScriptSecurityAnalyzer', () => {
     describe('edge cases', () => {
       it('should handle empty scripts', () => {
         const result = analyzer.checkSecurity('');
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
 
       it('should handle scripts with only comments', () => {
         const result = analyzer.checkSecurity('// Just a comment');
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
 
       it('should not be fooled by string literals containing dangerous patterns', () => {
         const result = analyzer.checkSecurity('return "This string contains eval but is safe";');
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -310,14 +310,14 @@ describe('ScriptSecurityAnalyzer', () => {
           /* Another comment with Function() constructor */
           return "safe";
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
 
       it('should detect dangerous patterns in template literals', () => {
         const result = analyzer.checkSecurity('return `Result: ${eval("2+2")}`;');
-        
+
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
@@ -331,7 +331,7 @@ describe('ScriptSecurityAnalyzer', () => {
           };
           return obj.evaluateTitle();
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -342,7 +342,7 @@ describe('ScriptSecurityAnalyzer', () => {
           const functionName = "not actually Function";
           return evalResult + functionName;
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -352,7 +352,7 @@ describe('ScriptSecurityAnalyzer', () => {
           const obj = { eval: "safe property", Function: "safe property" };
           return obj.eval + obj.Function;
         `);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
       });
@@ -361,10 +361,10 @@ describe('ScriptSecurityAnalyzer', () => {
     describe('caching integration', () => {
       it('should use cached AST results', () => {
         const script = 'return "safe script";';
-        
+
         analyzer.checkSecurity(script);
         expect(astParser.getCacheSize()).toBe(1);
-        
+
         analyzer.checkSecurity(script);
         expect(astParser.getCacheSize()).toBe(1); // Still only one cache entry
       });
@@ -372,7 +372,7 @@ describe('ScriptSecurityAnalyzer', () => {
       it('should handle different scripts separately', () => {
         analyzer.checkSecurity('return "script1";');
         analyzer.checkSecurity('return "script2";');
-        
+
         expect(astParser.getCacheSize()).toBe(2);
       });
     });

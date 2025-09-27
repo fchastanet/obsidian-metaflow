@@ -1,4 +1,4 @@
-import {TitleTemplateLinter, ValidationResult} from './TitleTemplateLinter';
+import {TitleTemplateLinter} from './TitleTemplateLinter';
 
 describe('TitleTemplateLinter', () => {
   let linter: TitleTemplateLinter;

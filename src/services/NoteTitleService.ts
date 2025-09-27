@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import {TFile} from "obsidian";
+import {FrontMatterCache, TFile} from "obsidian";
 import type {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
 import type {ScriptContextService} from "./ScriptContextService";
 import type {LogManagerInterface} from "../managers/types";
@@ -29,7 +29,7 @@ export class NoteTitleService {
   formatNoteTitle(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     logManager: LogManagerInterface
   ): string {
     const DEFAULT_TITLE = "Untitled";
@@ -64,7 +64,7 @@ export class NoteTitleService {
   private formatNoteTitleByScript(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     mapping: FolderFileClassMapping,
     logManager: LogManagerInterface
   ): string {
@@ -136,7 +136,7 @@ export class NoteTitleService {
   private formatNoteTitleByTemplate(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     mapping: FolderFileClassMapping,
     logManager: LogManagerInterface
   ): string {
@@ -187,7 +187,7 @@ export class NoteTitleService {
    * @param fileClass - File class for debug logging
    * @returns Processed template or null if required metadata is missing
    */
-  private processTemplate(template: string, metadata: {[key: string]: any}, fileClass: string): string | null {
+  private processTemplate(template: string, metadata: FrontMatterCache, fileClass: string): string | null {
     // Find all placeholders in the template
     const placeholderRegex = /\{\{([^}]+)\}\}/g;
     const placeholders = [];

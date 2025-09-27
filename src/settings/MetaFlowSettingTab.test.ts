@@ -61,7 +61,6 @@ jest.mock('./modals/FileClassAvailableFieldsHelpModal.ts', () => ({
 describe('MetaFlowSettingTab', () => {
   let mockApp: any;
   let mockPlugin: any;
-  let settingTab: MetaFlowSettingTab;
   let mockObsidianAdapter: any;
 
   beforeEach(() => {
@@ -133,7 +132,7 @@ describe('MetaFlowSettingTab', () => {
     } as any;
 
     // Create settings tab instance
-    settingTab = new MetaFlowSettingTab(mockApp, mockPlugin);
+    new MetaFlowSettingTab(mockApp, mockPlugin);
   });
 
   describe('Display Methods', () => {
@@ -158,13 +157,7 @@ describe('MetaFlowSettingTab', () => {
         jest.spyOn(document, 'createElement').mockImplementation((tag) => {
           if (tag === 'a') return aMock as any;
           return document.createElement(tag);
-        });
-        // Simulate export button click
-        const exportBtn = {
-          setButtonText: jest.fn().mockReturnThis(),
-          setCta: jest.fn().mockReturnThis(),
-          onClick: jest.fn((cb) => cb())
-        };
+        })
         // Call the export logic directly
         const dataStr = JSON.stringify(mockPlugin.settings, null, 2);
         const blob = new Blob([dataStr], {type: 'application/json'});
@@ -175,7 +168,6 @@ describe('MetaFlowSettingTab', () => {
       test('should import settings from JSON file', async () => {
         // Mock file input and FileReader
         const fileContent = JSON.stringify({autoMoveNoteToRightFolder: true});
-        const file = new Blob([fileContent], {type: 'application/json'});
         const fileReaderMock = {
           readAsText: jest.fn(),
           onload: jest.fn()
@@ -191,12 +183,6 @@ describe('MetaFlowSettingTab', () => {
           if (tag === 'input') return inputMock as any;
           return document.createElement(tag);
         });
-        // Simulate import button click
-        const importBtn = {
-          setButtonText: jest.fn().mockReturnThis(),
-          setCta: jest.fn().mockReturnThis(),
-          onClick: jest.fn((cb) => cb())
-        };
         // Simulate FileReader onload
         fileReaderMock.onload = jest.fn((e) => {
           try {
@@ -205,7 +191,7 @@ describe('MetaFlowSettingTab', () => {
             mockPlugin.saveSettings();
             expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(true);
           } catch (err) {
-            expect(false).toBe(true); // Should not throw
+            expect(err).toBe(undefined); // Should not throw
           }
         });
         // Simulate file input change

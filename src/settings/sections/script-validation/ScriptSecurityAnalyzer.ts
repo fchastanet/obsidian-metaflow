@@ -1,11 +1,11 @@
-import { ValidationResult } from './ValidationResult';
-import { ScriptASTParser, ParsedScript } from './ScriptASTParser';
+import {ValidationResult} from './ValidationResult';
+import {ScriptASTParser} from './ScriptASTParser';
 
 /**
  * ScriptSecurityAnalyzer handles security validation for scripts
  */
 export class ScriptSecurityAnalyzer {
-  constructor(private astParser: ScriptASTParser) {}
+  constructor(private astParser: ScriptASTParser) { }
 
   /**
    * Checks for potential security issues in scripts
@@ -40,6 +40,7 @@ export class ScriptSecurityAnalyzer {
   /**
    * Recursively searches AST for security issues
    */
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private findSecurityIssues(node: any): string | null {
     if (!node || typeof node !== 'object') {
       return null;
@@ -102,14 +103,14 @@ export class ScriptSecurityAnalyzer {
    */
   private checkSecurityWithRegex(script: string): ValidationResult {
     const dangerousPatterns = [
-      { pattern: /\beval\b/, message: 'eval() is potentially dangerous' },
-      { pattern: /\bFunction\b\s*\(/, message: 'Dynamic function creation may be unsafe' },
-      { pattern: /\bsetTimeout\b|\bsetInterval\b/, message: 'Timer functions may cause performance issues' },
-      { pattern: /\brequire\b\s*\(/, message: 'require() may access system resources' },
-      { pattern: /\bimport\b\s*\(/, message: 'Dynamic imports may access external resources' }
+      {pattern: /\beval\b/, message: 'eval() is potentially dangerous'},
+      {pattern: /\bFunction\b\s*\(/, message: 'Dynamic function creation may be unsafe'},
+      {pattern: /\bsetTimeout\b|\bsetInterval\b/, message: 'Timer functions may cause performance issues'},
+      {pattern: /\brequire\b\s*\(/, message: 'require() may access system resources'},
+      {pattern: /\bimport\b\s*\(/, message: 'Dynamic imports may access external resources'}
     ];
 
-    for (const { pattern, message } of dangerousPatterns) {
+    for (const {pattern, message} of dangerousPatterns) {
       if (pattern.test(script)) {
         return {
           isValid: false,

@@ -1,6 +1,7 @@
 # Obsidian MetaFlow
 
-An advanced metadata workflow automation plugin for Obsidian that streamlines frontmatter management through intelligent sorting, automatic field insertion, and customizable default value scripts.
+An advanced metadata workflow automation plugin for Obsidian that streamlines frontmatter management through intelligent
+sorting, automatic field insertion, and customizable default value scripts.
 
 ## ✨ Features
 
@@ -155,8 +156,9 @@ return detectLanguage(file.content);
 
 ### Ace editor
 
-You can use the [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor) to enhance your editing experience with advanced code editing features.
-This plugin settings are using this `ace` editor if available, otherwise it falls back to simple textarea.
+You can use the [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor) to enhance your editing
+experience with advanced code editing features. This plugin settings are using this `ace` editor if available, otherwise
+it falls back to simple textarea.
 
 ## 🧪 Testing
 
@@ -201,10 +203,10 @@ Contributions are welcome! Please read the contributing guidelines and submit pu
 
 ## Acknowledgments
 
-This plugin would never exist without [Obsidian](https://obsidian.md/)
-and those great Obsidian plugins:
+This plugin would never exist without [Obsidian](https://obsidian.md/) and those great Obsidian plugins:
 
 - [Obsidian Metadata Menu plugin](https://mdelobelle.github.io/metadatamenu)
 - [Obsidian Templater plugin](https://github.com/SilentVoid13/Templater)
 - [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor)
-- [Update frontmatter modified date plugin](https://github.com/alangrainger/obsidian-frontmatter-modified-date) for the inspiration on how to handle manual file modification
+- [Update frontmatter modified date plugin](https://github.com/alangrainger/obsidian-frontmatter-modified-date) for the
+  inspiration on how to handle manual file modification

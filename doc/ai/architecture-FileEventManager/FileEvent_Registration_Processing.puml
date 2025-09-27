@@ -1,0 +1,67 @@
+@startuml FileEvent_Registration_Processing
+!define ACTOR actor
+!define PARTICIPANT participant
+
+ACTOR ObsidianFileSystem
+PARTICIPANT FileEventManager
+PARTICIPANT FileEventQueue
+PARTICIPANT ProcessingLockManager
+PARTICIPANT FileStateCache
+PARTICIPANT FileEventProcessor
+PARTICIPANT MetricsCollector
+PARTICIPANT UserNotifier
+
+== Event Registration ==
+ObsidianFileSystem -> FileEventManager : fileChanged(file, eventType)
+FileEventManager -> FileEventQueue : addEvent(filePath, eventType, timestamp)
+FileEventQueue -> FileEventQueue : store in event history
+FileEventManager -> MetricsCollector : recordEvent(filePath, eventType)
+
+== Batch Processing (Cron Triggered) ==
+FileEventManager -> FileEventManager : processBatch()
+FileEventManager -> FileEventQueue : getFilesWithEvents()
+FileEventQueue -> FileEventManager : return filePaths[]
+
+loop for each filePath
+  FileEventManager -> ProcessingLockManager : acquireLock(filePath)
+
+  alt lock acquired
+    ProcessingLockManager -> FileEventManager : lock acquired
+
+    FileEventManager -> FileEventQueue : getEvents(filePath)
+    FileEventQueue -> FileEventManager : return FileEventHistory
+
+    FileEventManager -> FileEventQueue : collapseEvents(filePath)
+    FileEventQueue -> FileEventManager : return ProcessingDecision
+
+    alt should process file
+      FileEventManager -> FileEventManager : calculateChecksum(filePath)
+      FileEventManager -> FileStateCache : getState(filePath)
+      FileStateCache -> FileEventManager : return cached FileState
+
+      alt checksum differs (not plugin-generated)
+        FileEventManager -> FileStateCache : updateChecksum(filePath, newChecksum)
+        FileEventManager -> FileEventProcessor : processFile(filePath, events)
+        FileEventProcessor -> FileEventManager : processing complete
+        FileEventManager -> MetricsCollector : recordSuccess(filePath, timeMs)
+      else checksum matches (plugin-generated)
+        FileEventManager -> MetricsCollector : recordSkipped(filePath, "plugin-generated")
+      end
+    else should skip file
+      FileEventManager -> MetricsCollector : recordSkipped(filePath, decision.reason)
+    end
+
+    FileEventManager -> ProcessingLockManager : releaseLock(filePath)
+    FileEventManager -> FileEventQueue : clearEvents(filePath)
+
+  else lock not acquired
+    ProcessingLockManager -> FileEventManager : lock failed
+    FileEventManager -> UserNotifier : notifyError(filePath, "concurrent processing")
+  end
+end
+
+FileEventManager -> MetricsCollector : getStats()
+MetricsCollector -> FileEventManager : return ProcessingStats
+FileEventManager -> UserNotifier : showProgress(stats)
+
+@enduml

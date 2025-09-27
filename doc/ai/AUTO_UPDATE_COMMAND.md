@@ -1,13 +1,14 @@
 # MetaFlow Auto Update Command
 
-The MetaFlow plugin provides a comprehensive "Update metadata properties" command that automates your entire metadata workflow.
+The MetaFlow plugin provides a comprehensive "Update metadata properties" command that automates your entire metadata
+workflow.
 
 ## Overview
 
 The auto-update command intelligently processes your notes to:
 
 - Determine the appropriate fileClass based on folder location or existing metadata
-- Insert missing metadata fields from MetadataMenu definitions  
+- Insert missing metadata fields from MetadataMenu definitions
 - Execute custom JavaScript scripts to populate default values
 - Sort frontmatter properties according to your preferences
 
@@ -75,25 +76,30 @@ return detectLanguage(content);
 ### Execution Steps
 
 1. **✅ Dependency Check**
+
    - Verify MetadataMenu plugin is available
    - Verify Templater plugin is available (if integration enabled)
 
 2. **🔍 FileClass Determination**
+
    - Check for existing `fileClass` property in frontmatter
    - If missing, deduce from folder/fileClass mapping
    - Validate fileClass exists in MetadataMenu settings
 
 3. **📝 Field Insertion**
+
    - Use MetadataMenu API to insert missing fields
    - Process fileClass ancestor chain (e.g., book → default → default-basic)
    - Insert fields in correct order: most basic ancestor → most specific
 
 4. **💡 Default Value Generation**
+
    - Execute property default value scripts for missing properties
    - Skip properties that already have values
    - Handle script errors gracefully
 
 5. **💾 File Update**
+
    - Save the enriched metadata back to the file
    - Preserve existing content and formatting
 
@@ -163,7 +169,8 @@ The command handles various error scenarios gracefully:
 
 ### Result
 
-Every note gets properly classified metadata with intelligent defaults, reducing manual data entry while maintaining consistency across your vault.
+Every note gets properly classified metadata with intelligent defaults, reducing manual data entry while maintaining
+consistency across your vault.
 
 ## Technical Implementation
 

@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import {Container} from 'inversify';
-import {EditorView} from '@codemirror/view';
-import {Plugin, Editor, MarkdownView, TFolder, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal, MarkdownFileInfo, CachedMetadata, WorkspaceLeaf} from 'obsidian';
+import {Plugin, Editor, MarkdownView, TFolder, TFile, TAbstractFile, Vault, CachedMetadata, WorkspaceLeaf} from 'obsidian';
 import {MetaFlowSettings} from './settings/types';
 import {DEFAULT_SETTINGS} from './settings/defaultSettings';
 import {MetaFlowSettingTab} from './settings/MetaFlowSettingTab';
@@ -12,7 +11,6 @@ import {LogNoticeManager} from './managers/LogNoticeManager';
 import {LogManagerInterface} from './managers/types';
 import {ObsidianAdapter} from './externalApi/ObsidianAdapter';
 import {UIService} from './services/UIService';
-import {FileOperationsService} from './services/FileOperationsService';
 import type {FileClassDeductionService} from './services/FileClassDeductionService';
 import {createContainer, TYPES} from './di';
 
@@ -23,7 +21,6 @@ import type {MassUpdateMetadataCommand} from './commands/MassUpdateMetadataComma
 import type {MoveNoteToRightFolderCommand} from './commands/MoveNoteToRightFolderCommand';
 import type {RenameFileBasedOnRulesCommand} from './commands/RenameFileBasedOnRulesCommand';
 import type {TogglePropertiesPanelCommand} from './commands/TogglePropertiesPanelCommand';
-import {Utils} from './utils/Utils';
 import {FileDebouncer} from './utils/FileDebouncer';
 import {FileValidationService} from './services/FileValidationService';
 
@@ -128,6 +125,7 @@ export default class MetaFlowPlugin extends Plugin {
         this.fileClassStateManager.handleActiveLeafChange.bind(this.fileClassStateManager),
         (leaf: WorkspaceLeaf) => {
           const view = leaf?.view;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return (view && 'file' in view ? (view as any).file?.path : null);
         }
       )

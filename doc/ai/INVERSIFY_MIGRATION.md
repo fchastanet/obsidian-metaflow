@@ -3,6 +3,7 @@
 ## 🎉 Summary: ServiceContainer & CommandFactory → InversifyJS DI
 
 **What we accomplished:**
+
 1. **Removed All Legacy Code**: ServiceContainer.ts, CommandFactory.ts, and LegacyServiceFactory.ts completely deleted
 2. **Pure DI Implementation**: All 16 services and 6 commands now use proper `@injectable()` and `@inject()` decorators
 3. **Zero require() Statements**: Eliminated all dynamic loading in favor of clean ES6 imports
@@ -12,6 +13,7 @@
 ### 🔧 **Architecture Transformation**:
 
 **BEFORE** (Legacy Pattern):
+
 ```typescript
 // ❌ Bad - Manual instantiation with require()
 const serviceContainer = new ServiceContainer(app, settings);
@@ -20,6 +22,7 @@ const command = commandFactory.createUpdateMetadataCommand();
 ```
 
 **AFTER** (Modern DI):
+
 ```typescript
 // ✅ Good - Clean dependency injection
 const container = createContainer(app, settings, saveSettings);
@@ -35,9 +38,11 @@ export class UpdateMetadataCommand {
 
 1. Infrastructure Setup
 2. All Services Migrated to @injectable()
-  - Core Services
-  - External API Services
-  - Domain Services
+
+- Core Services
+- External API Services
+- Domain Services
+
 3. All Commands Migrated
 4. Updated Application Structure
 
@@ -57,30 +62,36 @@ export class SomeCommand {
 ```
 
 ## Benefits Achieved
+
 - Constructor injection with proper type safety
 - Automatic dependency resolution
 - Full TypeScript support throughout
 - Compile-time dependency validation
 
 ### ✅ Proper ES6 Imports
+
 - Eliminated all `require()` statements
 
 ## Files Modified
 
 ### New DI Infrastructure
+
 - `src/di/types.ts`
 - `src/di/container.ts`
 - `src/di/index.ts`
 
 ### Updated Configuration
+
 - `tsconfig.json` (added decorator support)
 - `package.json` (added inversify dependencies)
 
 ### Core Application
+
 - `src/main.ts` (replaced ServiceContainer with DI container)
 - `src/commands/CommandFactory.ts` (uses container instead of dependencies object)
 
 ### All Services Updated (16 total)
+
 - `src/services/FrontMatterService.ts`
 - `src/services/MetaFlowService.ts`
 - `src/services/UIService.ts`
@@ -95,6 +106,7 @@ export class SomeCommand {
 - `src/externalApi/TemplaterAdapter.ts`
 
 ### All Commands Updated (6 total)
+
 - `src/commands/UpdateMetadataCommand.ts`
 - `src/commands/SortMetadataCommand.ts`
 - `src/commands/MoveNoteToRightFolderCommand.ts`
@@ -104,12 +116,11 @@ export class SomeCommand {
 
 ### 🏗️ **All Services & Commands Migrated**:
 
-**16 Services** → All using `@injectable()` + `@inject()`
-**6 Commands** → All using constructor injection
-**1 Main Plugin** → Direct DI container usage
-**0 Legacy Code** → ServiceContainer & CommandFactory completely removed
+**16 Services** → All using `@injectable()` + `@inject()` **6 Commands** → All using constructor injection **1 Main
+Plugin** → Direct DI container usage **0 Legacy Code** → ServiceContainer & CommandFactory completely removed
 
 ### 🎯 **Key Benefits Realized**:
+
 1. **Type Safety**: Full compile-time dependency checking
 2. **Testability**: Easy to mock any dependency
 3. **Maintainability**: Clear service relationships

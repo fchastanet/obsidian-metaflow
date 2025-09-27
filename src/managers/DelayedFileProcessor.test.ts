@@ -4,7 +4,6 @@ import {FileStateCache} from './FileStateCache';
 import {DebouncedCallbackManager} from './DebouncedCallbackManager';
 import {FileProcessor} from './FileProcessor';
 import {FileFilter} from './FileFilter';
-import {TAbstractFile} from 'src/__mocks__/obsidian';
 
 // Mock TFile
 jest.mock('obsidian', () => ({

@@ -6,7 +6,6 @@ import {FolderFileClassMappingsSection} from "./FolderFileClassMappingsSection";
 import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
 import {LogNoticeManager} from "../../managers/LogNoticeManager";
-import {FolderFileClassMapping, NoteTitleScript} from "../types";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -202,7 +201,7 @@ describe('FolderFileClassMappingsSection', () => {
       }));
 
       // Re-import after mocking
-      const {MetaFlowSettingTab} = require('../MetaFlowSettingTab');
+      //const {MetaFlowSettingTab} = require('../MetaFlowSettingTab');
       folderFileClassMappingsSection = getFolderFileClassMappingsSection();
       await folderFileClassMappingsSection['importFolderMappingsFromTemplater']();
 

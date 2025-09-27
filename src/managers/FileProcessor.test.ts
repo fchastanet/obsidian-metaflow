@@ -42,7 +42,7 @@ describe('FileProcessor', () => {
     processor = new FileProcessor(mockFileClassDeductionService, mockObsidianAdapter, mockSettings);
 
     // Create mock file
-    mockFile = Object.create(require('obsidian').TFile.prototype);
+    mockFile = Object.create(TFile.prototype);
     mockFile.basename = 'test-file';
     mockFile.stat = {mtime: 1000, ctime: 1000, size: 100};
   });

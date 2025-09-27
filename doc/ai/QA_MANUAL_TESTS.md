@@ -17,9 +17,9 @@
     - [4.2.1. Check no error when templater plugin is disabled](#421-check-no-error-when-templater-plugin-is-disabled)
     - [4.2.2. Check no error when Metadata Menu plugin is disabled](#422-check-no-error-when-metadata-menu-plugin-is-disabled)
   - [4.3. Folder/FileClass Mappings](#43-folderfileclass-mappings)
-    - [4.3.1. Title Template \& Title Script](#431-title-template--title-script)
+    - [4.3.1. Title Template & Title Script](#431-title-template--title-script)
   - [4.4. Property Default Value Scripts](#44-property-default-value-scripts)
-  - [4.5. Simulation \& Testing](#45-simulation--testing)
+  - [4.5. Simulation & Testing](#45-simulation--testing)
   - [4.6. Export/Import Settings](#46-exportimport-settings)
 
 ## 1. Commands
@@ -29,10 +29,14 @@
 - enable auto-insert metadata properties in settings.
 - Open a note with frontmatter.
 - Run the 'Update metadata properties' command from the command palette.
-- Verify that the frontmatter is updated according to the plugin's rules (e.g., missing fields are added, values are updated).
-- **Edge case:** Try updating metadata on a note inside an excluded folder. Confirm that the command does not update metadata and shows a warning or does nothing.
-- **Edge case:** Run the command on a note with malformed frontmatter. Check for error handling and that the note is not corrupted.
-- **Edge case:** update fileClass from properties panel, should result in the same behavior as updating metadata in the note editor.
+- Verify that the frontmatter is updated according to the plugin's rules (e.g., missing fields are added, values are
+  updated).
+- **Edge case:** Try updating metadata on a note inside an excluded folder. Confirm that the command does not update
+  metadata and shows a warning or does nothing.
+- **Edge case:** Run the command on a note with malformed frontmatter. Check for error handling and that the note is not
+  corrupted.
+- **Edge case:** update fileClass from properties panel, should result in the same behavior as updating metadata in the
+  note editor.
 
 ### 1.2. Metadata properties initialization
 
@@ -42,9 +46,12 @@
 - Run the 'Update metadata properties' command.
 - Check the metadata properties are correctly initialized with default values automatically computed.
 - the file should not be moved to the right folder.
-- **Edge case:** Run the command on a note with no frontmatter. Confirm that the command does not fail and no properties are added (except if the note is in a mapped folder, then fileClass is initialized with the mapped fileClass).
-- **Edge case:** Run the command on a note with existing metadata properties. Ensure that only missing properties are added and existing ones are not overwritten.
-- **Edge case:** note in a configured folder, fileClass should be deduced from the folder, and metadata properties should be initialized accordingly.
+- **Edge case:** Run the command on a note with no frontmatter. Confirm that the command does not fail and no properties
+  are added (except if the note is in a mapped folder, then fileClass is initialized with the mapped fileClass).
+- **Edge case:** Run the command on a note with existing metadata properties. Ensure that only missing properties are
+  added and existing ones are not overwritten.
+- **Edge case:** note in a configured folder, fileClass should be deduced from the folder, and metadata properties
+  should be initialized accordingly.
 
 ### 1.3. Sort metadata properties
 
@@ -59,7 +66,8 @@
 - Open a note that is not in its mapped folder.
 - Run the 'Move note to the right folder' command.
 - Confirm the note is moved to the correct folder based on folder/fileClass mapping.
-- **Edge case:** Try moving a note when no mapping exists for its fileClass. Confirm no move occurs and a warning is shown.
+- **Edge case:** Try moving a note when no mapping exists for its fileClass. Confirm no move occurs and a warning is
+  shown.
 - **Edge case:** Move a note that is already in the correct folder. Ensure no duplicate or unnecessary move happens.
 
 ### 1.5. Toggle properties panel visibility
@@ -78,7 +86,8 @@
 - in Metadata-Menu settings, add a new property
 - in MetaFlow, add default value for this new property
 - Select 'Update metadata in folder' from the context menu.
-- Verify all notes in the folder are updated with correct metadata (new property should have been added with the default value).
+- Verify all notes in the folder are updated with correct metadata (new property should have been added with the default
+  value).
 - **Edge case:** Right-click an excluded folder. Confirm no notes are updated and a warning is shown.
 - **Edge case:** Folder contains non-note files. Ensure only notes are processed.
 
@@ -99,8 +108,10 @@
 
 - Create a note using a template that includes frontmatter with a specific fileClass.
 - Verify that the note's frontmatter is populated with the correct fileClass and any default properties.
-- **Edge case:** Use a template that has an invalid or unsupported fileClass. Confirm the plugin handles it gracefully, either by skipping the update or showing an error.
-- **Edge case:** Create a note with a fileClass that has no associated folder mapping. Ensure the note is created without errors, but no folder move occurs.
+- **Edge case:** Use a template that has an invalid or unsupported fileClass. Confirm the plugin handles it gracefully,
+  either by skipping the update or showing an error.
+- **Edge case:** Create a note with a fileClass that has no associated folder mapping. Ensure the note is created
+  without errors, but no folder move occurs.
 
 ## 4. Settings
 
@@ -153,7 +164,8 @@
 - Create a note in a folder mapped to that fileClass.
 - Verify the note's title is generated by the script.
 - **Edge case:** Use a script with invalid JavaScript. Confirm error is shown and note is not corrupted.
-- Change the folder/fileClass mapping and create a new note. Confirm the correct template or script is applied for the new mapping.
+- Change the folder/fileClass mapping and create a new note. Confirm the correct template or script is applied for the
+  new mapping.
 - Remove the title template/script and create a note. Ensure the note uses the default
 
 ### 4.4. Property Default Value Scripts

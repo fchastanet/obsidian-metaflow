@@ -7,7 +7,8 @@ A reusable utility class for implementing drag and drop functionality in the Met
 - **Simple Array Reordering**: For basic arrays where items are reordered by index
 - **Order-based Reordering**: For arrays with order properties that need to be maintained
 - **Nested Array Support**: For reordering items within sub-arrays (e.g., templates within mappings)
-- **Visual Feedback**: Adds CSS classes for drag states (`metaflow-settings-dragging`, `metaflow-settings-dragover`, `metaflow-settings-grab`)
+- **Visual Feedback**: Adds CSS classes for drag states (`metaflow-settings-dragging`, `metaflow-settings-dragover`,
+  `metaflow-settings-grab`)
 
 ## Usage
 

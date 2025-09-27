@@ -31,7 +31,7 @@ describe('FileFilter', () => {
     filter = new FileFilter(mockFileValidationService, mockObsidianAdapter);
 
     // Create mock file
-    mockFile = Object.create(require('obsidian').TFile.prototype);
+    mockFile = Object.create(TFile.prototype);
     mockFile.path = 'test/file.md';
     mockFile.basename = 'file';
     mockFile.extension = 'md';

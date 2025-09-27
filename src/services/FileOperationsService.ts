@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import type {App} from "obsidian";
+import type {App, FrontMatterCache} from "obsidian";
 import {TFile, TFolder} from "obsidian";
 import type {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
 import {MetaFlowException} from "../MetaFlowException";
@@ -54,7 +54,7 @@ export class FileOperationsService {
   public async renameNote(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     logManager: LogManagerInterface
   ): Promise<TFile | null> {
     const newTitle = this.getNewNoteTitle(file, fileClass, metadata, logManager);
@@ -73,7 +73,7 @@ export class FileOperationsService {
     }
   }
 
-  async updateFrontmatter(file: TFile, enrichedFrontmatter: any, deleteEmptyKeys: boolean): Promise<void> {
+  async updateFrontmatter(file: TFile, enrichedFrontmatter: FrontMatterCache, deleteEmptyKeys: boolean): Promise<void> {
     return this.app.fileManager.processFrontMatter(file, (frontmatter) => {
       // Remove all keys from frontmatter
       Object.keys(enrichedFrontmatter).forEach(key => delete frontmatter[key]);
@@ -102,7 +102,7 @@ export class FileOperationsService {
   public async moveNote(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     logManager: LogManagerInterface
   ): Promise<void> {
     const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
@@ -122,7 +122,7 @@ export class FileOperationsService {
   public getNewNoteTitle(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
+    metadata: FrontMatterCache,
     logManager: LogManagerInterface
   ): string {
     try {

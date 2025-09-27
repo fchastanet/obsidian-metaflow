@@ -216,6 +216,7 @@ describe('TitleScriptLinter Integration', () => {
       const duration2 = Date.now() - start2;
 
       // Cache usage should be evident (though timing might be too small to measure reliably)
+      expect(duration2).toBeLessThan(duration1);
       expect(linter.getCacheSize()).toBe(1);
     });
 

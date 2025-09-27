@@ -185,7 +185,7 @@ export class FileClassStateManager {
   }
 
   private stackTrace() {
-    var err = new Error();
+    const err = new Error();
     return {stack: err.stack};
   }
 

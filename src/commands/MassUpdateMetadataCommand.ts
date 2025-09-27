@@ -47,7 +47,7 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
 
     let processedFiles = 0;
     let updatedFiles = 0;
-    let errorFiles: TFile[] = [];
+    const errorFiles: TFile[] = [];
 
     const progressModal = new ProgressModal(
       this.app,
@@ -76,13 +76,13 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
 
               // Add a small delay to prevent overwhelming the system
               await Utils.sleep(this.settings.frontmatterUpdateDelayMs || 10, () => { });
-            } catch (error: any) {
+            } catch (error) {
               console.error(`Error processing file ${file.path}:`, error);
               errorFiles.push(file);
               progressModal.addError(`Error processing ${file.path}: ${error.message || error}`);
             }
           }
-        } catch (error: any) {
+        } catch (error) {
           console.error('Mass update error:', error);
           progressModal.addError(`Mass update failed: ${error.message || error}`);
         }

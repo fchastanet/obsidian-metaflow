@@ -175,12 +175,11 @@ describe('FileClassStateManager', () => {
     let mockView: MarkdownView;
 
     beforeEach(() => {
-      mockFile = Object.create(require('obsidian').TFile.prototype);
+      mockFile = Object.create(TFile.prototype);
       mockFile.path = 'test.md';
 
       // Create a proper MarkdownView mock
-      const MarkdownViewConstructor = require('obsidian').MarkdownView;
-      mockView = Object.create(MarkdownViewConstructor.prototype);
+      mockView = Object.create(MarkdownView.prototype);
       mockView.file = mockFile;
 
       mockLeaf = {
@@ -223,7 +222,7 @@ describe('FileClassStateManager', () => {
     let mockCachedMetadata: CachedMetadata;
 
     beforeEach(() => {
-      mockFile = Object.create(require('obsidian').TFile.prototype);
+      mockFile = Object.create(TFile.prototype);
       mockFile.path = 'test.md';
       mockCachedMetadata = {} as CachedMetadata;
     });
@@ -239,7 +238,7 @@ describe('FileClassStateManager', () => {
     let mockFile: TFile;
 
     beforeEach(() => {
-      mockFile = Object.create(require('obsidian').TFile.prototype);
+      mockFile = Object.create(TFile.prototype);
       mockFile.path = 'test.md';
       mockFile.name = 'test.md';
     });
@@ -264,7 +263,7 @@ describe('FileClassStateManager', () => {
     let mockFile: TFile;
 
     beforeEach(() => {
-      mockFile = Object.create(require('obsidian').TFile.prototype);
+      mockFile = Object.create(TFile.prototype);
       mockFile.path = 'test.md';
     });
 
@@ -288,7 +287,7 @@ describe('FileClassStateManager', () => {
     let mockFile: TFile;
 
     beforeEach(() => {
-      mockFile = Object.create(require('obsidian').TFile.prototype);
+      mockFile = Object.create(TFile.prototype);
       mockFile.path = 'test.md';
     });
 
@@ -313,7 +312,7 @@ describe('FileClassStateManager', () => {
     const oldPath = 'old-test.md';
 
     beforeEach(() => {
-      mockFile = Object.create(require('obsidian').TFile.prototype);
+      mockFile = Object.create(TFile.prototype);
       mockFile.path = 'new-test.md';
     });
 

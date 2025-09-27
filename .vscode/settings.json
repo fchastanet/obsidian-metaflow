@@ -45,7 +45,6 @@
     }
   ],
   "github.copilot.chat.summarizeAgentConversationHistory.enabled": false,
-  "github.copilot.chat.agent.runTasks": true,
   "github.copilot.enable": {
     "*": true,
     "plaintext": true,
@@ -67,15 +66,11 @@
     "chatFileEditWithContextAndDiffAndHistoryAndSuggestionsAndCodeReview": true
   },
   "github.copilot.nextEditSuggestions.enabled": true,
-  "chat.tools.autoApprove": true,
-  "github.copilot.chat.tools.terminal.autoApprove": {
-    "/^npm test .*$/": true,
-    "/^npm run test .*$/": true
-  },
   "github.copilot.chat.agent.thinkingTool": true,
   "github.copilot.chat.generateTests.codeLens": true,
   "github.copilot.chat.languageContext.fix.typescript.enabled": true,
   "github.copilot.chat.languageContext.inline.typescript.enabled": true,
   "github.copilot.chat.languageContext.typescript.enabled": false,
-  "chat.commandCenter.enabled": true
+  "chat.commandCenter.enabled": true,
+  "jest.runMode": "on-demand"
 }

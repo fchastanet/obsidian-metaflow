@@ -122,22 +122,22 @@ describe('ScriptASTParser', () => {
     it('should clear cache correctly', () => {
       parser.parseScript('return "test1";');
       parser.parseScript('return "test2";');
-      
+
       expect(parser.getCacheSize()).toBe(2);
-      
+
       parser.clearCache();
-      
+
       expect(parser.getCacheSize()).toBe(0);
     });
 
     it('should rebuild cache after clearing', () => {
       const script = 'return "hello";';
       const result1 = parser.parseScript(script);
-      
+
       parser.clearCache();
-      
+
       const result2 = parser.parseScript(script);
-      
+
       expect(result1).not.toBe(result2); // Different object references
       expect(result1?.originalScript).toBe(result2?.originalScript);
       expect(parser.getCacheSize()).toBe(1);
@@ -164,10 +164,10 @@ describe('ScriptASTParser', () => {
 
     it('should use cache for canParse checks', () => {
       const script = 'return "test";';
-      
+
       parser.canParse(script);
       expect(parser.getCacheSize()).toBe(1);
-      
+
       parser.canParse(script); // Should use cache
       expect(parser.getCacheSize()).toBe(1);
     });
@@ -233,20 +233,20 @@ describe('ScriptASTParser', () => {
   describe('memory management', () => {
     it('should handle large number of different scripts', () => {
       const scripts = Array.from({length: 100}, (_, i) => `return "script${i}";`);
-      
+
       scripts.forEach(script => parser.parseScript(script));
-      
+
       expect(parser.getCacheSize()).toBe(100);
     });
 
     it('should handle repeated parsing of same script efficiently', () => {
       const script = 'return "repeated";';
       const iterations = 1000;
-      
+
       for (let i = 0; i < iterations; i++) {
         parser.parseScript(script);
       }
-      
+
       expect(parser.getCacheSize()).toBe(1); // Only one cache entry
     });
   });

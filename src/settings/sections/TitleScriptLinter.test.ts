@@ -1,4 +1,4 @@
-import { TitleScriptLinter, ValidationResult } from './TitleScriptLinter';
+import {TitleScriptLinter} from './TitleScriptLinter';
 
 describe('TitleScriptLinter', () => {
   let linter: TitleScriptLinter;

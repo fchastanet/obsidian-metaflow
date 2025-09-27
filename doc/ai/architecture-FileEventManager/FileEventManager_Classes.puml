@@ -1,0 +1,97 @@
+@startuml FileEventManager_Classes
+!define RECTANGLE class
+
+skinparam class {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+RECTANGLE FileEventManager {
+  -eventQueue: FileEventQueue
+  -lockManager: ProcessingLockManager
+  -cache: FileStateCache
+  -processor: FileEventProcessor
+  -metricsCollector: MetricsCollector
+  -notifier: UserNotifier
+  -config: EventManagerConfig
+  --
+  +registerEvent(filePath: string, eventType: EventType): void
+  +processBatch(): Promise<BatchProcessingResult>
+  +startCronJob(): void
+  +stopCronJob(): void
+  -processFileEvents(filePath: string): Promise<void>
+  -calculateChecksum(filePath: string): Promise<string>
+}
+
+RECTANGLE FileEventQueue {
+  -events: Map<string, FileEventHistory>
+  -processingRules: ProcessingRule[]
+  --
+  +addEvent(filePath: string, eventType: EventType): void
+  +getEvents(filePath: string): FileEventHistory
+  +collapseEvents(filePath: string): ProcessingDecision
+  +clearEvents(filePath: string): void
+  +getFilesWithEvents(): string[]
+}
+
+RECTANGLE ProcessingLockManager {
+  -locks: Map<string, ProcessingLock>
+  -timeoutMs: number
+  --
+  +acquireLock(filePath: string, operationType: string): boolean
+  +releaseLock(filePath: string): void
+  +isLocked(filePath: string): boolean
+  +cleanupExpiredLocks(): void
+}
+
+RECTANGLE FileStateCache {
+  -cache: LRUCache<string, FileState>
+  -maxSize: number
+  -persistenceManager: CachePersistenceManager
+  --
+  +getState(filePath: string): FileState | undefined
+  +setState(filePath: string, state: FileState): void
+  +updateChecksum(filePath: string, checksum: string): void
+  +evictStale(): void
+  +persistToDisk(): Promise<void>
+}
+
+RECTANGLE FileEventProcessor {
+  -fileProcessor: FileProcessor
+  -obsidianAdapter: ObsidianAdapter
+  --
+  +processFile(filePath: string, events: FileEvent[]): Promise<void>
+  +applyFileClassChanges(file: TFile): Promise<void>
+}
+
+RECTANGLE MetricsCollector {
+  -metrics: ProcessingMetrics
+  --
+  +recordProcessingTime(filePath: string, timeMs: number): void
+  +recordError(filePath: string, error: Error): void
+  +recordBatchResults(results: BatchProcessingResult): void
+  +getStats(): ProcessingStats
+}
+
+RECTANGLE UserNotifier {
+  -logNoticeManager: LogNoticeManager
+  --
+  +notifyError(filePath: string, error: Error): Promise<void>
+  +showProgress(progress: ProcessingProgress): void
+  +showConflictResolution(conflict: ProcessingConflict): Promise<Resolution>
+}
+
+' Relationships
+FileEventManager --> FileEventQueue : manages
+FileEventManager --> ProcessingLockManager : uses
+FileEventManager --> FileStateCache : reads/writes
+FileEventManager --> FileEventProcessor : delegates to
+FileEventManager --> MetricsCollector : reports to
+FileEventManager --> UserNotifier : notifies via
+
+FileEventQueue --> FileEventHistory : contains
+FileStateCache --> LRUCache : uses
+FileEventProcessor --> FileProcessor : delegates to
+
+@enduml

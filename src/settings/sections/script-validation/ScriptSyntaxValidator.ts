@@ -1,12 +1,12 @@
 import * as acorn from 'acorn';
-import { ValidationResult } from './ValidationResult';
-import { ScriptASTParser, ParsedScript } from './ScriptASTParser';
+import {ValidationResult} from './ValidationResult';
+import {ScriptASTParser} from './ScriptASTParser';
 
 /**
  * ScriptSyntaxValidator handles JavaScript syntax validation
  */
 export class ScriptSyntaxValidator {
-  constructor(private astParser: ScriptASTParser) {}
+  constructor(private astParser: ScriptASTParser) { }
 
   /**
    * Validates JavaScript syntax using AST parsing
@@ -23,7 +23,7 @@ export class ScriptSyntaxValidator {
     }
 
     const parsed = this.astParser.parseScript(script);
-    
+
     if (parsed) {
       return {
         isValid: true,
@@ -35,7 +35,7 @@ export class ScriptSyntaxValidator {
     // If parsing failed, try to get a more specific error message
     try {
       // Try parsing directly to get the actual error
-      acorn.parse(script, { ecmaVersion: 'latest' });
+      acorn.parse(script, {ecmaVersion: 'latest'});
     } catch (error) {
       let message = 'Unknown syntax error';
 

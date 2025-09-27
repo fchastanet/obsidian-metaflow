@@ -4,7 +4,7 @@ import {LogNoticeManager} from "./LogNoticeManager";
 describe("LogNoticeManager", () => {
   let obsidianAdapter: any;
   let manager: LogNoticeManager;
-  let domCreateFn: any = domCreate;
+  const domCreateFn: any = domCreate;
 
   beforeEach(() => {
     // Reset mocks

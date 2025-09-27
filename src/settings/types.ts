@@ -39,4 +39,3 @@ export interface MetaFlowSettings {
   debugMode: boolean;
   frontmatterUpdateDelayMs: number;
 }
-

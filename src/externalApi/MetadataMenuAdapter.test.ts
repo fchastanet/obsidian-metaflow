@@ -10,7 +10,7 @@ describe('MetadataMenuAdapter', () => {
   let settings: MetaFlowSettings;
 
   beforeEach(() => {
-    const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
+    jest.spyOn(console, 'debug').mockImplementation(() => { });
     mockApp = {
       plugins: {
         enabledPlugins: new Set(['metadata-menu']),
@@ -141,7 +141,7 @@ describe('MetadataMenuAdapter', () => {
         settings: {fileClassAlias: 'fileClass'}
       };
       adapter = new MetadataMenuAdapter(mockApp, settings);
-
+      // @ts-expect-error: intentionally passing null to test runtime behavior
       const result = adapter.getFileClassFromMetadata(null);
       expect(result).toBe(null);
       expectNoLogs();
@@ -154,6 +154,7 @@ describe('MetadataMenuAdapter', () => {
       };
       adapter = new MetadataMenuAdapter(mockApp, settings);
 
+      // @ts-expect-error: intentionally passing 'string' to test runtime behavior
       const result = adapter.getFileClassFromMetadata('string');
       expect(result).toBe(null);
       expectNoLogs();

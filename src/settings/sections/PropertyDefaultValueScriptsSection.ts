@@ -5,9 +5,9 @@ import {SettingsUtils} from "../SettingsUtils";
 import {ScriptEditor} from "../ScriptEditor";
 import {DragDropHelper} from "../DragDropHelper";
 
-declare type AceModule = typeof import("ace-builds");
-import * as Ace from "ace-builds";
-declare const ace: AceModule;
+//declare type AceModule = typeof import("ace-builds");
+//import * as Ace from "ace-builds";
+//declare const ace: AceModule;
 
 export class PropertyDefaultValueScriptsSection {
   private metadataMenuImportButton: HTMLButtonElement | null = null;
@@ -111,7 +111,7 @@ export class PropertyDefaultValueScriptsSection {
       spacer.classList.add('metaflow-settings-script-btn-spacer');
 
       // Enabled toggle
-      const [enabledTogglePreview, enabledLabelPreview] = SettingsUtils.createCheckboxWithLabel(
+      const [, enabledLabelPreview] = SettingsUtils.createCheckboxWithLabel(
         readOnlyDiv, {
         labelClass: 'metaflow-settings-script-enabled-label',
         labelTitle: 'Allows this script to run',
@@ -141,9 +141,9 @@ export class PropertyDefaultValueScriptsSection {
       editDiv.classList.add('metaflow-settings-hide');
 
       // Store original values for cancel functionality
-      let originalPropertyName = script.propertyName;
-      let originalScript = script.script;
-      let originalEnabled = script.enabled;
+      const originalPropertyName = script.propertyName;
+      const originalScript = script.script;
+      const originalEnabled = script.enabled;
 
       // Property name input
       const propertyRow = editDiv.createEl('div');
@@ -157,7 +157,7 @@ export class PropertyDefaultValueScriptsSection {
       });
       propertyInput.classList.add('metaflow-settings-script-property-input');
 
-      const [enabledToggle, enabledLabel] = SettingsUtils.createCheckboxWithLabel(
+      const [enabledToggle,] = SettingsUtils.createCheckboxWithLabel(
         propertyRow, {
         labelClass: 'metaflow-settings-script-enabled-label',
         labelTitle: 'Allows this script to run',
@@ -196,7 +196,7 @@ export class PropertyDefaultValueScriptsSection {
         enablePromptFunction: true
       });
 
-      const scriptTextarea = scriptEditor.createEditor(scriptRow, 'return "default value";', script.script);
+      scriptEditor.createEditor(scriptRow, 'return "default value";', script.script);
       // Button row
       const buttonRow = editDiv.createEl('div');
       buttonRow.classList.add('metaflow-settings-script-btn-row');

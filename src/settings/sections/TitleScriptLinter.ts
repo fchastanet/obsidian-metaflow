@@ -12,7 +12,7 @@ export type { ValidationResult };
 /**
  * TitleScriptLinter provides validation for JavaScript scripts used in note title generation
  * with user-friendly feedback messages and comprehensive AST-based analysis.
- * 
+ *
  * This is the main coordinator class that orchestrates various validation components.
  */
 export class TitleScriptLinter {

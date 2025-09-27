@@ -1,15 +1,18 @@
 import {TFile} from "obsidian";
 import {PropertyManagementService} from "./PropertyManagementService";
-import {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
+import {MetaFlowSettings} from "../settings/types";
 import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {MetadataMenuAdapter} from "src/externalApi/MetadataMenuAdapter";
+import {ScriptContextService} from "./ScriptContextService";
+import {LogManagerInterface} from "src/managers/types";
 
 describe('PropertyManagementService', () => {
   let propertyManagementService: PropertyManagementService;
   let mockMetaFlowSettings: MetaFlowSettings;
-  let mockMetadataMenuAdapter: any;
-  let mockScriptContextService: any;
+  let mockMetadataMenuAdapter: MetadataMenuAdapter;
+  let mockScriptContextService: ScriptContextService;
   let mockFile: TFile;
-  let mockLogManager: any;
+  let mockLogManager: LogManagerInterface;
 
   beforeEach(() => {
     mockMetaFlowSettings = {
@@ -30,15 +33,17 @@ describe('PropertyManagementService', () => {
       ]
     };
 
+    // @ts-expect-error: intentionally using a partial mock for testing
     mockMetadataMenuAdapter = {
       getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
       getFileClassAndAncestorsFields: jest.fn().mockReturnValue([
         {name: 'author', type: 'text'},
         {name: 'tags', type: 'multi'},
         {name: 'title', type: 'text'}
-      ])
+      ]),
     };
 
+    // @ts-expect-error: intentionally using a partial mock for testing
     mockScriptContextService = {
       getScriptContext: jest.fn().mockReturnValue({
         metadata: {},
@@ -59,7 +64,9 @@ describe('PropertyManagementService', () => {
     mockLogManager = {
       addInfo: jest.fn(),
       addWarning: jest.fn(),
-      addError: jest.fn()
+      addError: jest.fn(),
+      addDebug: jest.fn(),
+      addMessage: jest.fn(),
     };
 
     propertyManagementService = new PropertyManagementService(
@@ -179,11 +186,10 @@ describe('PropertyManagementService', () => {
         }
       ];
 
-      mockMetadataMenuAdapter.getFileClassAndAncestorsFields.mockReturnValue([
+      (mockMetadataMenuAdapter.getFileClassAndAncestorsFields as jest.Mock).mockReturnValue([
         {name: 'first', type: 'text'},
         {name: 'second', type: 'text'}
       ]);
-
       const frontmatter = {};
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,

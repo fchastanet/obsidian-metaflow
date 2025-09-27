@@ -109,7 +109,7 @@ describe('ObsidianAdapter', () => {
 
       const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
 
-      const result = await adapter.renameNote(file, newName);
+      await adapter.renameNote(file, newName);
 
       expect(mockApp.vault.rename).toHaveBeenCalledWith(file, newName);
       expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith(newName);

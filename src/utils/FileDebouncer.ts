@@ -23,7 +23,7 @@ export class FileDebouncer {
    * @param getFileKey Function to extract the file key from the handler arguments
    * @returns A debounced version of the handler
    */
-  createFileDebouncer<T extends any[]>(
+  createFileDebouncer<T extends unknown[]>(
     handler: (...args: T) => void,
     getFileKey: (...args: T) => string | null
   ) {

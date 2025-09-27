@@ -1,7 +1,6 @@
 import {injectable, inject} from 'inversify';
 import type {Editor, MarkdownView} from 'obsidian';
 import type {LogManagerInterface} from '../managers/types';
-import {MetaFlowException} from '../MetaFlowException';
 import type {FileOperationsService} from '../services/FileOperationsService';
 import type {FileValidationService} from '../services/FileValidationService';
 import type {FileClassDeductionService} from '../services/FileClassDeductionService';

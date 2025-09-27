@@ -21,7 +21,7 @@ export interface TemplaterSettingsInterface {
 }
 
 interface TemplaterInterface {
-  [x: string]: any;
+  [x: string]: unknown;
   prompt(title: string): Promise<string>;
   settings: TemplaterSettingsInterface;
 }
@@ -127,7 +127,7 @@ export class TemplaterAdapter {
     return templater.prompt(message);
   }
 
-  private formatDateFallback(date: Date, format?: string) {
+  private formatDateFallback(date: Date, format?: string): string {
     if (!format) {
       return date.toISOString();
     }
@@ -145,7 +145,7 @@ export class TemplaterAdapter {
    * format any javascript date using moment
    * if moment is not available fallback on minimal support
    */
-  formatDate(date: Date, format?: string): any {
+  formatDate(date: Date, format?: string): string {
     const moment = window.moment;
     if (moment) {
       return format ? moment(date).format(format) : moment(date).toISOString();
@@ -193,7 +193,7 @@ export class TemplaterAdapter {
     return this.formatDateFallback(yesterday, format);
   }
 
-  private isValidMdFile(file: any): file is TFile {
+  private isValidMdFile(file: unknown): file is TFile {
     return file instanceof TFile && file.extension === 'md';
   }
 

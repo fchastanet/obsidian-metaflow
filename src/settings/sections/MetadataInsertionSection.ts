@@ -11,11 +11,6 @@ export class MetadataInsertionSection {
   render() {
     this.container.empty();
 
-    // Auto metadata insertion setting
-    let autoSortSetting: Setting;
-    let autoMoveNoteToRightFolderSetting: Setting;
-    let autoRenameNoteSetting: Setting;
-
     const updateDependentRadioButtons = () => {
       autoSortSetting.components[0].setDisabled(!this.settings.autoMetadataInsertion);
       autoSortSetting.controlEl.setAttribute('title', this.settings.autoMetadataInsertion ? '' : 'Disabled when auto-insert is off');
@@ -42,7 +37,7 @@ export class MetadataInsertionSection {
         }));
 
     // Auto-sort on view setting
-    autoSortSetting = new Setting(this.container)
+    const autoSortSetting = new Setting(this.container)
       .setName('Auto-sort metadata properties')
       .setDesc('Automatically sort metadata properties when updating metadata')
       .addToggle(toggle => toggle
@@ -53,7 +48,7 @@ export class MetadataInsertionSection {
         }));
 
     // Auto-move note to right folder setting
-    autoMoveNoteToRightFolderSetting = new Setting(this.container)
+    const autoMoveNoteToRightFolderSetting = new Setting(this.container)
       .setName('Auto-move note to the right folder')
       .setDesc('Automatically move note to the correct folder based on Folder/FileClass mapping when updating metadata')
       .addToggle(toggle => toggle
@@ -64,7 +59,7 @@ export class MetadataInsertionSection {
         }));
 
     // Auto-rename note setting
-    autoRenameNoteSetting = new Setting(this.container)
+    const autoRenameNoteSetting = new Setting(this.container)
       .setName('Auto-rename note based on folder/fileClass mapping')
       .setDesc('Automatically rename note based on the title template or script defined in Folder/FileClass mapping when updating metadata')
       .addToggle(toggle => toggle

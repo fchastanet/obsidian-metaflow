@@ -1,4 +1,4 @@
-import {App, TFile, TFolder} from "obsidian";
+import {TFile, TFolder} from "obsidian";
 import {FileOperationsService} from "./FileOperationsService";
 import {MetaFlowSettings} from "../settings/types";
 import {DEFAULT_SETTINGS} from "../settings/defaultSettings";

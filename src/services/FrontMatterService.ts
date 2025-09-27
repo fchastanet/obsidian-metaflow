@@ -1,9 +1,10 @@
 import {injectable} from 'inversify';
 import * as yaml from 'js-yaml';
+import {FrontMatterCache} from 'obsidian';
 
 
 export interface FrontmatterParseResult {
-  metadata: any;
+  metadata: FrontMatterCache;
   content: string;
   restOfContent: string;
 }
@@ -23,11 +24,11 @@ export class FrontMatterService {
 
     // parse frontmatter
     const delimiterRegexp: RegExp = /^---$/gm;
-    let match: RegExpExecArray | null = delimiterRegexp.exec(content);
+    const match: RegExpExecArray | null = delimiterRegexp.exec(content);
     // Check if content starts with frontmatter
     if (match && match.index === 0) {
       // Find the end of frontmatter
-      let match2: RegExpExecArray | null = delimiterRegexp.exec(content);
+      const match2: RegExpExecArray | null = delimiterRegexp.exec(content);
       if (match2 && match2.index > match.index) {
         frontmatterText = content.slice(4, match2.index);
         restOfContent = content.slice(match2.index + 4);
@@ -88,14 +89,14 @@ export class FrontMatterService {
     return this.getFileClassFromMetadata(parseResult.metadata, fileClassAlias);
   }
 
-  getFileClassFromMetadata(metadata: any, fileClassAlias: string): string | null {
+  getFileClassFromMetadata(metadata: FrontMatterCache, fileClassAlias: string): string | null {
     return metadata?.[fileClassAlias] || null;
   }
 
   /**
    * Serialize metadata back to YAML frontmatter format
    */
-  serializeFrontmatter(metadata: any, restOfContent: string): string {
+  serializeFrontmatter(metadata: FrontMatterCache, restOfContent: string): string {
     try {
       // Convert back to YAML
       const sortedYaml = yaml.dump(metadata, {

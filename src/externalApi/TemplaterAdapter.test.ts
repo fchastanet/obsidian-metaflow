@@ -179,10 +179,6 @@ describe('TemplaterAdapter', () => {
     });
 
     describe('getParentFile', () => {
-      let obsidianAdapter: ObsidianAdapter;
-      beforeEach(() => {
-        obsidianAdapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS);
-      });
       afterEach(() => {
         jest.restoreAllMocks();
         jest.clearAllMocks();

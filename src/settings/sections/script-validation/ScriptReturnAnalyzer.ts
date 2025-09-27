@@ -1,11 +1,11 @@
-import { ValidationResult } from './ValidationResult';
-import { ScriptASTParser, ParsedScript } from './ScriptASTParser';
+import {ValidationResult} from './ValidationResult';
+import {ScriptASTParser} from './ScriptASTParser';
 
 /**
  * ScriptReturnAnalyzer handles analysis of return statements and execution paths
  */
 export class ScriptReturnAnalyzer {
-  constructor(private astParser: ScriptASTParser) {}
+  constructor(private astParser: ScriptASTParser) { }
 
   /**
    * Checks if script contains a return statement
@@ -14,7 +14,7 @@ export class ScriptReturnAnalyzer {
    */
   hasReturnStatement(script: string): boolean {
     const parsed = this.astParser.parseScript(script);
-    
+
     if (parsed) {
       return this.hasReturnInNode(parsed.ast);
     }
@@ -70,6 +70,7 @@ export class ScriptReturnAnalyzer {
   /**
    * Recursively checks if a node or its children contain a return statement
    */
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private hasReturnInNode(node: any): boolean {
     if (!node || typeof node !== 'object') {
       return false;
@@ -101,9 +102,10 @@ export class ScriptReturnAnalyzer {
   /**
    * Analyzes execution paths to ensure all paths return and all returns are strings
    */
-  private analyzeExecutionPaths(node: any): { allPathsReturn: boolean; allReturnsAreStrings: boolean } {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private analyzeExecutionPaths(node: any): {allPathsReturn: boolean; allReturnsAreStrings: boolean} {
     if (!node || typeof node !== 'object') {
-      return { allPathsReturn: false, allReturnsAreStrings: true };
+      return {allPathsReturn: false, allReturnsAreStrings: true};
     }
 
     return this.analyzeNode(node);
@@ -112,9 +114,10 @@ export class ScriptReturnAnalyzer {
   /**
    * Recursively analyzes a node to check execution paths
    */
-  private analyzeNode(node: any): { allPathsReturn: boolean; allReturnsAreStrings: boolean } {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private analyzeNode(node: any): {allPathsReturn: boolean; allReturnsAreStrings: boolean} {
     if (!node || typeof node !== 'object') {
-      return { allPathsReturn: false, allReturnsAreStrings: true };
+      return {allPathsReturn: false, allReturnsAreStrings: true};
     }
 
     switch (node.type) {
@@ -146,12 +149,12 @@ export class ScriptReturnAnalyzer {
       case 'DoWhileStatement':
       case 'ForStatement':
       case 'ForInStatement':
-      case 'ForOfStatement':
+      case 'ForOfStatement': {
         // Loops don't guarantee execution, so they can't provide a return for all paths
         const loopAnalysis = this.analyzeNode(node.body);
-        return { allPathsReturn: false, allReturnsAreStrings: loopAnalysis.allReturnsAreStrings };
-
-      default:
+        return {allPathsReturn: false, allReturnsAreStrings: loopAnalysis.allReturnsAreStrings};
+      }
+      default: {
         // For other statements, check if they contain any returns
         let hasReturn = false;
         let allReturnsAreStrings = true;
@@ -171,14 +174,16 @@ export class ScriptReturnAnalyzer {
           }
         }
 
-        return { allPathsReturn: hasReturn, allReturnsAreStrings };
+        return {allPathsReturn: hasReturn, allReturnsAreStrings};
+      }
     }
   }
 
   /**
    * Analyzes a block of statements
    */
-  private analyzeBlock(statements: any[]): { allPathsReturn: boolean; allReturnsAreStrings: boolean } {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private analyzeBlock(statements: any[]): {allPathsReturn: boolean; allReturnsAreStrings: boolean} {
     let allReturnsAreStrings = true;
 
     for (const stmt of statements) {
@@ -190,19 +195,20 @@ export class ScriptReturnAnalyzer {
 
       // If we find a return statement, this path returns
       if (analysis.allPathsReturn) {
-        return { allPathsReturn: true, allReturnsAreStrings };
+        return {allPathsReturn: true, allReturnsAreStrings};
       }
     }
 
-    return { allPathsReturn: false, allReturnsAreStrings };
+    return {allPathsReturn: false, allReturnsAreStrings};
   }
 
   /**
    * Analyzes an if statement to check all branches
    */
-  private analyzeIfStatement(node: any): { allPathsReturn: boolean; allReturnsAreStrings: boolean } {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private analyzeIfStatement(node: any): {allPathsReturn: boolean; allReturnsAreStrings: boolean} {
     const consequentAnalysis = this.analyzeNode(node.consequent);
-    const alternateAnalysis = node.alternate ? this.analyzeNode(node.alternate) : { allPathsReturn: false, allReturnsAreStrings: true };
+    const alternateAnalysis = node.alternate ? this.analyzeNode(node.alternate) : {allPathsReturn: false, allReturnsAreStrings: true};
 
     return {
       allPathsReturn: consequentAnalysis.allPathsReturn && alternateAnalysis.allPathsReturn,
@@ -213,7 +219,8 @@ export class ScriptReturnAnalyzer {
   /**
    * Analyzes a switch statement to check all cases
    */
-  private analyzeSwitchStatement(node: any): { allPathsReturn: boolean; allReturnsAreStrings: boolean } {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private analyzeSwitchStatement(node: any): {allPathsReturn: boolean; allReturnsAreStrings: boolean} {
     let hasDefault = false;
     let allCasesReturn = true;
     let allReturnsAreStrings = true;
@@ -241,10 +248,11 @@ export class ScriptReturnAnalyzer {
   /**
    * Analyzes a try-catch statement
    */
-  private analyzeTryStatement(node: any): { allPathsReturn: boolean; allReturnsAreStrings: boolean } {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private analyzeTryStatement(node: any): {allPathsReturn: boolean; allReturnsAreStrings: boolean} {
     const tryAnalysis = this.analyzeNode(node.block);
-    const catchAnalysis = node.handler ? this.analyzeNode(node.handler.body) : { allPathsReturn: false, allReturnsAreStrings: true };
-    const finallyAnalysis = node.finalizer ? this.analyzeNode(node.finalizer) : { allPathsReturn: false, allReturnsAreStrings: true };
+    const catchAnalysis = node.handler ? this.analyzeNode(node.handler.body) : {allPathsReturn: false, allReturnsAreStrings: true};
+    const finallyAnalysis = node.finalizer ? this.analyzeNode(node.finalizer) : {allPathsReturn: false, allReturnsAreStrings: true};
 
     return {
       allPathsReturn: tryAnalysis.allPathsReturn && catchAnalysis.allPathsReturn,
@@ -255,6 +263,7 @@ export class ScriptReturnAnalyzer {
   /**
    * Determines if an AST expression is likely to produce a string
    */
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private isLikelyStringExpression(node: any): boolean {
     if (!node || typeof node !== 'object') {
       return false;

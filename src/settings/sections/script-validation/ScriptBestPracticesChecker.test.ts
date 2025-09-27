@@ -18,7 +18,7 @@ describe('ScriptBestPracticesChecker', () => {
     describe('no warnings', () => {
       it('should return no warnings for simple clean script', () => {
         const warnings = checker.checkBestPractices('return "hello world";');
-        
+
         expect(warnings).toEqual([]);
       });
 
@@ -28,7 +28,7 @@ describe('ScriptBestPracticesChecker', () => {
           return title.replace(/[-_]/g, ' ').trim();
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toEqual([]);
       });
 
@@ -43,7 +43,7 @@ describe('ScriptBestPracticesChecker', () => {
           return cleaned;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toEqual([]);
       });
 
@@ -56,7 +56,7 @@ describe('ScriptBestPracticesChecker', () => {
           }
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toEqual([]);
       });
 
@@ -70,7 +70,7 @@ describe('ScriptBestPracticesChecker', () => {
           }
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toEqual([]);
       });
     });
@@ -79,28 +79,28 @@ describe('ScriptBestPracticesChecker', () => {
       it('should warn about very long scripts', () => {
         const longScript = 'return "' + 'x'.repeat(1000) + '";';
         const warnings = checker.checkBestPractices(longScript);
-        
+
         expect(warnings).toContain('Script is very long, consider breaking it down');
       });
 
       it('should not warn about reasonably sized scripts', () => {
         const normalScript = 'return "' + 'x'.repeat(500) + '";';
         const warnings = checker.checkBestPractices(normalScript);
-        
+
         expect(warnings).not.toContain('Script is very long, consider breaking it down');
       });
 
       it('should handle scripts exactly at the threshold', () => {
         const thresholdScript = 'return "' + 'x'.repeat(990) + '";'; // Exactly 1000 chars
         const warnings = checker.checkBestPractices(thresholdScript);
-        
+
         expect(warnings).not.toContain('Script is very long, consider breaking it down');
       });
 
       it('should warn about scripts just over the threshold', () => {
         const overThresholdScript = 'return "' + 'x'.repeat(992) + '";'; // Just over 1000 chars
         const warnings = checker.checkBestPractices(overThresholdScript);
-        
+
         expect(warnings).toContain('Script is very long, consider breaking it down');
       });
     });
@@ -112,7 +112,7 @@ describe('ScriptBestPracticesChecker', () => {
           return "title";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -126,7 +126,7 @@ describe('ScriptBestPracticesChecker', () => {
           }
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -138,7 +138,7 @@ describe('ScriptBestPracticesChecker', () => {
           return file.basename;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -148,7 +148,7 @@ describe('ScriptBestPracticesChecker', () => {
           return file.basename;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -158,7 +158,7 @@ describe('ScriptBestPracticesChecker', () => {
           return "processed";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -171,7 +171,7 @@ describe('ScriptBestPracticesChecker', () => {
           return "title";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -184,7 +184,7 @@ describe('ScriptBestPracticesChecker', () => {
           return logTitle(file.basename);
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -196,7 +196,7 @@ describe('ScriptBestPracticesChecker', () => {
           return file.basename;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
@@ -206,7 +206,7 @@ describe('ScriptBestPracticesChecker', () => {
           return console;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Remove console statements before deployment');
       });
 
@@ -215,7 +215,7 @@ describe('ScriptBestPracticesChecker', () => {
           return "Check the console for errors";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Remove console statements before deployment');
       });
 
@@ -226,7 +226,7 @@ describe('ScriptBestPracticesChecker', () => {
           return "title";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Remove console statements before deployment');
       });
     });
@@ -237,7 +237,7 @@ describe('ScriptBestPracticesChecker', () => {
           return 42; // Number, not string
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Script should return a string for the title');
       });
 
@@ -246,7 +246,7 @@ describe('ScriptBestPracticesChecker', () => {
           return true;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Script should return a string for the title');
       });
 
@@ -255,7 +255,7 @@ describe('ScriptBestPracticesChecker', () => {
           return { title: "test" };
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Script should return a string for the title');
       });
 
@@ -264,7 +264,7 @@ describe('ScriptBestPracticesChecker', () => {
           return "string literal";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
@@ -273,7 +273,7 @@ describe('ScriptBestPracticesChecker', () => {
           return \`template \${literal}\`;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
@@ -282,7 +282,7 @@ describe('ScriptBestPracticesChecker', () => {
           return "hello" + " " + "world";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
@@ -291,7 +291,7 @@ describe('ScriptBestPracticesChecker', () => {
           return file.basename.toString();
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
@@ -300,7 +300,7 @@ describe('ScriptBestPracticesChecker', () => {
           return condition ? "yes" : "no";
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
@@ -310,7 +310,7 @@ describe('ScriptBestPracticesChecker', () => {
           return title;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
@@ -319,7 +319,7 @@ describe('ScriptBestPracticesChecker', () => {
           return metadata.title;
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
     });
@@ -332,56 +332,56 @@ describe('ScriptBestPracticesChecker', () => {
       it('should detect console statements with regex fallback', () => {
         const script = `console.log("test"); return "title";`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Remove console statements before deployment');
       });
 
       it('should detect non-string returns with regex fallback', () => {
         const script = `return 42;`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Script should return a string for the title');
       });
 
       it('should not warn about console in strings with regex fallback', () => {
         const script = `return "console.log is useful";`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Remove console statements before deployment');
       });
 
       it('should detect string returns with regex fallback', () => {
         const script = `return "hello world";`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
       it('should detect string operations with regex fallback', () => {
         const script = `return title + " suffix";`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
       it('should detect template literals with regex fallback', () => {
         const script = `return \`prefix \${title}\`;`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
       it('should detect string method calls with regex fallback', () => {
         const script = `return title.toString();`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
 
       it('should detect conditional string returns with regex fallback', () => {
         const script = `return condition ? "yes" : "no";`;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).not.toContain('Script should return a string for the title');
       });
     });
@@ -392,9 +392,9 @@ describe('ScriptBestPracticesChecker', () => {
           console.log("Debug message");
           return 42;
         ` + 'x'.repeat(1000);
-        
+
         const warnings = checker.checkBestPractices(longScriptWithConsole);
-        
+
         expect(warnings).toContain('Script is very long, consider breaking it down');
         expect(warnings).toContain('Remove console statements before deployment');
         expect(warnings).toContain('Script should return a string for the title');
@@ -406,10 +406,10 @@ describe('ScriptBestPracticesChecker', () => {
           console.log("test");
           return 123;
         ` + 'x'.repeat(1000);
-        
+
         const warnings1 = checker.checkBestPractices(problematicScript);
         const warnings2 = checker.checkBestPractices(problematicScript);
-        
+
         expect(warnings1).toEqual(warnings2);
       });
     });
@@ -417,7 +417,7 @@ describe('ScriptBestPracticesChecker', () => {
     describe('edge cases', () => {
       it('should handle empty scripts', () => {
         const warnings = checker.checkBestPractices('');
-        
+
         // Empty scripts should warn about not returning strings
         expect(warnings).toContain('Script should return a string for the title');
       });
@@ -428,13 +428,13 @@ describe('ScriptBestPracticesChecker', () => {
           /* Another comment */
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toContain('Script should return a string for the title');
       });
 
       it('should handle scripts with only whitespace', () => {
         const warnings = checker.checkBestPractices('   \n  \t  ');
-        
+
         expect(warnings).toContain('Script should return a string for the title');
       });
 
@@ -455,7 +455,7 @@ describe('ScriptBestPracticesChecker', () => {
           return processTitle();
         `;
         const warnings = checker.checkBestPractices(script);
-        
+
         expect(warnings).toEqual([]);
       });
     });
@@ -463,10 +463,10 @@ describe('ScriptBestPracticesChecker', () => {
     describe('caching integration', () => {
       it('should use cached AST results', () => {
         const script = 'return "test";';
-        
+
         checker.checkBestPractices(script);
         expect(astParser.getCacheSize()).toBe(1);
-        
+
         checker.checkBestPractices(script);
         expect(astParser.getCacheSize()).toBe(1); // Still only one cache entry
       });
@@ -474,7 +474,7 @@ describe('ScriptBestPracticesChecker', () => {
       it('should handle different scripts separately', () => {
         checker.checkBestPractices('return "script1";');
         checker.checkBestPractices('return "script2";');
-        
+
         expect(astParser.getCacheSize()).toBe(2);
       });
     });

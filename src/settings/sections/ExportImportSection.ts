@@ -46,17 +46,22 @@ export class ExportImportSection {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'application/json';
-            input.onchange = async (event: any) => {
-              const file = event.target.files[0];
+            input.onchange = async (event: Event) => {
+              if (event.target === null) return;
+              const files = (event.target as HTMLInputElement).files;
+              if (!files || files.length === 0) return;
+              const file = files[0];
               if (!file) return;
 
               const reader = new FileReader();
-              reader.onload = async (e: any) => {
+              reader.onload = async (e: ProgressEvent<FileReader>) => {
+                if (!e.target || typeof e.target.result !== "string") return;
                 try {
                   this.metaflowService.importSettings(e.target.result);
                   new Notice('Settings imported successfully!');
                   this.onChange();
                 } catch (err) {
+                  console.error(err);
                   new Notice('Failed to import settings: Invalid JSON', 5000);
                 }
               };
