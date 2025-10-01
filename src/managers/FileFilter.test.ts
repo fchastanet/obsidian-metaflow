@@ -1,6 +1,6 @@
 import {FileFilter} from './FileFilter';
-import {FileValidationService} from '../services/FileValidationService';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
+import {FileValidationService} from '@metaflow/services/FileValidationService';
+import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
 import {TFile, TAbstractFile, CachedMetadata} from 'obsidian';
 
 // Mock TFile

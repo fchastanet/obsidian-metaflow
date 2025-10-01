@@ -1,5 +1,5 @@
 import {Setting} from "obsidian";
-import {MetaFlowSettings} from "../types";
+import {MetaFlowSettings} from "@metaflow/settings/types";
 
 export class MetadataInsertionSection {
   constructor(

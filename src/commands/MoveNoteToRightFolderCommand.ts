@@ -1,14 +1,14 @@
 import {injectable, inject} from 'inversify';
 import type {Editor, MarkdownView} from 'obsidian';
-import type {LogManagerInterface} from '../managers/types';
-import {MetaFlowException} from '../MetaFlowException';
-import type {FileOperationsService} from '../services/FileOperationsService';
-import type {FileValidationService} from '../services/FileValidationService';
-import type {FileClassDeductionService} from '../services/FileClassDeductionService';
+import type {LogManagerInterface} from '@metaflow/managers/types';
+import {MetaFlowException} from '@metaflow/MetaFlowException';
+import type {FileOperationsService} from '@metaflow/services/FileOperationsService';
+import type {FileValidationService} from '@metaflow/services/FileValidationService';
+import type {FileClassDeductionService} from '@metaflow/services/FileClassDeductionService';
 import type {App} from 'obsidian';
-import type {MetaFlowSettings} from '../settings/types';
+import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {EditorCommand} from './types';
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 
 /**
  * Command to move note to the right folder based on file class configuration
@@ -20,14 +20,15 @@ export class MoveNoteToRightFolderCommand implements EditorCommand {
     @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
     @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
     @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
-    @inject(TYPES.FileClassDeductionService) private fileClassDeductionService: FileClassDeductionService
+    @inject(TYPES.FileClassDeductionService) private fileClassDeductionService: FileClassDeductionService,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
   ) { }
 
-  async execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): Promise<void> {
+  async execute(editor: Editor, view: MarkdownView): Promise<void> {
     try {
       const file = view.file;
       if (!file) {
-        logManager.addError('No active file found');
+        this.logManager.addError('No active file found');
         return;
       }
 
@@ -38,20 +39,20 @@ export class MoveNoteToRightFolderCommand implements EditorCommand {
       if (fileClass) {
         let newFile = file;
         if (this.settings.autoRenameNote) {
-          const renamedFile = await this.fileOperationsService.renameNote(file, fileClass, metadata, logManager);
+          const renamedFile = await this.fileOperationsService.renameNote(file, fileClass, metadata);
           newFile = renamedFile || file;
         }
 
-        await this.fileOperationsService.moveNote(newFile, fileClass, metadata, logManager);
+        await this.fileOperationsService.moveNote(newFile, fileClass, metadata);
       } else {
-        logManager.addWarning('No fileClass found in metadata');
+        this.logManager.addWarning('No fileClass found in metadata');
       }
     } catch (error) {
       console.error('Error moving note:', error);
       if (error instanceof MetaFlowException) {
-        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
+        this.logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
       } else {
-        logManager.addError('Error moving note to the right folder');
+        this.logManager.addError('Error moving note to the right folder');
       }
     }
   }

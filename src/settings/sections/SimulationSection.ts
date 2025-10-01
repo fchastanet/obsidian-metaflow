@@ -1,11 +1,10 @@
 import {App, Setting} from "obsidian";
-import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
-import {MetaFlowSettings} from "../types";
-import {LogNoticeManager} from "../../managers/LogNoticeManager";
-import {ObsidianAdapter} from "../../externalApi/ObsidianAdapter";
-import {MetaFlowService} from "../../services/MetaFlowService";
-import {FrontmatterParseResult, FrontMatterService} from "../../services/FrontMatterService";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
+import {MetaFlowService} from "@metaflow/services/MetaFlowService";
+import {FrontmatterParseResult, FrontMatterService} from "@metaflow/services/FrontMatterService";
 
 export class SimulationSection {
   constructor(
@@ -13,7 +12,6 @@ export class SimulationSection {
     private container: HTMLElement,
     private settings: MetaFlowSettings,
     private metadataMenuAdapter: MetadataMenuAdapter,
-    private obsidianAdapter: ObsidianAdapter,
     private templaterAdapter: TemplaterAdapter,
     private metaFlowService: MetaFlowService,
   ) { }
@@ -141,8 +139,7 @@ This is sample content for testing.`;
         this.metadataMenuAdapter.getFileClassFromMetadata = () => selectedFileClass;
 
         // Run the simulation
-        const logManager = new LogNoticeManager(this.obsidianAdapter);
-        const result = metaFlowService.processContent(inputContent, mockFile, logManager);
+        const result = metaFlowService.processContent(inputContent, mockFile);
 
         // Display results
         outputTextarea.value = result;

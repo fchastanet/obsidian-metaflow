@@ -28,5 +28,9 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
   autoMoveNoteToRightFolder: true,
   autoRenameNote: true,
   debugMode: false,
-  frontmatterUpdateDelayMs: 500
+  frontmatterUpdateDelayMs: 500,
+  fileClassStateCacheFilename: 'fileClassStateCache.json',
+  fileClassStateCacheSaveIntervalMs: 15000, // 15 seconds
+  fileClassStateCacheEvictionThresholdMs: 86400000, // 24 hours
+  eventCronIntervalMs: 15000, // 15 seconds
 };

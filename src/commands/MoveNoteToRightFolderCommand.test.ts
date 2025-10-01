@@ -1,12 +1,12 @@
 import {MoveNoteToRightFolderCommand} from './MoveNoteToRightFolderCommand';
-import {MetaFlowException} from '../MetaFlowException';
+import {MetaFlowException} from '@metaflow/MetaFlowException';
 import {Container} from 'inversify';
-import {TYPES} from '../di/types';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import type {FileOperationsService} from '../services/FileOperationsService';
-import type {FileValidationService} from '../services/FileValidationService';
-import type {FileClassDeductionService} from '../services/FileClassDeductionService';
-import type {LogManagerInterface} from '../managers/types';
+import {TYPES} from '@metaflow/di/types';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
+import type {FileOperationsService} from '@metaflow/services/FileOperationsService';
+import type {FileValidationService} from '@metaflow/services/FileValidationService';
+import type {FileClassDeductionService} from '@metaflow/services/FileClassDeductionService';
+import type {LogManagerInterface} from '@metaflow/managers/types';
 
 // Mock Obsidian classes
 jest.mock('obsidian', () => ({
@@ -93,6 +93,7 @@ describe('MoveNoteToRightFolderCommand', () => {
     container.bind(TYPES.FileValidationService).toConstantValue(mockFileValidationService);
     container.bind(TYPES.FileClassDeductionService).toConstantValue(mockFileClassDeductionService);
     container.bind(TYPES.MoveNoteToRightFolderCommand).to(MoveNoteToRightFolderCommand);
+    container.bind(TYPES.LogManagerInterface).toConstantValue(mockLogManager);
 
     // Create command instance
     command = container.get<MoveNoteToRightFolderCommand>(TYPES.MoveNoteToRightFolderCommand);
@@ -113,12 +114,12 @@ describe('MoveNoteToRightFolderCommand', () => {
     mockFileOperationsService.renameNote.mockResolvedValue(renamedFile);
     mockFileOperationsService.moveNote.mockResolvedValue(undefined);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
     expect(mockFileValidationService.checkIfValidFile).toHaveBeenCalledWith(mockFile);
     expect(mockFileClassDeductionService.getFileClassFromMetadata).toHaveBeenCalledWith(metadata);
-    expect(mockFileOperationsService.renameNote).toHaveBeenCalledWith(mockFile, fileClass, metadata, mockLogManager);
-    expect(mockFileOperationsService.moveNote).toHaveBeenCalledWith(renamedFile, fileClass, metadata, mockLogManager);
+    expect(mockFileOperationsService.renameNote).toHaveBeenCalledWith(mockFile, fileClass, metadata);
+    expect(mockFileOperationsService.moveNote).toHaveBeenCalledWith(renamedFile, fileClass, metadata);
   });
 
   it('should move note without renaming when autoRenameNote is disabled', async () => {
@@ -138,10 +139,10 @@ describe('MoveNoteToRightFolderCommand', () => {
     mockFileClassDeductionService.getFileClassFromMetadata.mockReturnValue(fileClass);
     mockFileOperationsService.moveNote.mockResolvedValue(undefined);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
     expect(mockFileOperationsService.renameNote).not.toHaveBeenCalled();
-    expect(mockFileOperationsService.moveNote).toHaveBeenCalledWith(mockFile, fileClass, metadata, mockLogManager);
+    expect(mockFileOperationsService.moveNote).toHaveBeenCalledWith(mockFile, fileClass, metadata);
   });
 
   it('should move note when rename returns null', async () => {
@@ -156,9 +157,9 @@ describe('MoveNoteToRightFolderCommand', () => {
     mockFileOperationsService.renameNote.mockResolvedValue(null);
     mockFileOperationsService.moveNote.mockResolvedValue(undefined);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
-    expect(mockFileOperationsService.moveNote).toHaveBeenCalledWith(mockFile, fileClass, metadata, mockLogManager);
+    expect(mockFileOperationsService.moveNote).toHaveBeenCalledWith(mockFile, fileClass, metadata);
   });
 
   it('should warn when no file class is found', async () => {
@@ -170,7 +171,7 @@ describe('MoveNoteToRightFolderCommand', () => {
     mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
     mockFileClassDeductionService.getFileClassFromMetadata.mockReturnValue(null);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
     expect(mockLogManager.addWarning).toHaveBeenCalledWith('No fileClass found in metadata');
     expect(mockFileOperationsService.moveNote).not.toHaveBeenCalled();
@@ -179,7 +180,7 @@ describe('MoveNoteToRightFolderCommand', () => {
   it('should handle missing file', async () => {
     const viewWithoutFile = {file: null};
 
-    await command.execute(mockEditor, viewWithoutFile as any, mockLogManager);
+    await command.execute(mockEditor, viewWithoutFile as any);
 
     expect(mockLogManager.addError).toHaveBeenCalledWith('No active file found');
     expect(mockFileValidationService.checkIfValidFile).not.toHaveBeenCalled();
@@ -191,7 +192,7 @@ describe('MoveNoteToRightFolderCommand', () => {
       throw error;
     });
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
     expect(mockLogManager.addMessage).toHaveBeenCalledWith('Error: Move error', 'error');
   });
@@ -202,7 +203,7 @@ describe('MoveNoteToRightFolderCommand', () => {
       throw error;
     });
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
     expect(mockLogManager.addError).toHaveBeenCalledWith('Error moving note to the right folder');
   });

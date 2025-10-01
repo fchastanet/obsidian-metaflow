@@ -1,10 +1,10 @@
 import {injectable, inject} from 'inversify';
 import type {Editor, MarkdownView} from 'obsidian';
-import type {LogManagerInterface} from '../managers/types';
-import {MetaFlowException} from '../MetaFlowException';
-import type {MetaFlowService} from '../services/MetaFlowService';
+import type {LogManagerInterface} from '@metaflow/managers/types';
+import {MetaFlowException} from '@metaflow/MetaFlowException';
+import type {MetaFlowService} from '@metaflow/services/MetaFlowService';
 import {EditorCommand} from './types';
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 
 /**
  * Command to update metadata properties in the current editor
@@ -12,33 +12,34 @@ import {TYPES} from '../di/types';
 @injectable()
 export class UpdateMetadataCommand implements EditorCommand {
   constructor(
-    @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService
+    @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
   ) { }
 
-  execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): void {
+  execute(editor: Editor, view: MarkdownView): void {
     const content = editor.getValue();
     const file = view.file;
 
     if (!file) {
-      logManager.addWarning('No active file');
+      this.logManager.addWarning('No active file');
       return;
     }
 
     try {
-      const processedContent = this.metaFlowService.processContent(content, file, logManager);
+      const processedContent = this.metaFlowService.processContent(content, file);
 
       if (processedContent !== content) {
         editor.setValue(processedContent);
-        logManager.addInfo(`Successfully updated metadata fields for "${file.name}"`);
+        this.logManager.addInfo(`Successfully updated metadata fields for "${file.name}"`);
       } else {
-        logManager.addInfo('No changes needed');
+        this.logManager.addInfo('No changes needed');
       }
     } catch (error) {
       console.error('Error updating metadata properties:', error);
       if (error instanceof MetaFlowException) {
-        logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
+        this.logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
       } else {
-        logManager.addError('Error updating metadata properties');
+        this.logManager.addError('Error updating metadata properties');
       }
     }
   }

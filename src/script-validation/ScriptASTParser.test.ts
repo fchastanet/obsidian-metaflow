@@ -1,14 +1,22 @@
-import { ScriptASTParser } from './ScriptASTParser';
+import {ScriptASTParser} from './ScriptASTParser';
 
 describe('ScriptASTParser', () => {
   let parser: ScriptASTParser;
+  let spyWarn: jest.SpyInstance;
+  let spyError: jest.SpyInstance;
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
     parser = new ScriptASTParser();
+    spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    spyError = jest.spyOn(console, 'error').mockImplementation(() => { });
   });
 
   afterEach(() => {
     parser.clearCache();
+    spyWarn.mockRestore();
+    spyError.mockRestore();
   });
 
   describe('parseScript', () => {
@@ -21,6 +29,8 @@ describe('ScriptASTParser', () => {
       expect(result?.originalScript).toBe(script);
       expect(result?.ast).toBeDefined();
       expect(result?.ast.type).toBe('Program');
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:13)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should parse valid standalone statements', () => {
@@ -30,6 +40,8 @@ describe('ScriptASTParser', () => {
       expect(result).not.toBeNull();
       expect(result?.isWrapped).toBe(true);
       expect(result?.originalScript).toBe(script);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should parse complete program without wrapping', () => {
@@ -39,6 +51,8 @@ describe('ScriptASTParser', () => {
       expect(result).not.toBeNull();
       expect(result?.isWrapped).toBe(false);
       expect(result?.originalScript).toBe(script);
+      expect(spyWarn).not.toHaveBeenCalled();
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should return null for invalid syntax', () => {
@@ -46,6 +60,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).toBeNull();
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).toHaveBeenCalledWith("Error parsing script:", expect.any(SyntaxError));
     });
 
     it('should return null for completely malformed script', () => {
@@ -53,6 +69,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).toBeNull();
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: Unexpected token (1:0)");
+      expect(spyError).toHaveBeenCalledWith("Error parsing script:", expect.any(SyntaxError));
     });
 
     it('should handle empty script', () => {
@@ -62,6 +80,8 @@ describe('ScriptASTParser', () => {
       expect(result).not.toBeNull();
       // Empty script can be parsed, check the actual wrapper status
       expect(typeof result?.isWrapped).toBe('boolean');
+      expect(spyWarn).not.toHaveBeenCalled();
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle whitespace-only script', () => {
@@ -71,6 +91,8 @@ describe('ScriptASTParser', () => {
       expect(result).not.toBeNull();
       // Whitespace script can be parsed, check the actual wrapper status
       expect(typeof result?.isWrapped).toBe('boolean');
+      expect(spyWarn).not.toHaveBeenCalled();
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should parse complex expressions', () => {
@@ -79,6 +101,8 @@ describe('ScriptASTParser', () => {
 
       expect(result).not.toBeNull();
       expect(result?.isWrapped).toBe(true);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should parse conditional statements', () => {
@@ -87,6 +111,8 @@ describe('ScriptASTParser', () => {
 
       expect(result).not.toBeNull();
       expect(result?.isWrapped).toBe(true);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:22)");
+      expect(spyError).not.toHaveBeenCalled();
     });
   });
 
@@ -97,6 +123,8 @@ describe('ScriptASTParser', () => {
       const result2 = parser.parseScript(script);
 
       expect(result1).toBe(result2); // Same object reference
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should cache null results for invalid scripts', () => {
@@ -107,6 +135,8 @@ describe('ScriptASTParser', () => {
       expect(result1).toBeNull();
       expect(result2).toBeNull();
       expect(parser.getCacheSize()).toBe(1);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).toHaveBeenCalledWith("Error parsing script:", expect.any(SyntaxError));
     });
 
     it('should maintain separate cache entries for different scripts', () => {
@@ -117,6 +147,8 @@ describe('ScriptASTParser', () => {
       parser.parseScript(script2);
 
       expect(parser.getCacheSize()).toBe(2);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should clear cache correctly', () => {
@@ -128,6 +160,8 @@ describe('ScriptASTParser', () => {
       parser.clearCache();
 
       expect(parser.getCacheSize()).toBe(0);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should rebuild cache after clearing', () => {
@@ -141,6 +175,8 @@ describe('ScriptASTParser', () => {
       expect(result1).not.toBe(result2); // Different object references
       expect(result1?.originalScript).toBe(result2?.originalScript);
       expect(parser.getCacheSize()).toBe(1);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
   });
 
@@ -149,17 +185,32 @@ describe('ScriptASTParser', () => {
       expect(parser.canParse('return "hello";')).toBe(true);
       expect(parser.canParse('const x = 5; return x;')).toBe(true);
       expect(parser.canParse('if (true) return "yes"; else return "no";')).toBe(true);
+      expect(spyWarn).toHaveBeenCalledTimes(3);
+      expect(spyWarn).toHaveBeenNthCalledWith(1, "error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyWarn).toHaveBeenNthCalledWith(2, "error parsing script : SyntaxError: 'return' outside of function (1:13)");
+      expect(spyWarn).toHaveBeenNthCalledWith(3, "error parsing script : SyntaxError: 'return' outside of function (1:10)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should return false for invalid scripts', () => {
       expect(parser.canParse('return "unterminated;')).toBe(false);
       expect(parser.canParse('}{invalid}')).toBe(false);
       expect(parser.canParse('return @#$%^&*;')).toBe(false);
+      expect(spyWarn).toHaveBeenCalledTimes(3);
+      expect(spyWarn).toHaveBeenNthCalledWith(1, "error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyWarn).toHaveBeenNthCalledWith(2, "error parsing script : SyntaxError: Unexpected token (1:0)");
+      expect(spyWarn).toHaveBeenNthCalledWith(3, "error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).toHaveBeenCalledTimes(3);
+      expect(spyError).toHaveBeenNthCalledWith(1, "Error parsing script:", expect.any(SyntaxError));
+      expect(spyError).toHaveBeenNthCalledWith(2, "Error parsing script:", expect.any(SyntaxError));
+      expect(spyError).toHaveBeenNthCalledWith(3, "Error parsing script:", expect.any(SyntaxError));
     });
 
     it('should return true for empty scripts', () => {
       expect(parser.canParse('')).toBe(true);
       expect(parser.canParse('   ')).toBe(true);
+      expect(spyWarn).not.toHaveBeenCalled();
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should use cache for canParse checks', () => {
@@ -170,6 +221,8 @@ describe('ScriptASTParser', () => {
 
       parser.canParse(script); // Should use cache
       expect(parser.getCacheSize()).toBe(1);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
   });
 
@@ -185,6 +238,8 @@ describe('ScriptASTParser', () => {
 
       expect(result).not.toBeNull();
       expect(result?.isWrapped).toBe(true);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (5:8)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle scripts with string literals containing quotes', () => {
@@ -192,6 +247,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).not.toBeNull();
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle scripts with template literals', () => {
@@ -199,6 +256,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).not.toBeNull();
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle scripts with regex literals', () => {
@@ -206,6 +265,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).not.toBeNull();
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle scripts with arrow functions', () => {
@@ -213,6 +274,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).not.toBeNull();
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle scripts with destructuring', () => {
@@ -220,6 +283,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).not.toBeNull();
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:34)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle scripts with async/await', () => {
@@ -227,6 +292,8 @@ describe('ScriptASTParser', () => {
       const result = parser.parseScript(script);
 
       expect(result).not.toBeNull();
+      expect(spyWarn).not.toHaveBeenCalled();
+      expect(spyError).not.toHaveBeenCalled();
     });
   });
 
@@ -237,6 +304,8 @@ describe('ScriptASTParser', () => {
       scripts.forEach(script => parser.parseScript(script));
 
       expect(parser.getCacheSize()).toBe(100);
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
 
     it('should handle repeated parsing of same script efficiently', () => {
@@ -248,6 +317,8 @@ describe('ScriptASTParser', () => {
       }
 
       expect(parser.getCacheSize()).toBe(1); // Only one cache entry
+      expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+      expect(spyError).not.toHaveBeenCalled();
     });
   });
 });

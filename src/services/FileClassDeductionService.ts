@@ -1,9 +1,9 @@
 import {injectable, inject} from 'inversify';
-import type {MetaFlowSettings} from "../settings/types";
-import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import type {MetaFlowSettings} from "@metaflow/settings/types";
+import type {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
+import type {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import type {FrontMatterService} from "./FrontMatterService";
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 import {FrontMatterCache} from 'obsidian';
 
 @injectable()

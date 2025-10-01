@@ -1,4 +1,4 @@
-import {domCreate} from "../__mocks__/dom";
+import {domCreate} from "@metaflow/__mocks__/dom";
 import {LogNoticeManager} from "./LogNoticeManager";
 
 describe("LogNoticeManager", () => {

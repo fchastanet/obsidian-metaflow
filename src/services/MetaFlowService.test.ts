@@ -1,8 +1,8 @@
 import {FileStats, TFile} from 'obsidian';
 import {MetaFlowService} from './MetaFlowService';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import {LogManagerInterface} from 'src/managers/types';
-import {MetaFlowSettings} from '../settings/types';
+import {MetaFlowSettings} from '@metaflow/settings/types';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -20,11 +20,8 @@ describe('MetaFlowService', () => {
   let mockSettings: MetaFlowSettings;
 
   // Mock services
-  let mockScriptContextService: any;
   let mockMetadataMenuAdapter: any;
   let mockFrontMatterService: any;
-  let mockTemplaterAdapter: any;
-  let mockObsidianAdapter: any;
   let mockFileValidationService: any;
   let mockFileClassDeductionService: any;
   let mockPropertyManagementService: any;
@@ -69,15 +66,6 @@ describe('MetaFlowService', () => {
     };
 
     // Setup mock services
-    mockScriptContextService = {
-      getScriptContext: jest.fn().mockReturnValue({
-        metadata: {},
-        fileClass: 'default',
-        file: {},
-        logManager: {},
-      }),
-    };
-
     mockMetadataMenuAdapter = {
       isMetadataMenuAvailable: jest.fn().mockReturnValue(true),
       getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
@@ -98,26 +86,6 @@ describe('MetaFlowService', () => {
         return {metadata: {}, body: content};
       }),
       serializeFrontmatter: jest.fn().mockReturnValue('---\nfileClass: book\ntitle: Test\n---\nContent'),
-    };
-
-    mockTemplaterAdapter = {
-      isTemplaterAvailable: jest.fn().mockReturnValue(true),
-    };
-
-    mockObsidianAdapter = {
-      folderPrefix: jest.fn().mockImplementation((folder: string) => folder === '/' ? '/' : `${folder}/`),
-      isFileExists: jest.fn().mockReturnValue(false),
-      isFolderExists: jest.fn().mockReturnValue(true),
-      createFolder: jest.fn().mockResolvedValue({}),
-      getAbstractFileByPath: jest.fn().mockImplementation((path: string) => {
-        // Return mockFile for any path that looks like a file
-        if (path.includes('.md')) {
-          return mockFile;
-        }
-        return null;
-      }),
-      moveNote: jest.fn().mockResolvedValue(undefined),
-      normalizePath: jest.fn().mockImplementation((path: string) => path.replace(/\\/g, '/')),
     };
 
     mockFileValidationService = {
@@ -178,16 +146,14 @@ describe('MetaFlowService', () => {
     metaFlowService = new MetaFlowService(
       mockApp,
       mockSettings,
-      mockScriptContextService,
       mockMetadataMenuAdapter,
       mockFrontMatterService,
-      mockTemplaterAdapter,
-      mockObsidianAdapter,
       mockFileValidationService,
       mockFileClassDeductionService,
       mockPropertyManagementService,
       mockFileOperationsService,
-      mockNoteTitleService
+      mockNoteTitleService,
+      mockLogManager,
     );
   });
 
@@ -239,7 +205,7 @@ describe('MetaFlowService', () => {
       // Set up settings to enable auto metadata insertion
       mockSettings.autoMetadataInsertion = true;
 
-      const result = await metaFlowService.handleFileClassChanged(mockFile, metadata, 'old', 'default', mockLogManager);
+      const result = await metaFlowService.handleFileClassChanged(mockFile, metadata, 'default');
       expect(result).toBeUndefined(); // void method
 
       // Verify that the validation service was called
@@ -247,9 +213,9 @@ describe('MetaFlowService', () => {
       expect(mockFileValidationService.checkIfMetadataInsertionApplicable).toHaveBeenCalledWith(mockFile);
     });
 
-    test('should process content', async () => {
+    test('should process content', () => {
       const content = '---\ntitle: Test\n---\nContent';
-      const result = await metaFlowService.processContent(content, mockFile, mockLogManager);
+      const result = metaFlowService.processContent(content, mockFile);
       expect(result).toBeDefined();
     });
   });

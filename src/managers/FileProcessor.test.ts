@@ -1,9 +1,9 @@
 import {FileProcessor} from './FileProcessor';
-import {FileClassDeductionService} from '../services/FileClassDeductionService';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
-import {MetaFlowSettings} from '../settings/types';
+import {FileClassDeductionService} from '@metaflow/services/FileClassDeductionService';
+import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
+import {MetaFlowSettings} from '@metaflow/settings/types';
 import {TFile, CachedMetadata} from 'obsidian';
-import {Utils} from '../utils/Utils';
+import {Utils} from '@metaflow/utils/Utils';
 
 // Mock TFile
 jest.mock('obsidian', () => ({

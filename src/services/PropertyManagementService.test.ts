@@ -1,7 +1,7 @@
 import {TFile} from "obsidian";
 import {PropertyManagementService} from "./PropertyManagementService";
-import {MetaFlowSettings} from "../settings/types";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 import {MetadataMenuAdapter} from "src/externalApi/MetadataMenuAdapter";
 import {ScriptContextService} from "./ScriptContextService";
 import {LogManagerInterface} from "src/managers/types";
@@ -72,7 +72,8 @@ describe('PropertyManagementService', () => {
     propertyManagementService = new PropertyManagementService(
       mockMetaFlowSettings,
       mockMetadataMenuAdapter,
-      mockScriptContextService
+      mockScriptContextService,
+      mockLogManager
     );
   });
 
@@ -127,8 +128,7 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book',
-        mockLogManager
+        'book'
       );
 
       expect(result.fileClass).toBe('book');
@@ -146,8 +146,7 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book',
-        mockLogManager
+        'book'
       );
 
       expect(result.author).toBe('Existing Author'); // Should not be overridden
@@ -161,8 +160,7 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book',
-        mockLogManager
+        'book'
       );
 
       expect(result.author).toBeUndefined(); // Should not be added
@@ -194,8 +192,7 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book',
-        mockLogManager
+        'book'
       );
 
       // Both should be present, processed in order
@@ -215,8 +212,7 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book',
-        mockLogManager
+        'book'
       );
 
       expect(result.nonExistentField).toBeUndefined();

@@ -38,4 +38,8 @@ export interface MetaFlowSettings {
   autoRenameNote: boolean;
   debugMode: boolean;
   frontmatterUpdateDelayMs: number;
+  fileClassStateCacheFilename: string; // Filename for the file class state cache
+  fileClassStateCacheSaveIntervalMs: number; // Interval in milliseconds to save the cache
+  fileClassStateCacheEvictionThresholdMs: number; // Time in milliseconds to evict stale cache entries
+  eventCronIntervalMs: number; // interval for event cron jobs
 }

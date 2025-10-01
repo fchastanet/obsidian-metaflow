@@ -1,4 +1,4 @@
-import {MetaFlowSettings} from "../settings/types";
+import {MetaFlowSettings} from "@metaflow/settings/types";
 
 /**
  * Manages debounced callbacks with concurrency control

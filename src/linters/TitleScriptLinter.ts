@@ -1,13 +1,13 @@
-import type { ValidationResult } from './script-validation';
+import type {ValidationResult} from '../script-validation';
 import {
   ScriptASTParser,
   ScriptSyntaxValidator,
   ScriptSecurityAnalyzer,
   ScriptReturnAnalyzer,
   ScriptBestPracticesChecker
-} from './script-validation';
+} from '../script-validation';
 
-export type { ValidationResult };
+export type {ValidationResult};
 
 /**
  * TitleScriptLinter provides validation for JavaScript scripts used in note title generation

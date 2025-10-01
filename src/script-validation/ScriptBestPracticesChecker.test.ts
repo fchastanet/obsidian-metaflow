@@ -1,17 +1,29 @@
-import { ScriptBestPracticesChecker } from './ScriptBestPracticesChecker';
-import { ScriptASTParser } from './ScriptASTParser';
+import {ScriptBestPracticesChecker} from './ScriptBestPracticesChecker';
+import {ScriptASTParser} from './ScriptASTParser';
 
 describe('ScriptBestPracticesChecker', () => {
   let checker: ScriptBestPracticesChecker;
   let astParser: ScriptASTParser;
+  let spyInfo: jest.SpyInstance;
+  let spyWarn: jest.SpyInstance;
+  let spyError: jest.SpyInstance;
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+    spyInfo = jest.spyOn(console, 'info').mockImplementation(() => { });
+    spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    spyError = jest.spyOn(console, 'error').mockImplementation(() => { });
+
     astParser = new ScriptASTParser();
     checker = new ScriptBestPracticesChecker(astParser);
   });
 
   afterEach(() => {
     astParser.clearCache();
+    spyInfo.mockRestore();
+    spyWarn.mockRestore();
+    spyError.mockRestore();
   });
 
   describe('checkBestPractices', () => {
@@ -20,6 +32,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices('return "hello world";');
 
         expect(warnings).toEqual([]);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should return no warnings for moderately complex script', () => {
@@ -30,6 +44,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toEqual([]);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should return no warnings for script with string operations', () => {
@@ -45,6 +61,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toEqual([]);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (8:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should return no warnings for conditional logic returning strings', () => {
@@ -58,6 +76,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toEqual([]);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should return no warnings for try-catch with string returns', () => {
@@ -72,6 +92,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toEqual([]);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -81,6 +103,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(longScript);
 
         expect(warnings).toContain('Script is very long, consider breaking it down');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn about reasonably sized scripts', () => {
@@ -88,6 +112,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(normalScript);
 
         expect(warnings).not.toContain('Script is very long, consider breaking it down');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle scripts exactly at the threshold', () => {
@@ -95,6 +121,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(thresholdScript);
 
         expect(warnings).not.toContain('Script is very long, consider breaking it down');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn about scripts just over the threshold', () => {
@@ -102,6 +130,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(overThresholdScript);
 
         expect(warnings).toContain('Script is very long, consider breaking it down');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -114,6 +144,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn about console.error statements', () => {
@@ -128,6 +160,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn about console.warn statements', () => {
@@ -140,6 +174,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (5:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn about console.debug statements', () => {
@@ -150,6 +186,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn about console.info statements', () => {
@@ -160,6 +198,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect console statements in nested functions', () => {
@@ -173,6 +213,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (6:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect console statements in arrow functions', () => {
@@ -186,6 +228,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (6:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect console statements in conditional blocks', () => {
@@ -198,6 +242,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (5:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn about variables named console', () => {
@@ -208,6 +254,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn about console in string literals', () => {
@@ -217,6 +265,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn about console in comments', () => {
@@ -228,6 +278,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Remove console statements before deployment');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -239,6 +291,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn when script returns boolean', () => {
@@ -248,6 +302,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn when script returns object', () => {
@@ -257,6 +313,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn when script returns string literal', () => {
@@ -266,6 +324,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn when script returns template literal', () => {
@@ -275,6 +335,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn when script returns string concatenation', () => {
@@ -284,6 +346,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn when script returns string method call', () => {
@@ -293,6 +357,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn when script returns conditional with strings', () => {
@@ -302,6 +368,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn when script returns identifier (assumed string)', () => {
@@ -312,6 +380,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn when script returns member expression', () => {
@@ -321,6 +391,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -334,6 +406,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Remove console statements before deployment');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect non-string returns with regex fallback', () => {
@@ -341,6 +415,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not warn about console in strings with regex fallback', () => {
@@ -348,6 +424,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Remove console statements before deployment');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect string returns with regex fallback', () => {
@@ -355,6 +433,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect string operations with regex fallback', () => {
@@ -362,6 +442,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect template literals with regex fallback', () => {
@@ -369,6 +451,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect string method calls with regex fallback', () => {
@@ -376,6 +460,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect conditional string returns with regex fallback', () => {
@@ -383,6 +469,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).not.toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -399,6 +487,8 @@ describe('ScriptBestPracticesChecker', () => {
         expect(warnings).toContain('Remove console statements before deployment');
         expect(warnings).toContain('Script should return a string for the title');
         expect(warnings.length).toBe(3);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should return warnings in consistent order', () => {
@@ -411,6 +501,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings2 = checker.checkBestPractices(problematicScript);
 
         expect(warnings1).toEqual(warnings2);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -420,6 +512,8 @@ describe('ScriptBestPracticesChecker', () => {
 
         // Empty scripts should warn about not returning strings
         expect(warnings).toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle scripts with only comments', () => {
@@ -430,12 +524,16 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle scripts with only whitespace', () => {
         const warnings = checker.checkBestPractices('   \n  \t  ');
 
         expect(warnings).toContain('Script should return a string for the title');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle complex nested structures', () => {
@@ -457,6 +555,8 @@ describe('ScriptBestPracticesChecker', () => {
         const warnings = checker.checkBestPractices(script);
 
         expect(warnings).toEqual([]);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (14:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -469,6 +569,8 @@ describe('ScriptBestPracticesChecker', () => {
 
         checker.checkBestPractices(script);
         expect(astParser.getCacheSize()).toBe(1); // Still only one cache entry
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle different scripts separately', () => {
@@ -476,6 +578,8 @@ describe('ScriptBestPracticesChecker', () => {
         checker.checkBestPractices('return "script2";');
 
         expect(astParser.getCacheSize()).toBe(2);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
   });

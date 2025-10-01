@@ -1,7 +1,7 @@
 import {ObsidianAdapter} from './ObsidianAdapter';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import {Notice} from 'obsidian';
-import {TFile as MockTFile} from '../__mocks__/obsidian';
+import {TFile as MockTFile} from '@metaflow/__mocks__/obsidian';
 
 
 describe('ObsidianAdapter', () => {

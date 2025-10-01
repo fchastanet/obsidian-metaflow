@@ -1,17 +1,29 @@
-import { ScriptSecurityAnalyzer } from './ScriptSecurityAnalyzer';
-import { ScriptASTParser } from './ScriptASTParser';
+import {ScriptSecurityAnalyzer} from './ScriptSecurityAnalyzer';
+import {ScriptASTParser} from './ScriptASTParser';
 
 describe('ScriptSecurityAnalyzer', () => {
   let analyzer: ScriptSecurityAnalyzer;
   let astParser: ScriptASTParser;
+  let spyInfo: jest.SpyInstance;
+  let spyWarn: jest.SpyInstance;
+  let spyError: jest.SpyInstance;
+
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+    spyInfo = jest.spyOn(console, 'info').mockImplementation(() => { });
+    spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    spyError = jest.spyOn(console, 'error').mockImplementation(() => { });
     astParser = new ScriptASTParser();
     analyzer = new ScriptSecurityAnalyzer(astParser);
   });
 
   afterEach(() => {
     astParser.clearCache();
+    spyInfo.mockRestore();
+    spyWarn.mockRestore();
+    spyError.mockRestore();
   });
 
   describe('checkSecurity', () => {
@@ -22,6 +34,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept variable operations', () => {
@@ -32,6 +46,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept string manipulation', () => {
@@ -44,6 +60,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept array operations', () => {
@@ -54,6 +72,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept date operations', () => {
@@ -64,6 +84,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept JSON operations', () => {
@@ -78,6 +100,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept regular expressions', () => {
@@ -87,6 +111,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept conditional logic', () => {
@@ -102,6 +128,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -112,6 +140,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject Function constructor', () => {
@@ -120,6 +150,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject new Function()', () => {
@@ -128,6 +160,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:51)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject setTimeout', () => {
@@ -136,6 +170,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:46)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject setInterval', () => {
@@ -144,6 +180,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:47)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject require() calls', () => {
@@ -152,6 +190,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: require() may access system resources');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:26)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject dynamic imports', () => {
@@ -160,6 +200,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic imports may access external resources');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: Unexpected token (1:21)");
+        expect(spyError).toHaveBeenCalledWith("Error parsing script:", expect.any(SyntaxError));
       });
 
       it('should detect eval in nested expressions', () => {
@@ -175,6 +217,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (7:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect Function in object methods', () => {
@@ -190,6 +234,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (7:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect setTimeout in callback', () => {
@@ -206,6 +252,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (8:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -219,6 +267,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject Function constructor when AST parsing fails', () => {
@@ -229,6 +279,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject setTimeout when AST parsing fails', () => {
@@ -239,6 +291,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject setInterval when AST parsing fails', () => {
@@ -249,6 +303,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Timer functions may cause performance issues');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject require when AST parsing fails', () => {
@@ -259,6 +315,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: require() may access system resources');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject dynamic import when AST parsing fails', () => {
@@ -269,6 +327,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: Dynamic imports may access external resources');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept safe script when AST parsing fails', () => {
@@ -279,6 +339,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('');
         expect(result.type).toBe('success');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -288,6 +350,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle scripts with only comments', () => {
@@ -295,6 +359,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not be fooled by string literals containing dangerous patterns', () => {
@@ -302,6 +368,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not be fooled by comments containing dangerous patterns', () => {
@@ -313,6 +381,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect dangerous patterns in template literals', () => {
@@ -321,6 +391,8 @@ describe('ScriptSecurityAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Security concern: eval() is potentially dangerous');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle method names that contain dangerous words but are safe', () => {
@@ -334,6 +406,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (6:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle variable names that contain dangerous words', () => {
@@ -345,6 +419,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle property access that looks like dangerous functions', () => {
@@ -355,6 +431,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -367,6 +445,8 @@ describe('ScriptSecurityAnalyzer', () => {
 
         analyzer.checkSecurity(script);
         expect(astParser.getCacheSize()).toBe(1); // Still only one cache entry
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle different scripts separately', () => {
@@ -374,6 +454,10 @@ describe('ScriptSecurityAnalyzer', () => {
         analyzer.checkSecurity('return "script2";');
 
         expect(astParser.getCacheSize()).toBe(2);
+        expect(spyWarn).toHaveBeenCalledTimes(2);
+        expect(spyWarn).toHaveBeenNthCalledWith(1, "error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyWarn).toHaveBeenNthCalledWith(2, "error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
   });

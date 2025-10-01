@@ -5,11 +5,11 @@ import {FileProcessor} from './FileProcessor';
 import {FileFilter} from './FileFilter';
 import {DelayedFileProcessor} from './DelayedFileProcessor';
 import {TFile, CachedMetadata, MarkdownView, WorkspaceLeaf} from 'obsidian';
-import {MetaFlowSettings} from '../settings/types';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
-import {FileClassDeductionService} from '../services/FileClassDeductionService';
-import {FileValidationService} from '../services/FileValidationService';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
+import {MetaFlowSettings} from '@metaflow/settings/types';
+import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
+import {FileClassDeductionService} from '@metaflow/services/FileClassDeductionService';
+import {FileValidationService} from '@metaflow/services/FileValidationService';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 
 // Mock TFile
 jest.mock('obsidian', () => ({

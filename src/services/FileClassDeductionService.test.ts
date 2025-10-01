@@ -1,6 +1,6 @@
 import {FileClassDeductionService} from "./FileClassDeductionService";
-import {MetaFlowSettings} from "../settings/types";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 
 describe('FileClassDeductionService', () => {
   let fileClassDeductionService: FileClassDeductionService;

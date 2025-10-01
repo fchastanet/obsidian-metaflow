@@ -3,7 +3,7 @@ import * as Ace from "ace-builds";
 declare const ace: AceModule;
 
 import {App} from 'obsidian';
-import {MetadataMenuAdapter} from '../externalApi/MetadataMenuAdapter';
+import {MetadataMenuAdapter} from '@metaflow/externalApi/MetadataMenuAdapter';
 import {Completion} from "ace-builds-internal/autocomplete";
 import {Point} from "ace-builds-internal/document";
 

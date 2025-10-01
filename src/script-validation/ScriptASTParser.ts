@@ -39,7 +39,7 @@ export class ScriptASTParser {
         this.parseCache.set(script, result);
         return result;
       } catch (error) {
-        console.error(`error parsing script : ${error}`);
+        console.warn(`error parsing script : ${error}`);
         // If that fails, try wrapping in function (for script fragments)
         const wrappedScript = `function temp() { ${script} }`;
         const ast = acorn.parse(wrappedScript, {ecmaVersion: 'latest'});

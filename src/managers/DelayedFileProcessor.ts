@@ -1,5 +1,5 @@
 import {TFile, CachedMetadata} from "obsidian";
-import {MetaFlowSettings} from "../settings/types";
+import {MetaFlowSettings} from "@metaflow/settings/types";
 import {FileStateCache} from "./FileStateCache";
 import {FileProcessor} from "./FileProcessor";
 import {FileFilter} from "./FileFilter";

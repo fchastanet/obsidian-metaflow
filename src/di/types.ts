@@ -25,6 +25,15 @@ export const TYPES = {
   // Legacy services (for backward compatibility)
   MetaFlowService: Symbol.for('MetaFlowService'),
 
+  // Event Manager
+  EventManagerInterface: Symbol.for('EventManagerInterface'),
+  FileCachePersistence: Symbol.for('FileCachePersistence<InternalFileState>'),
+  FileStateCache: Symbol.for('FileStateCache'),
+  FileFilter: Symbol.for('FileFilter'),
+  FileProcessor: Symbol.for('FileProcessor'),
+  DelayedFileProcessor: Symbol.for('DelayedFileProcessor'),
+  EventCron: Symbol.for('EventCron'),
+
   // Managers
   FileClassStateManager: Symbol.for('FileClassStateManager'),
   LogManagerInterface: Symbol.for('LogManagerInterface'),

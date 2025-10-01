@@ -1,5 +1,5 @@
 import {App, Modal} from 'obsidian';
-import {MetadataMenuAdapter} from '../../externalApi/MetadataMenuAdapter';
+import {MetadataMenuAdapter} from '@metaflow/externalApi/MetadataMenuAdapter';
 import {LogNoticeManager} from 'src/managers/LogNoticeManager';
 import {MetadataMenuField} from 'src/externalApi/types.MetadataMenu';
 
@@ -28,7 +28,7 @@ export class FileClassAvailableFieldsHelpModal extends Modal {
 
     try {
       if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-        const fields = this.metadataMenuAdapter.getFileClassAndAncestorsFields(this.fileClass, this.logManager);
+        const fields = this.metadataMenuAdapter.getFileClassAndAncestorsFields(this.fileClass);
 
         if (fields.length > 0) {
           const fieldsList = contentEl.createEl('ul');

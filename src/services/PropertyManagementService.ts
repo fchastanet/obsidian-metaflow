@@ -1,27 +1,21 @@
 import {injectable, inject} from 'inversify';
 import {FrontMatterCache, TFile} from "obsidian";
-import type {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
-import {MetaFlowException} from "../MetaFlowException";
-import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import type {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/settings/types";
+import {MetaFlowException} from "@metaflow/MetaFlowException";
+import type {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import type {ScriptContextService} from "./ScriptContextService";
-import type {LogManagerInterface} from "../managers/types";
-import {MetadataMenuField} from "../externalApi/types.MetadataMenu";
-import {TYPES} from '../di/types';
+import type {LogManagerInterface} from "@metaflow/managers/types";
+import {MetadataMenuField} from "@metaflow/externalApi/types.MetadataMenu";
+import {TYPES} from '@metaflow/di/types';
 
 @injectable()
 export class PropertyManagementService {
-  private metaFlowSettings: MetaFlowSettings;
-  private metadataMenuAdapter: MetadataMenuAdapter;
-  private scriptContextService: ScriptContextService;
-
   constructor(
-    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
-    @inject(TYPES.MetadataMenuAdapter) metadataMenuAdapter: MetadataMenuAdapter,
-    @inject(TYPES.ScriptContextService) scriptContextService: ScriptContextService
+    @inject(TYPES.MetaFlowSettings) private metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.MetadataMenuAdapter) private metadataMenuAdapter: MetadataMenuAdapter,
+    @inject(TYPES.ScriptContextService) private scriptContextService: ScriptContextService,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
   ) {
-    this.metaFlowSettings = metaFlowSettings;
-    this.metadataMenuAdapter = metadataMenuAdapter;
-    this.scriptContextService = scriptContextService;
   }
 
   /**
@@ -30,8 +24,7 @@ export class PropertyManagementService {
   addDefaultValuesToProperties(
     frontmatter: FrontMatterCache,
     file: TFile,
-    fileClass: string,
-    logManager: LogManagerInterface
+    fileClass: string
   ): FrontMatterCache {
     const enrichedFrontmatter = {...frontmatter};
 
@@ -49,7 +42,7 @@ export class PropertyManagementService {
     // Get only the fields associated to fileClass and ancestors
     //convert array to map
     const allFieldsMap = new Map<string, MetadataMenuField>();
-    this.metadataMenuAdapter.getFileClassAndAncestorsFields(fileClass, logManager).forEach(field => {
+    this.metadataMenuAdapter.getFileClassAndAncestorsFields(fileClass).forEach(field => {
       allFieldsMap.set(field.name, field);
     });
 
@@ -72,8 +65,7 @@ export class PropertyManagementService {
           script,
           file,
           fileClass,
-          enrichedFrontmatter,
-          logManager
+          enrichedFrontmatter
         );
 
         if (defaultValue !== undefined && defaultValue !== null && defaultValue !== '') {
@@ -149,15 +141,13 @@ export class PropertyManagementService {
     script: PropertyDefaultValueScript,
     file: TFile,
     fileClass: string,
-    metadata: FrontMatterCache,
-    logManager: LogManagerInterface
+    metadata: FrontMatterCache
   ): unknown {
     // Get utilities from ScriptContextService
     const context = this.scriptContextService.getScriptContext(
       file,
       fileClass,
-      metadata,
-      logManager
+      metadata
     );
 
     // Create a safe execution environment

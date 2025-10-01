@@ -1,6 +1,6 @@
 import {TAbstractFile, TFile} from "obsidian";
-import {FileValidationService} from "../services/FileValidationService";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import {FileValidationService} from "@metaflow/services/FileValidationService";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 
 /**
  * Handles file filtering logic to determine which files should be processed

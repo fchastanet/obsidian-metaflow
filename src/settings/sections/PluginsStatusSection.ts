@@ -1,6 +1,6 @@
 import {App} from "obsidian";
-import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
 
 export class PluginsStatusSection {
   constructor(

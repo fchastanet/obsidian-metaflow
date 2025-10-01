@@ -1,8 +1,8 @@
 import {injectable, inject} from 'inversify';
 import type {App, CachedMetadata} from 'obsidian';
 import {FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
-import type {MetaFlowSettings} from '../settings/types';
-import {TYPES} from '../di/types';
+import type {MetaFlowSettings} from '@metaflow/settings/types';
+import {TYPES} from '@metaflow/di/types';
 
 @injectable()
 export class ObsidianAdapter {

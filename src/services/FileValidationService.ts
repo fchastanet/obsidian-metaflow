@@ -1,11 +1,11 @@
 import {injectable, inject} from 'inversify';
 import {TFile} from "obsidian";
-import type {MetaFlowSettings} from "../settings/types";
-import {MetaFlowException} from "../MetaFlowException";
-import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import type {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
-import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import {TYPES} from '../di/types';
+import type {MetaFlowSettings} from "@metaflow/settings/types";
+import {MetaFlowException} from "@metaflow/MetaFlowException";
+import type {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import type {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
+import type {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
+import {TYPES} from '@metaflow/di/types';
 
 @injectable()
 export class FileValidationService {

@@ -1,7 +1,7 @@
 import {injectable, inject} from "inversify";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import {LogManagerInterface, LogManagerLogLevel} from "./types";
-import {TYPES} from "../di/types";
+import {TYPES} from "@metaflow/di/types";
 
 @injectable()
 export class LogNoticeManager implements LogManagerInterface {

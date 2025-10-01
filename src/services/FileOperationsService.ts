@@ -1,38 +1,24 @@
 import {injectable, inject} from 'inversify';
 import type {App, FrontMatterCache} from "obsidian";
 import {TFile, TFolder} from "obsidian";
-import type {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
-import {MetaFlowException} from "../MetaFlowException";
-import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import type {MetaFlowSettings, FolderFileClassMapping} from "@metaflow/settings/types";
+import {MetaFlowException} from "@metaflow/MetaFlowException";
+import type {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import type {FileValidationService} from "./FileValidationService";
-import type {LogManagerInterface} from "../managers/types";
+import type {LogManagerInterface} from "@metaflow/managers/types";
 import type {NoteTitleService} from "./NoteTitleService";
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 
 @injectable()
 export class FileOperationsService {
-  private app: App;
-  private metaFlowSettings: MetaFlowSettings;
-  private obsidianAdapter: ObsidianAdapter;
-  private fileValidationService: FileValidationService;
-  private noteTitleService: NoteTitleService;
-  private logManager: LogManagerInterface;
-
   constructor(
-    @inject(TYPES.App) app: App,
-    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
-    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter,
-    @inject(TYPES.FileValidationService) fileValidationService: FileValidationService,
-    @inject(TYPES.NoteTitleService) noteTitleService: NoteTitleService,
-    @inject(TYPES.LogManagerInterface) logManager: LogManagerInterface
-  ) {
-    this.app = app;
-    this.metaFlowSettings = metaFlowSettings;
-    this.obsidianAdapter = obsidianAdapter;
-    this.fileValidationService = fileValidationService;
-    this.noteTitleService = noteTitleService;
-    this.logManager = logManager;
-  }
+    @inject(TYPES.App) private app: App,
+    @inject(TYPES.MetaFlowSettings) private metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
+    @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
+    @inject(TYPES.NoteTitleService) private noteTitleService: NoteTitleService,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+  ) { }
 
   public async moveNoteToTheRightFolder(file: TFile, fileClass: string): Promise<string | null> {
     const newFolderPath = this.getNewNoteFolder(file, fileClass);
@@ -41,7 +27,7 @@ export class FileOperationsService {
     }
 
     try {
-      const updatedFile = await this.applyFileChanges(file, file.basename, newFolderPath, this.logManager);
+      const updatedFile = await this.applyFileChanges(file, file.basename, newFolderPath);
       return updatedFile.path;
     } catch (error) {
       if (error instanceof MetaFlowException) {
@@ -54,16 +40,15 @@ export class FileOperationsService {
   public async renameNote(
     file: TFile,
     fileClass: string,
-    metadata: FrontMatterCache,
-    logManager: LogManagerInterface
+    metadata: FrontMatterCache
   ): Promise<TFile | null> {
-    const newTitle = this.getNewNoteTitle(file, fileClass, metadata, logManager);
+    const newTitle = this.getNewNoteTitle(file, fileClass, metadata);
     if (!newTitle) {
       return file; // Return the original file when no change is needed (including 'Untitled' case)
     }
 
     try {
-      const updatedFile = await this.applyFileChanges(file, newTitle, file.parent?.path ?? '', logManager);
+      const updatedFile = await this.applyFileChanges(file, newTitle, file.parent?.path ?? '');
       return updatedFile;
     } catch (error) {
       if (error instanceof MetaFlowException) {
@@ -102,12 +87,11 @@ export class FileOperationsService {
   public async moveNote(
     file: TFile,
     fileClass: string,
-    metadata: FrontMatterCache,
-    logManager: LogManagerInterface
+    metadata: FrontMatterCache
   ): Promise<void> {
     const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
     if (newFilePath) {
-      logManager.addInfo(`Moved note ${file.name} to ${newFilePath}`);
+      this.logManager.addInfo(`Moved note ${file.name} to ${newFilePath}`);
     }
   }
 
@@ -122,14 +106,13 @@ export class FileOperationsService {
   public getNewNoteTitle(
     file: TFile,
     fileClass: string,
-    metadata: FrontMatterCache,
-    logManager: LogManagerInterface
+    metadata: FrontMatterCache
   ): string {
     try {
       this.fileValidationService.checkIfValidFile(file);
       this.fileValidationService.checkIfExcluded(file);
 
-      const newTitle = this.noteTitleService.formatNoteTitle(file, fileClass, metadata, logManager);
+      const newTitle = this.noteTitleService.formatNoteTitle(file, fileClass, metadata);
 
       // Check if the title needs to change
       const currentName = file.basename; // basename without extension
@@ -204,8 +187,7 @@ export class FileOperationsService {
   public async applyFileChanges(
     file: TFile,
     newTitle: string,
-    newFolderPath: string,
-    logManager: LogManagerInterface
+    newFolderPath: string
   ): Promise<TFile> {
     // If we need to move to a different folder, create it first
     if (newFolderPath !== (file.parent?.path || '')) {
@@ -250,7 +232,7 @@ export class FileOperationsService {
       }
 
       // Log the operation
-      logManager.addInfo(`File "${file.name}" renamed to "${targetPath}"${conflictsResolved ? ' (conflict resolved with incremental number)' : ''}`);
+      this.logManager.addInfo(`File "${file.name}" renamed to "${targetPath}"${conflictsResolved ? ' (conflict resolved with incremental number)' : ''}`);
 
       return updatedFile;
     } catch (error) {

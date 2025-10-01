@@ -1,6 +1,6 @@
 import {FileStateCache, FileState} from './FileStateCache';
-import {MetaFlowSettings} from '../settings/types';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
+import {MetaFlowSettings} from '@metaflow/settings/types';
+import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
 
 // Mock timers
 jest.useFakeTimers();

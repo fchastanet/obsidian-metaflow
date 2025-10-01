@@ -1,5 +1,5 @@
 import {DebouncedCallbackManager} from './DebouncedCallbackManager';
-import {MetaFlowSettings} from '../settings/types';
+import {MetaFlowSettings} from '@metaflow/settings/types';
 
 // Mock timers
 jest.useFakeTimers();

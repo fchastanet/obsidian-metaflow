@@ -16,4 +16,9 @@ export class Utils {
   static sha256(input: string): string {
     return createHash("sha256").update(input, "utf8").digest("hex");
   }
+
+  static stackTrace() {
+    const err = new Error();
+    return {stack: err.stack};
+  }
 }

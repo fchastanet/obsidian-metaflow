@@ -1,5 +1,5 @@
 import {App, Modal, ProgressBarComponent} from "obsidian";
-import {LogManagerInterface, LogManagerLogLevel} from "../managers/types";
+import {LogManagerInterface, LogManagerLogLevel} from "@metaflow/managers/types";
 
 export class ProgressModal extends Modal implements LogManagerInterface {
   cancelCallback: () => void;

@@ -1,6 +1,6 @@
 import {TemplaterAdapter} from './TemplaterAdapter';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import {expectNoLogs} from '../__mocks__/logManager';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
+import {expectNoLogs} from '@metaflow/__mocks__/logManager';
 import {ObsidianAdapter} from './ObsidianAdapter';
 
 describe('TemplaterAdapter', () => {

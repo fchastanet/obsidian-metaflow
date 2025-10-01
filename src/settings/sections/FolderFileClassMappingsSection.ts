@@ -1,17 +1,17 @@
 import {App, Setting, Notice} from "obsidian";
-import {FolderFileClassMapping, NoteTitleTemplate} from "../types";
-import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
-import {FolderSuggest} from "../FolderSuggest";
-import {ObsidianAdapter} from "../../externalApi/ObsidianAdapter";
-import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
-import {SettingsUtils} from "../SettingsUtils";
-import {LogNoticeManager} from "../../managers/LogNoticeManager";
-import {FileClassAvailableFieldsHelpModal} from "../modals/FileClassAvailableFieldsHelpModal";
-import {ScriptEditor} from "../ScriptEditor";
-import {CompletionsHelpModal} from "../modals/CompletionsHelpModal";
-import {TitleTemplateLinter, ValidationResult} from "./TitleTemplateLinter";
-import {TitleScriptLinter} from "./TitleScriptLinter";
-import {DragDropHelper} from "../DragDropHelper";
+import {FolderFileClassMapping, NoteTitleTemplate} from "@metaflow/settings/types";
+import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
+import {FolderSuggest} from "@metaflow/settings/FolderSuggest";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {SettingsUtils} from "@metaflow/settings/SettingsUtils";
+import {LogNoticeManager} from "@metaflow/managers/LogNoticeManager";
+import {FileClassAvailableFieldsHelpModal} from "@metaflow/settings/modals/FileClassAvailableFieldsHelpModal";
+import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
+import {CompletionsHelpModal} from "@metaflow/settings/modals/CompletionsHelpModal";
+import {TitleTemplateLinter, ValidationResult} from "../../linters/TitleTemplateLinter";
+import {TitleScriptLinter} from "../../linters/TitleScriptLinter";
+import {DragDropHelper} from "@metaflow/settings/DragDropHelper";
 
 export class FolderFileClassMappingsSection {
   private templaterImportButton: HTMLButtonElement;

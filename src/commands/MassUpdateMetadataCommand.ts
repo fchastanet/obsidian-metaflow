@@ -1,14 +1,14 @@
 import {injectable, inject} from 'inversify';
 import type {TFile} from 'obsidian';
-import type {LogManagerInterface} from '../managers/types';
-import {ProgressModal} from '../ui/ProgressModal';
-import {Utils} from '../utils/Utils';
-import type {MetaFlowService} from '../services/MetaFlowService';
-import type {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
+import type {LogManagerInterface} from '@metaflow/managers/types';
+import {ProgressModal} from '@metaflow/ui/ProgressModal';
+import {Utils} from '@metaflow/utils/Utils';
+import type {MetaFlowService} from '@metaflow/services/MetaFlowService';
+import type {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
 import type {App} from 'obsidian';
-import type {MetaFlowSettings} from '../settings/types';
+import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {SimpleCommand} from './types';
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 
 /**
  * Command to perform mass update of metadata properties across multiple files
@@ -19,18 +19,18 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
     @inject(TYPES.App) private app: App,
     @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
     @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService,
-    @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter
+    @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
   ) { }
 
-  async execute(logManager: LogManagerInterface): Promise<void> {
+  async execute(): Promise<void> {
     const files = this.app.vault.getMarkdownFiles();
-    await this.massUpdateMetadataProperties("/", files, logManager);
+    await this.massUpdateMetadataProperties("/", files);
   }
 
   async massUpdateMetadataProperties(
     directory: string,
     files: TFile[],
-    noticeManager: LogManagerInterface,
   ): Promise<void> {
     // Filter out files in excluded folders
     const excludeFolders = (this.settings.excludeFolders || []);
@@ -39,11 +39,11 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
     }).filter(file => file.extension === 'md');
     const totalFiles = filteredFiles.length;
     if (totalFiles === 0) {
-      noticeManager.addWarning('No files to update - all files are excluded or no markdown files found.');
+      this.logManager.addWarning('No files to update - all files are excluded or no markdown files found.');
       return;
     }
 
-    noticeManager.addInfo(`Mass updating ${totalFiles} files...`);
+    this.logManager.addInfo(`Mass updating ${totalFiles} files...`);
 
     let processedFiles = 0;
     let updatedFiles = 0;
@@ -65,7 +65,7 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
               const content = await this.app.vault.read(file);
               progressModal.setCurrentItem(file.path);
 
-              const processedContent = this.metaFlowService.processContent(content, file, noticeManager);
+              const processedContent = this.metaFlowService.processContent(content, file);
 
               if (processedContent !== content) {
                 await this.app.vault.modify(file, processedContent);
@@ -93,9 +93,9 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
 
     // Final summary
     if (errorFiles.length > 0) {
-      noticeManager.addWarning(`Completed with errors. Updated ${updatedFiles} files, failed to process ${errorFiles.length} files.`);
+      this.logManager.addWarning(`Completed with errors. Updated ${updatedFiles} files, failed to process ${errorFiles.length} files.`);
     } else {
-      noticeManager.addInfo(`Successfully processed ${processedFiles} files, updated ${updatedFiles} files.`);
+      this.logManager.addInfo(`Successfully processed ${processedFiles} files, updated ${updatedFiles} files.`);
     }
   }
 }

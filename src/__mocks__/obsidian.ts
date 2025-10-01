@@ -1,3 +1,4 @@
+
 // Mock for Obsidian API
 export class TFile {
   basename: string;
@@ -29,6 +30,59 @@ export class TAbstractFile {
   }
 }
 
+export class WorkspaceLeaf {
+  view: any;
+
+  constructor(view: any = null) {
+    this.view = view;
+  }
+}
+
+export class AbstractInputSuggest {
+  constructor() { }
+}
+
+export class PluginSettingTab {
+  constructor(
+    private app: App,
+    private plugin: any
+  ) { }
+
+  display(): void { }
+}
+
+export class Plugin {
+  app: App;
+  manifest: any;
+  settings: any;
+
+  constructor() {
+    this.manifest = {};
+    this.settings = {};
+    this.app = {
+      workspace: {
+        getActiveLeaf: jest.fn(),
+        onLayoutReady: jest.fn(),
+        on: jest.fn(),
+      },
+    } as App;
+  }
+}
+
+export class MarkdownView {
+  file: TFile;
+
+  constructor(file: TFile) {
+    this.file = file;
+  }
+}
+
+export class Modal {
+  constructor(
+    private app: App
+  ) { }
+}
+
 export const Notice = jest.fn().mockImplementation((message: string) => ({
   message
 }));
@@ -42,6 +96,11 @@ export class App {
   };
   plugins: {
     plugins: Record<string, any>;
+  };
+  workspace: {
+    getActiveLeaf: jest.Mock;
+    onLayoutReady: jest.Mock;
+    on: jest.Mock;
   };
 
   constructor() {

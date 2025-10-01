@@ -18,11 +18,11 @@ jest.mock('../utils/Utils', () => ({
 }));
 
 import {Container} from 'inversify';
-import {TYPES} from '../di/types';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import type {MetaFlowService} from '../services/MetaFlowService';
-import type {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
-import type {LogManagerInterface} from '../managers/types';
+import {TYPES} from '@metaflow/di/types';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
+import type {MetaFlowService} from '@metaflow/services/MetaFlowService';
+import type {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
+import type {LogManagerInterface} from '@metaflow/managers/types';
 
 // Mock Obsidian classes
 jest.mock('obsidian', () => ({
@@ -74,7 +74,7 @@ describe('MassUpdateMetadataCommand', () => {
     container.bind(TYPES.MetaFlowService).toConstantValue(mockMetaFlowService);
     container.bind(TYPES.ObsidianAdapter).toConstantValue(mockObsidianAdapter);
     container.bind(TYPES.MassUpdateMetadataCommand).to(MassUpdateMetadataCommand);
-
+    container.bind(TYPES.LogManagerInterface).toConstantValue(mockLogManager);
     // Create command instance
     command = container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
   });
@@ -84,12 +84,12 @@ describe('MassUpdateMetadataCommand', () => {
   });
 
   it('should warn when no files to update', async () => {
-    await command.execute(mockLogManager);
+    await command.execute();
     expect(mockLogManager.addWarning).toHaveBeenCalledWith('No files to update - all files are excluded or no markdown files found.');
   });
 
   it('should call getMarkdownFiles when executed', async () => {
-    await command.execute(mockLogManager);
+    await command.execute();
     expect(mockApp.vault.getMarkdownFiles).toHaveBeenCalled();
   });
 });

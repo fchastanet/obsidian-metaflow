@@ -2,9 +2,22 @@ import {TitleScriptLinter} from './TitleScriptLinter';
 
 describe('TitleScriptLinter', () => {
   let linter: TitleScriptLinter;
+  let spyWarn: jest.SpyInstance;
+  let spyError: jest.SpyInstance;
+
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
     linter = new TitleScriptLinter();
+    spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    spyError = jest.spyOn(console, 'error').mockImplementation(() => { });
+  });
+
+  afterEach(() => {
+    linter.clearCache();
+    spyWarn.mockRestore();
+    spyError.mockRestore();
   });
 
   describe('validateScript', () => {
@@ -14,6 +27,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Script cannot be empty');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject whitespace-only script', () => {
@@ -21,6 +36,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Script cannot be empty');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -28,6 +45,8 @@ describe('TitleScriptLinter', () => {
       it('should accept script with return statement', () => {
         const result = linter.validateScript('return "Hello World";');
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject script without return statement', () => {
@@ -35,6 +54,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Script must contain a return statement');
         expect(result.type).toBe('error');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept script with return in function', () => {
@@ -45,6 +66,8 @@ describe('TitleScriptLinter', () => {
           return getTitle();
         `);
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (5:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -52,6 +75,8 @@ describe('TitleScriptLinter', () => {
       it('should accept valid JavaScript', () => {
         const result = linter.validateScript('const title = file.basename; return title;');
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:29)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject invalid JavaScript syntax', () => {
@@ -59,6 +84,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Syntax error');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: Unexpected token (1:14)");
+        expect(spyError).toHaveBeenCalledWith("Error parsing script:", expect.any(SyntaxError));
       });
 
       it('should reject unclosed braces', () => {
@@ -66,6 +93,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Syntax error');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:12)");
+        expect(spyError).toHaveBeenCalledWith("Error parsing script:", expect.any(SyntaxError));
       });
     });
 
@@ -75,6 +104,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('eval() is potentially dangerous');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject scripts with Function constructor', () => {
@@ -82,6 +113,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Dynamic function creation may be unsafe');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:37)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject scripts with setTimeout', () => {
@@ -89,6 +122,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Timer functions may cause performance issues');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:28)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject scripts with require()', () => {
@@ -96,6 +131,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('require() may access system resources');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:26)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -110,6 +147,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Not all execution paths return a value');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject if statement with else but one branch missing return', () => {
@@ -123,6 +162,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Not all execution paths return a value');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept if statement with else where both branches return', () => {
@@ -134,6 +175,8 @@ describe('TitleScriptLinter', () => {
           }
         `);
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject if one branch returns non-string', () => {
@@ -147,11 +190,15 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Some return statements may not return strings');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept single return statement', () => {
         const result = linter.validateScript('return "test";');
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject switch without default case', () => {
@@ -166,6 +213,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Not all execution paths return a value');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept switch with default case where all return', () => {
@@ -180,6 +229,8 @@ describe('TitleScriptLinter', () => {
           }
         `);
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject switch with default but missing return in case', () => {
@@ -197,6 +248,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Not all execution paths return a value');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (7:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept nested if statements with all branches returning', () => {
@@ -212,6 +265,8 @@ describe('TitleScriptLinter', () => {
           }
         `);
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject try-catch where catch does not return', () => {
@@ -225,6 +280,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Not all execution paths return a value');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept try-catch where both return', () => {
@@ -236,6 +293,8 @@ describe('TitleScriptLinter', () => {
           }
         `);
         expect(result.isValid).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -246,6 +305,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toContain('Script is very long');
         expect(result.type).toBe('warning');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:1018)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn about console statements', () => {
@@ -253,6 +314,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toContain('Remove console statements');
         expect(result.type).toBe('warning');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:22)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should warn if script might not return string', () => {
@@ -260,6 +323,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('Some return statements may not return strings');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -269,6 +334,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('Script syntax is valid');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept script with file operations', () => {
@@ -280,6 +347,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('Script syntax is valid');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept script with conditional logic', () => {
@@ -294,6 +363,8 @@ describe('TitleScriptLinter', () => {
         // With AST analysis, we can better detect that this returns a string in both branches
         expect(result.message).toBe('Script syntax is valid');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should recognize string concatenation as returning string', () => {
@@ -301,6 +372,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('Script syntax is valid');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should recognize template literals as returning string', () => {
@@ -308,6 +381,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('Script syntax is valid');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should recognize string methods as returning string', () => {
@@ -315,6 +390,8 @@ describe('TitleScriptLinter', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('Script syntax is valid');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
   });

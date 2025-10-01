@@ -1,6 +1,6 @@
 import {UpdateMetadataCommand} from './UpdateMetadataCommand';
-import {MetaFlowException} from '../MetaFlowException';
-import {LogManagerInterface} from '../managers/types';
+import {MetaFlowException} from '@metaflow/MetaFlowException';
+import {LogManagerInterface} from '@metaflow/managers/types';
 
 // Mock console.error to avoid cluttering test output
 const originalConsoleError = console.error;
@@ -16,13 +16,6 @@ const mockProcessContent = jest.fn();
 const mockMetaFlowService = {
   processContent: mockProcessContent,
 };
-
-// Create command directly with mock service for testing
-class TestUpdateMetadataCommand extends UpdateMetadataCommand {
-  constructor() {
-    super(mockMetaFlowService as any);
-  }
-}
 
 const mockEditor = {
   getValue: jest.fn(),
@@ -49,7 +42,7 @@ describe('UpdateMetadataCommand', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    command = new TestUpdateMetadataCommand();
+    command = new UpdateMetadataCommand(mockMetaFlowService as any, mockLogManager);
   });
 
   it('should update metadata when content is changed', () => {
@@ -59,12 +52,11 @@ describe('UpdateMetadataCommand', () => {
     mockEditor.getValue.mockReturnValue(originalContent);
     mockProcessContent.mockReturnValue(processedContent);
 
-    command.execute(mockEditor, mockView, mockLogManager);
+    command.execute(mockEditor, mockView);
 
     expect(mockProcessContent).toHaveBeenCalledWith(
       originalContent,
-      mockView.file,
-      mockLogManager
+      mockView.file
     );
     expect(mockEditor.setValue).toHaveBeenCalledWith(processedContent);
     expect(mockLogManager.addInfo).toHaveBeenCalledWith('Successfully updated metadata fields for "test.md"');
@@ -76,12 +68,11 @@ describe('UpdateMetadataCommand', () => {
     mockEditor.getValue.mockReturnValue(content);
     mockProcessContent.mockReturnValue(content);
 
-    command.execute(mockEditor, mockView, mockLogManager);
+    command.execute(mockEditor, mockView);
 
     expect(mockProcessContent).toHaveBeenCalledWith(
       content,
-      mockView.file,
-      mockLogManager
+      mockView.file
     );
     expect(mockEditor.setValue).not.toHaveBeenCalled();
     expect(mockLogManager.addInfo).toHaveBeenCalledWith('No changes needed');
@@ -90,7 +81,7 @@ describe('UpdateMetadataCommand', () => {
   it('should handle missing file', () => {
     const viewWithoutFile = {file: null} as any;
 
-    command.execute(mockEditor, viewWithoutFile, mockLogManager);
+    command.execute(mockEditor, viewWithoutFile);
 
     expect(mockLogManager.addWarning).toHaveBeenCalledWith('No active file');
     expect(mockProcessContent).not.toHaveBeenCalled();
@@ -103,7 +94,7 @@ describe('UpdateMetadataCommand', () => {
       throw error;
     });
 
-    command.execute(mockEditor, mockView, mockLogManager);
+    command.execute(mockEditor, mockView);
 
     expect(mockLogManager.addMessage).toHaveBeenCalledWith('Error: Test error', 'warning');
   });
@@ -115,7 +106,7 @@ describe('UpdateMetadataCommand', () => {
       throw error;
     });
 
-    command.execute(mockEditor, mockView, mockLogManager);
+    command.execute(mockEditor, mockView);
 
     expect(mockLogManager.addError).toHaveBeenCalledWith('Error updating metadata properties');
   });

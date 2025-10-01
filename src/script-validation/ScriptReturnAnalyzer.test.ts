@@ -4,24 +4,40 @@ import {ScriptASTParser} from './ScriptASTParser';
 describe('ScriptReturnAnalyzer', () => {
   let analyzer: ScriptReturnAnalyzer;
   let astParser: ScriptASTParser;
+  let spyInfo: jest.SpyInstance;
+  let spyWarn: jest.SpyInstance;
+  let spyError: jest.SpyInstance;
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+    spyInfo = jest.spyOn(console, 'info').mockImplementation(() => { });
+    spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    spyError = jest.spyOn(console, 'error').mockImplementation(() => { });
+
     astParser = new ScriptASTParser();
     analyzer = new ScriptReturnAnalyzer(astParser);
   });
 
   afterEach(() => {
     astParser.clearCache();
+    spyInfo.mockRestore();
+    spyWarn.mockRestore();
+    spyError.mockRestore();
   });
 
   describe('hasReturnStatement', () => {
     describe('scripts with return statements', () => {
       it('should detect simple return statement', () => {
         expect(analyzer.hasReturnStatement('return "hello";')).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return with expression', () => {
         expect(analyzer.hasReturnStatement('return file.basename + metadata.title;')).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in if statement', () => {
@@ -30,6 +46,8 @@ describe('ScriptReturnAnalyzer', () => {
             return metadata.title;
           }
         `)).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in else clause', () => {
@@ -40,6 +58,8 @@ describe('ScriptReturnAnalyzer', () => {
             return "from else";
           }
         `)).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (5:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in function', () => {
@@ -49,6 +69,8 @@ describe('ScriptReturnAnalyzer', () => {
           }
           getTitle();
         `)).toBe(true);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in switch case', () => {
@@ -60,6 +82,8 @@ describe('ScriptReturnAnalyzer', () => {
               break;
           }
         `)).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in try block', () => {
@@ -70,6 +94,8 @@ describe('ScriptReturnAnalyzer', () => {
             console.log(e);
           }
         `)).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in catch block', () => {
@@ -80,6 +106,8 @@ describe('ScriptReturnAnalyzer', () => {
             return "error";
           }
         `)).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (5:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in nested blocks', () => {
@@ -92,6 +120,8 @@ describe('ScriptReturnAnalyzer', () => {
             }
           }
         `)).toBe(true);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (5:16)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect return in arrow function', () => {
@@ -101,16 +131,22 @@ describe('ScriptReturnAnalyzer', () => {
           };
           fn();
         `)).toBe(true);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
     describe('scripts without return statements', () => {
       it('should not detect return in scripts without return', () => {
         expect(analyzer.hasReturnStatement('const x = 5; console.log(x);')).toBe(false);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not detect return in variable declarations', () => {
         expect(analyzer.hasReturnStatement('const returnValue = "not a return statement";')).toBe(false);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not detect return in comments', () => {
@@ -119,18 +155,26 @@ describe('ScriptReturnAnalyzer', () => {
           /* return is also mentioned here */
           const x = 5;
         `)).toBe(false);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not detect return in string literals', () => {
         expect(analyzer.hasReturnStatement('const msg = "Please return this book";')).toBe(false);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not detect return in template literals', () => {
         expect(analyzer.hasReturnStatement('const msg = `The return policy is strict`;')).toBe(false);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should not be fooled by return in object property names', () => {
         expect(analyzer.hasReturnStatement('const obj = { return_value: "test" };')).toBe(false);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -140,6 +184,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(analyzer.hasReturnStatement('return "test";')).toBe(true);
         expect(analyzer.hasReturnStatement('const x = 5;')).toBe(false);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle complex cases with regex fallback', () => {
@@ -151,6 +197,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         // Should detect actual return statements
         expect(analyzer.hasReturnStatement('if(true) return "yes";')).toBe(true);
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
   });
@@ -163,6 +211,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(true);
         expect(result.message).toBe('');
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept if-else with returns in both branches', () => {
@@ -176,6 +226,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept switch with return in all cases including default', () => {
@@ -192,6 +244,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept try-catch with returns in both blocks', () => {
@@ -205,6 +259,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept nested conditional with complete coverage', () => {
@@ -222,6 +278,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept conditional expression (ternary)', () => {
@@ -231,6 +289,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept string return types', () => {
@@ -240,6 +300,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept template literal returns', () => {
@@ -249,6 +311,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept string concatenation returns', () => {
@@ -258,6 +322,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept string method calls', () => {
@@ -267,6 +333,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -282,6 +350,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject switch without default case', () => {
@@ -298,6 +368,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject switch case without return', () => {
@@ -316,6 +388,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle try without catch (may still be valid)', () => {
@@ -329,6 +403,8 @@ describe('ScriptReturnAnalyzer', () => {
         // This might actually be valid depending on implementation
         // The try block does have a return statement
         expect(result.type).toMatch(/success|error/);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).toHaveBeenCalledWith("Error parsing script:", expect.any(SyntaxError));
       });
 
       it('should reject return statements that don\'t return strings', () => {
@@ -339,6 +415,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Some return statements may not return strings. All returns should be string values.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject return statements with mixed types', () => {
@@ -353,6 +431,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Some return statements may not return strings. All returns should be string values.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -368,6 +448,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should reject return only in for loop', () => {
@@ -381,6 +463,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Not all execution paths return a value. Ensure every branch returns a string.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:12)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should accept return after loop with guaranteed fallback', () => {
@@ -395,6 +479,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (4:14)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -407,6 +493,8 @@ describe('ScriptReturnAnalyzer', () => {
         expect(result.isValid).toBe(false);
         expect(result.message).toBe('Some return statements may not return strings. All returns should be string values.');
         expect(result.type).toBe('error');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle AST parsing failure gracefully', () => {
@@ -416,10 +504,11 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true); // Should pass when AST parsing fails
         expect(result.type).toBe('success');
+        expect(spyWarn).not.toHaveBeenCalled();
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle complex nested structures', () => {
-        const spy = jest.spyOn(console, 'log').mockImplementation(() => { });
         const result = analyzer.validateAllBranchesReturn(`
           try {
             if (metadata.custom) {
@@ -443,12 +532,10 @@ describe('ScriptReturnAnalyzer', () => {
         // Check that it at least has a valid structure
         expect(typeof result.isValid).toBe('boolean');
         expect(['success', 'error', 'warning']).toContain(result.type);
-        // The complex analysis might have edge cases, so let's be more flexible
-        if (!result.isValid) {
-          console.log('Complex structure validation failed:', result.message);
-        }
-        expect(spy).toHaveBeenCalledWith('Complex structure validation failed:', 'Some return statements may not return strings. All returns should be string values.');
-        spy.mockRestore();
+        // TODO The complex analysis might have edge cases, so let's be more flexible
+        expect(result.isValid).toBe(false);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (7:18)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect likely string expressions from variables', () => {
@@ -459,6 +546,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (3:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should detect likely string expressions from member access', () => {
@@ -468,6 +557,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         expect(result.isValid).toBe(true);
         expect(result.type).toBe('success');
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (2:10)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
 
@@ -480,6 +571,8 @@ describe('ScriptReturnAnalyzer', () => {
 
         analyzer.validateAllBranchesReturn(script);
         expect(astParser.getCacheSize()).toBe(1); // Still only one cache entry
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
 
       it('should handle different scripts separately', () => {
@@ -487,6 +580,8 @@ describe('ScriptReturnAnalyzer', () => {
         analyzer.validateAllBranchesReturn('return "script2";');
 
         expect(astParser.getCacheSize()).toBe(2);
+        expect(spyWarn).toHaveBeenCalledWith("error parsing script : SyntaxError: 'return' outside of function (1:0)");
+        expect(spyError).not.toHaveBeenCalled();
       });
     });
   });

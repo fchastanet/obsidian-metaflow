@@ -1,9 +1,9 @@
 import {TFile, CachedMetadata} from "obsidian";
 import {FileState} from "./FileStateCache";
-import {FileClassDeductionService} from "../services/FileClassDeductionService";
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import {MetaFlowSettings} from "../settings/types";
-import {Utils} from "../utils/Utils";
+import {FileClassDeductionService} from "@metaflow/services/FileClassDeductionService";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {Utils} from "@metaflow/utils/Utils";
 
 /**
  * Handles file processing logic including checksum computation and file state creation

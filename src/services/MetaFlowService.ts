@@ -1,74 +1,41 @@
 import {injectable, inject} from 'inversify';
 import type {App, CachedMetadata, FrontMatterCache} from "obsidian";
 import {TFile} from "obsidian";
-import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import type {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import type {FrontMatterService} from "./FrontMatterService";
-import type {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
-import type {ScriptContextService} from "./ScriptContextService";
-import type {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
-import {FolderFileClassMapping} from "../settings/types";
-import {MetaFlowException} from "../MetaFlowException";
-import type {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
-import type {LogManagerInterface} from "../managers/types";
-import {Utils} from "../utils/Utils";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import type {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/settings/types";
+import {FolderFileClassMapping} from "@metaflow/settings/types";
+import {MetaFlowException} from "@metaflow/MetaFlowException";
+import type {LogManagerInterface} from "@metaflow/managers/types";
+import {Utils} from "@metaflow/utils/Utils";
+import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 import type {FileValidationService} from "./FileValidationService";
 import type {FileClassDeductionService} from "./FileClassDeductionService";
 import type {PropertyManagementService} from "./PropertyManagementService";
 import type {FileOperationsService} from "./FileOperationsService";
 import type {NoteTitleService} from "./NoteTitleService";
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 
 @injectable()
 export class MetaFlowService {
-  private app: App;
-  private metaFlowSettings: MetaFlowSettings;
-  private scriptContextService: ScriptContextService;
-  private metadataMenuAdapter: MetadataMenuAdapter;
-  private frontMatterService: FrontMatterService;
-  private templaterAdapter: TemplaterAdapter;
-  private obsidianAdapter: ObsidianAdapter;
-
-  // New services
-  private fileValidationService: FileValidationService;
-  private fileClassDeductionService: FileClassDeductionService;
-  private propertyManagementService: PropertyManagementService;
-  private fileOperationsService: FileOperationsService;
-  private noteTitleService: NoteTitleService;
 
   constructor(
-    @inject(TYPES.App) app: App,
-    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
-    @inject(TYPES.ScriptContextService) scriptContextService: ScriptContextService,
-    @inject(TYPES.MetadataMenuAdapter) metadataMenuAdapter: MetadataMenuAdapter,
-    @inject(TYPES.FrontMatterService) frontMatterService: FrontMatterService,
-    @inject(TYPES.TemplaterAdapter) templaterAdapter: TemplaterAdapter,
-    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter,
-    @inject(TYPES.FileValidationService) fileValidationService: FileValidationService,
-    @inject(TYPES.FileClassDeductionService) fileClassDeductionService: FileClassDeductionService,
-    @inject(TYPES.PropertyManagementService) propertyManagementService: PropertyManagementService,
-    @inject(TYPES.FileOperationsService) fileOperationsService: FileOperationsService,
-    @inject(TYPES.NoteTitleService) noteTitleService: NoteTitleService
+    @inject(TYPES.App) private app: App,
+    @inject(TYPES.MetaFlowSettings) private metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.MetadataMenuAdapter) private metadataMenuAdapter: MetadataMenuAdapter,
+    @inject(TYPES.FrontMatterService) private frontMatterService: FrontMatterService,
+    @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
+    @inject(TYPES.FileClassDeductionService) private fileClassDeductionService: FileClassDeductionService,
+    @inject(TYPES.PropertyManagementService) private propertyManagementService: PropertyManagementService,
+    @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
+    @inject(TYPES.NoteTitleService) private noteTitleService: NoteTitleService,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
   ) {
-    this.app = app;
-    this.metaFlowSettings = metaFlowSettings;
-    this.scriptContextService = scriptContextService;
-    this.metadataMenuAdapter = metadataMenuAdapter;
-    this.frontMatterService = frontMatterService;
-    this.templaterAdapter = templaterAdapter;
-    this.obsidianAdapter = obsidianAdapter;
-    this.fileValidationService = fileValidationService;
-    this.fileClassDeductionService = fileClassDeductionService;
-    this.propertyManagementService = propertyManagementService;
-    this.fileOperationsService = fileOperationsService;
-    this.noteTitleService = noteTitleService;
-
     this.fixSettings();
   }
 
   async handleFileClassChanged(
-    file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string,
-    logManager: LogManagerInterface
+    file: TFile, cache: CachedMetadata | null, newFileClass: string
   ): Promise<void> {
     if (!this.metaFlowSettings.autoMetadataInsertion) {
       console.info('Auto metadata insertion is disabled');
@@ -79,10 +46,10 @@ export class MetaFlowService {
       this.fileValidationService.checkIfMetadataInsertionApplicable(file);
     } catch (error) {
       if (error instanceof MetaFlowException) {
-        logManager.addMessage(`MetaFlow: ${error.message}`, error.noticeLevel);
+        this.logManager.addMessage(`MetaFlow: ${error.message}`, error.noticeLevel);
         return;
       } else {
-        logManager.addWarning(`Error checking file availability: ${error}`);
+        this.logManager.addWarning(`Error checking file availability: ${error}`);
         return;
       }
     }
@@ -107,7 +74,7 @@ export class MetaFlowService {
 
       // Step 3: Synchronize frontmatter with new/obsolete fileClass's fields
       let updatedFrontmatter: FrontMatterCache = cache?.frontmatter || {};
-      updatedFrontmatter = this.metadataMenuAdapter.syncFields(updatedFrontmatter, fileClass, logManager);
+      updatedFrontmatter = this.metadataMenuAdapter.syncFields(updatedFrontmatter, fileClass);
 
       // Step 4: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
@@ -118,8 +85,7 @@ export class MetaFlowService {
       const enrichedFrontmatter = this.propertyManagementService.addDefaultValuesToProperties(
         updatedFrontmatter || {},
         file,
-        fileClass,
-        logManager
+        fileClass
       );
 
       await Utils.sleep(this.metaFlowSettings.frontmatterUpdateDelayMs, async () => {
@@ -129,7 +95,7 @@ export class MetaFlowService {
           // Get new title if autoRenameNote is enabled
           let newTitle: string = file.basename;
           if (this.metaFlowSettings.autoRenameNote) {
-            newTitle = this.fileOperationsService.getNewNoteTitle(file, fileClass, enrichedFrontmatter, logManager);
+            newTitle = this.fileOperationsService.getNewNoteTitle(file, fileClass, enrichedFrontmatter);
           }
 
           // Get new folder path if autoMoveNoteToRightFolder is enabled
@@ -139,13 +105,13 @@ export class MetaFlowService {
           }
 
           // Apply file operations if needed
-          await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath, logManager);
+          await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath);
         } catch (error) {
           const msg = (error instanceof MetaFlowException) ?
             `Error processing file operations: ${error.message}` :
             `Error processing file operations`;
           console.error(msg, error);
-          logManager.addMessage(msg, error?.noticeLevel ?? 'error');
+          this.logManager.addMessage(msg, error?.noticeLevel ?? 'error');
         }
       });
     } catch (error) {
@@ -153,11 +119,11 @@ export class MetaFlowService {
         `Error updating metadata properties: ${error.message}` :
         `Error updating metadata properties`;
       console.error(msg, error);
-      logManager.addMessage(msg, error?.noticeLevel ?? 'error');
+      this.logManager.addMessage(msg, error?.noticeLevel ?? 'error');
     }
   }
 
-  processContent(content: string, file: TFile, logManager: LogManagerInterface): string {
+  processContent(content: string, file: TFile): string {
     this.fileValidationService.checkIfMetadataInsertionApplicable(file);
     try {
       // Step 1: parse frontmatter
@@ -192,9 +158,9 @@ export class MetaFlowService {
       this.metadataMenuAdapter.getFileClassByName(newFileClass);
 
       // Step 4: Synchronize frontmatter with new/obsolete fileClass's fields
-      let updatedFrontmatter: FrontMatterCache = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass, logManager);
+      let updatedFrontmatter: FrontMatterCache = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass);
       if (newFileClass !== fileClass) {
-        logManager.addInfo(`File class changed for "${file.name}": ${fileClass} -> ${newFileClass}`);
+        this.logManager.addInfo(`File class changed for "${file.name}": ${fileClass} -> ${newFileClass}`);
       }
 
       // Step 5: sort properties if autoSort is enabled
@@ -206,8 +172,7 @@ export class MetaFlowService {
       const enrichedFrontmatter = this.propertyManagementService.addDefaultValuesToProperties(
         updatedFrontmatter || {},
         file,
-        newFileClass,
-        logManager
+        newFileClass
       );
 
       // Step 7: Write the updated content back to the file
@@ -310,7 +275,7 @@ export class MetaFlowService {
     metadata: FrontMatterCache,
     logManager: LogManagerInterface
   ): string {
-    return this.noteTitleService.formatNoteTitle(file, fileClass, metadata, logManager);
+    return this.noteTitleService.formatNoteTitle(file, fileClass, metadata);
   }
 
 }

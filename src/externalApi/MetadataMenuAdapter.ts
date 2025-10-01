@@ -1,10 +1,10 @@
 import {injectable, inject} from 'inversify';
 import type {App, FrontMatterCache} from 'obsidian';
-import type {MetaFlowSettings} from '../settings/types';
+import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {MetadataMenuField, MetadataMenuPluginInterface} from './types.MetadataMenu';
-import {MetaFlowException} from '../MetaFlowException';
-import {LogManagerInterface} from 'src/managers/types';
-import {TYPES} from '../di/types';
+import {MetaFlowException} from '@metaflow/MetaFlowException';
+import type {LogManagerInterface} from 'src/managers/types';
+import {TYPES} from '@metaflow/di/types';
 
 export interface FieldsFileClassAssociation {
   [fieldName: string]: {
@@ -14,17 +14,13 @@ export interface FieldsFileClassAssociation {
 
 @injectable()
 export class MetadataMenuAdapter {
-  private app: App;
-  private settings: MetaFlowSettings
   private METADATA_MENU_PLUGIN_NAME = 'metadata-menu';
 
   constructor(
-    @inject(TYPES.App) app: App,
-    @inject(TYPES.MetaFlowSettings) settings: MetaFlowSettings
-  ) {
-    this.app = app;
-    this.settings = settings;
-  }
+    @inject(TYPES.App) private app: App,
+    @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
+  ) { }
 
   /**
    * Check if MetadataMenu integration is available
@@ -89,12 +85,12 @@ export class MetadataMenuAdapter {
    * 2. More specific ancestor fields (e.g., "default")
    * 3. Finally the main fileClass fields (e.g., "book")
    */
-  syncFields(frontmatter: FrontMatterCache, fileClassName: string, logManager: LogManagerInterface): FrontMatterCache {
+  syncFields(frontmatter: FrontMatterCache, fileClassName: string): FrontMatterCache {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
     try {
-      const allFields = this.getFileClassAndAncestorsFields(fileClassName, logManager);
+      const allFields = this.getFileClassAndAncestorsFields(fileClassName);
       let originalFrontmatter = null;
       if (this.settings.debugMode) {
         originalFrontmatter = JSON.parse(JSON.stringify(frontmatter));
@@ -128,9 +124,9 @@ export class MetadataMenuAdapter {
     }
   }
 
-  public getFileClassAndAncestorsFields(fileClass: string, logManager: LogManagerInterface): MetadataMenuField[] {
+  public getFileClassAndAncestorsFields(fileClass: string): MetadataMenuField[] {
     // Get the ancestor chain for this fileClass
-    const ancestorChain = this.getFileClassAncestorChain(fileClass, logManager);
+    const ancestorChain = this.getFileClassAncestorChain(fileClass);
     const allFields: MetadataMenuField[] = [];
 
     // Step 1: Get all fields for the fileClass and its ancestors
@@ -180,13 +176,13 @@ export class MetadataMenuAdapter {
    * Get the ancestor chain for a fileClass in the correct order for field insertion
    * Returns ancestors from most basic to most specific (e.g., ["default-basic", "default"])
    */
-  private getFileClassAncestorChain(fileClassName: string, logManager: LogManagerInterface): string[] {
+  private getFileClassAncestorChain(fileClassName: string): string[] {
     try {
       const metadataMenuPlugin = this.getMetadataMenuPlugin();
       // Access MetadataMenu's fieldIndex.fileClassesAncestors
       const fieldIndex = metadataMenuPlugin.fieldIndex;
       if (!fieldIndex?.fileClassesAncestors) {
-        logManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
+        this.logManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
         return [fileClassName];
       }
 

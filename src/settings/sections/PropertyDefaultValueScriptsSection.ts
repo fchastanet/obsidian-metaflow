@@ -1,9 +1,9 @@
 import {App, Notice, Setting} from "obsidian";
-import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
-import {MetaFlowSettings, PropertyDefaultValueScript} from "../types";
-import {SettingsUtils} from "../SettingsUtils";
-import {ScriptEditor} from "../ScriptEditor";
-import {DragDropHelper} from "../DragDropHelper";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/settings/types";
+import {SettingsUtils} from "@metaflow/settings/SettingsUtils";
+import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
+import {DragDropHelper} from "@metaflow/settings/DragDropHelper";
 
 //declare type AceModule = typeof import("ace-builds");
 //import * as Ace from "ace-builds";

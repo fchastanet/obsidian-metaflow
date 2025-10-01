@@ -1,9 +1,9 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import MetaFlowPlugin from "../main";
-import {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../externalApi/TemplaterAdapter";
+import MetaFlowPlugin from "@metaflow/main";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
 //declare type AceModule = typeof import("ace-builds");
-import {ObsidianAdapter} from "../externalApi/ObsidianAdapter";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import {SettingsUtils} from "./SettingsUtils";
 import {MetadataInsertionSection} from "./sections/MetadataInsertionSection";
 import {ExcludeFoldersSection} from "./sections/ExcludeFoldersSection";
@@ -12,10 +12,10 @@ import {PropertyDefaultValueScriptsSection} from "./sections/PropertyDefaultValu
 import {SimulationSection} from "./sections/SimulationSection";
 import {ExportImportSection} from "./sections/ExportImportSection";
 import {PluginsStatusSection} from "./sections/PluginsStatusSection";
-import {LogNoticeManager} from "../managers/LogNoticeManager";
-import {MetaFlowService} from "../services/MetaFlowService";
-import type {UIService} from "../services/UIService";
-import {TYPES} from "../di/types";
+import {LogNoticeManager} from "@metaflow/managers/LogNoticeManager";
+import {MetaFlowService} from "@metaflow/services/MetaFlowService";
+import type {UIService} from "@metaflow/services/UIService";
+import {TYPES} from "@metaflow/di/types";
 //declare const ace: AceModule;
 
 /**
@@ -142,7 +142,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       this.simulationDetails,
       this.plugin.settings,
       this.metadataMenuAdapter,
-      this.obsidianAdapter,
       this.templaterAdapter,
       this.metaflowService
     ).render();

@@ -1,9 +1,8 @@
 import {injectable, inject} from 'inversify';
 import {FrontMatterCache, TFile} from 'obsidian';
-import {TemplaterAdapter} from '../externalApi/TemplaterAdapter';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
-import {LogManagerInterface} from '../managers/types';
-import {TYPES} from '../di/types';
+import {TemplaterAdapter} from '@metaflow/externalApi/TemplaterAdapter';
+import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
+import {TYPES} from '@metaflow/di/types';
 
 
 export interface ScriptContextInterface {
@@ -23,16 +22,10 @@ export interface ScriptContextInterface {
 
 @injectable()
 export class ScriptContextService {
-  private templaterAdapter: TemplaterAdapter;
-  private obsidianAdapter: ObsidianAdapter;
-
   constructor(
-    @inject(TYPES.TemplaterAdapter) templaterAdapter: TemplaterAdapter,
-    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter
-  ) {
-    this.templaterAdapter = templaterAdapter;
-    this.obsidianAdapter = obsidianAdapter;
-  }
+    @inject(TYPES.TemplaterAdapter) private templaterAdapter: TemplaterAdapter,
+    @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter
+  ) { }
 
   /**
    * Basic language detection
@@ -122,8 +115,7 @@ export class ScriptContextService {
   getScriptContext(
     file: TFile,
     fileClass: string,
-    metadata: FrontMatterCache,
-    logManager: LogManagerInterface
+    metadata: FrontMatterCache
   ): ScriptContextInterface {
     return {
       file,

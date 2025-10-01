@@ -1,22 +1,17 @@
 import {injectable, inject} from 'inversify';
 import {FrontMatterCache, TFile} from "obsidian";
-import type {MetaFlowSettings, FolderFileClassMapping} from "../settings/types";
+import type {MetaFlowSettings, FolderFileClassMapping} from "@metaflow/settings/types";
 import type {ScriptContextService} from "./ScriptContextService";
-import type {LogManagerInterface} from "../managers/types";
-import {TYPES} from '../di/types';
+import type {LogManagerInterface} from "@metaflow/managers/types";
+import {TYPES} from '@metaflow/di/types';
 
 @injectable()
 export class NoteTitleService {
-  private metaFlowSettings: MetaFlowSettings;
-  private scriptContextService: ScriptContextService;
-
   constructor(
-    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
-    @inject(TYPES.ScriptContextService) scriptContextService: ScriptContextService
-  ) {
-    this.metaFlowSettings = metaFlowSettings;
-    this.scriptContextService = scriptContextService;
-  }
+    @inject(TYPES.MetaFlowSettings) private metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.ScriptContextService) private scriptContextService: ScriptContextService,
+    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+  ) { }
 
   /**
    * Format note title based on FolderFileClassMappings configuration
@@ -29,8 +24,7 @@ export class NoteTitleService {
   formatNoteTitle(
     file: TFile,
     fileClass: string,
-    metadata: FrontMatterCache,
-    logManager: LogManagerInterface
+    metadata: FrontMatterCache
   ): string {
     const DEFAULT_TITLE = "Untitled";
 
@@ -48,9 +42,9 @@ export class NoteTitleService {
       }
 
       if (mapping.templateMode === 'script') {
-        return this.formatNoteTitleByScript(file, fileClass, metadata, mapping, logManager);
+        return this.formatNoteTitleByScript(file, fileClass, metadata, mapping);
       } else {
-        return this.formatNoteTitleByTemplate(file, fileClass, metadata, mapping, logManager);
+        return this.formatNoteTitleByTemplate(file, fileClass, metadata, mapping);
       }
     } catch (error) {
       console.error(`MetaFlow: Error formatting note title: ${error.message}`);
@@ -65,8 +59,7 @@ export class NoteTitleService {
     file: TFile,
     fileClass: string,
     metadata: FrontMatterCache,
-    mapping: FolderFileClassMapping,
-    logManager: LogManagerInterface
+    mapping: FolderFileClassMapping
   ): string {
     const DEFAULT_TITLE = "Untitled";
 
@@ -82,8 +75,7 @@ export class NoteTitleService {
       const context = this.scriptContextService.getScriptContext(
         file,
         fileClass,
-        metadata,
-        logManager
+        metadata
       );
 
       // Execute script
@@ -137,8 +129,7 @@ export class NoteTitleService {
     file: TFile,
     fileClass: string,
     metadata: FrontMatterCache,
-    mapping: FolderFileClassMapping,
-    logManager: LogManagerInterface
+    mapping: FolderFileClassMapping
   ): string {
     const DEFAULT_TITLE = "Untitled";
 

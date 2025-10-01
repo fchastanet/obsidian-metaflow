@@ -1,5 +1,5 @@
 import {App, Setting} from "obsidian";
-import {FolderSuggest} from "../FolderSuggest";
+import {FolderSuggest} from "@metaflow/settings/FolderSuggest";
 
 export class ExcludeFoldersSection {
   constructor(

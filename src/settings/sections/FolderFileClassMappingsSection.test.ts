@@ -1,11 +1,11 @@
 /**
  * @jest-environment jsdom
  */
-import {ObsidianAdapter} from "../../externalApi/ObsidianAdapter";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import {FolderFileClassMappingsSection} from "./FolderFileClassMappingsSection";
-import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
-import {LogNoticeManager} from "../../managers/LogNoticeManager";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
+import {LogNoticeManager} from "@metaflow/managers/LogNoticeManager";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -72,6 +72,7 @@ describe('FolderFileClassMappingsSection', () => {
   let mockApp: any;
   let mockPlugin: any;
   let folderFileClassMappingsSection: FolderFileClassMappingsSection;
+  let mockLogManager: jest.Mocked<LogNoticeManager>;
 
   beforeEach(() => {
     // Reset mocks
@@ -105,6 +106,12 @@ describe('FolderFileClassMappingsSection', () => {
       }
     } as any;
 
+    mockLogManager = {
+      addInfo: jest.fn(),
+      addWarning: jest.fn(),
+      addError: jest.fn()
+    } as any;
+
     // Create mock plugin
     mockPlugin = {
       app: mockApp,
@@ -132,7 +139,7 @@ describe('FolderFileClassMappingsSection', () => {
       document.createElement('div'),
       mockPlugin.settings.folderFileClassMappings,
       obsidianAdapter,
-      new MetadataMenuAdapter(mockApp, mockPlugin.settings),
+      new MetadataMenuAdapter(mockApp, mockPlugin.settings, mockLogManager),
       new TemplaterAdapter(mockApp, mockPlugin.settings, obsidianAdapter),
       new LogNoticeManager(obsidianAdapter),
       jest.fn() // Mock saveSettings function

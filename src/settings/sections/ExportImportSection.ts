@@ -1,6 +1,6 @@
 import {App, Setting, Notice} from "obsidian";
-import {MetaFlowSettings} from "../types";
-import {MetaFlowService} from "../../services/MetaFlowService";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {MetaFlowService} from "@metaflow/services/MetaFlowService";
 
 export class ExportImportSection {
   constructor(
