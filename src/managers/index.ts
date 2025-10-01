@@ -1,8 +1,10 @@
-export {FileStateCache} from './FileStateCache';
-export type {FileState} from './FileStateCache';
-export {DebouncedCallbackManager} from './DebouncedCallbackManager';
-export {FileProcessor} from './FileProcessor';
-export {FileFilter} from './FileFilter';
-export type {FileClassChangedCallback, FileClassChangeCallbackData} from './types';
-export {FileClassStateManager} from './FileClassStateManager';
 export type {LogNoticeManager} from './LogNoticeManager';
+
+export type LogManagerLogLevel = 'info' | 'warning' | 'error' | 'debug' | 'ignore';
+export type LogManagerInterface = {
+  addDebug(message: string): void;
+  addInfo(message: string): void;
+  addWarning(message: string): void;
+  addError(message: string): void;
+  addMessage(message: string, logLevel: LogManagerLogLevel): void;
+};

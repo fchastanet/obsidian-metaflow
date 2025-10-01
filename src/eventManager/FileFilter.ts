@@ -10,27 +10,51 @@ import {TYPES} from "@metaflow/di/types";
 export class FileFilter {
   constructor(
     @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
-    @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter
+    @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
+    @inject(TYPES.MetaFlowSettings) private settings: import("src/settings/types").MetaFlowSettings,
   ) { }
 
   /**
    * Check if a file is applicable for processing
    */
   isApplicable(file: TAbstractFile | null | undefined): file is TFile {
-    if (!file) return false;
-    if (!(file instanceof TFile)) return false;
-    if (!file?.basename || !file?.path) return false;
-    if (file?.deleted) return false;
-    //if (file.saving) return false;
+    if (!file) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is null or undefined');
+      return false;
+    }
+    if (!(file instanceof TFile)) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a TFile', file);
+      return false;
+    }
+    if (!file?.basename || !file?.path) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is missing basename or path', file);
+      return false;
+    }
+    if (file?.deleted) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is deleted', file);
+      return false;
+    }
+    if (file.saving) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is currently being saved', file);
+    }
 
     // Check if the file is a Markdown file
-    if (file.extension !== 'md') return false;
+    if (file.extension !== 'md') {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a Markdown file', file);
+      return false;
+    }
 
-    if (this.fileValidationService.ifFileExcluded(file)) return false;
+    if (this.fileValidationService.ifFileExcluded(file)) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is excluded', file);
+      return false;
+    }
 
     // Check if the file has a valid frontmatter
     const cache = this.obsidianAdapter.getCachedFile(file);
-    if (!cache || !cache.frontmatter) return false;
+    if (!cache || !cache.frontmatter) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is missing frontmatter', file);
+      return false;
+    }
 
     return true;
   }

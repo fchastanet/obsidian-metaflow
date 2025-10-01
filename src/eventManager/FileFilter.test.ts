@@ -4,6 +4,7 @@ import {TFile} from 'obsidian';
 describe('FileFilter', () => {
   let fileValidationService: any;
   let obsidianAdapter: any;
+  let settings: any;
   let filter: FileFilter;
 
   beforeEach(() => {
@@ -13,7 +14,10 @@ describe('FileFilter', () => {
     obsidianAdapter = {
       getCachedFile: jest.fn().mockReturnValue({frontmatter: {key: 'value'}}),
     };
-    filter = new FileFilter(fileValidationService, obsidianAdapter);
+    settings = {
+      debugMode: false,
+    };
+    filter = new FileFilter(fileValidationService, obsidianAdapter, settings);
   });
 
   it('should return false if file is null or undefined', () => {
