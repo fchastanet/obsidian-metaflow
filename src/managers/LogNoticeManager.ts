@@ -1,10 +1,10 @@
 import {injectable, inject} from "inversify";
 import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
-import {LogManagerInterface, LogManagerLogLevel} from "./types";
+import {LogNoticeManagerInterface, LogNoticeManagerLogLevel} from "./types";
 import {TYPES} from "@metaflow/di/types";
 
 @injectable()
-export class LogNoticeManager implements LogManagerInterface {
+export class LogNoticeManager implements LogNoticeManagerInterface {
   private obsidianAdapter: ObsidianAdapter;
 
   public constructor(@inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter) {
@@ -39,7 +39,7 @@ export class LogNoticeManager implements LogManagerInterface {
       .createDiv({cls: 'meta-flow-notice-message', text: message});
   }
 
-  public addMessage(message: string, logLevel: LogManagerLogLevel): void {
+  public addMessage(message: string, logLevel: LogNoticeManagerLogLevel): void {
     switch (logLevel) {
       case 'debug':
         return this.addDebug(message);

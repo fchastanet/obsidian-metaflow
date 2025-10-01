@@ -5,7 +5,7 @@ import {MetaFlowSettings} from '@metaflow/settings/types';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import {MetaFlowSettingTab} from '@metaflow/settings/MetaFlowSettingTab';
 import {LogNoticeManager} from '@metaflow/managers/LogNoticeManager';
-import {LogManagerInterface} from '@metaflow/managers/types';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
 import {UIService} from '@metaflow/services/UIService';
 import {createContainer, TYPES} from '@metaflow/di';
 
@@ -32,7 +32,7 @@ export default class MetaFlowPlugin extends Plugin {
   settings: MetaFlowSettings;
   container: Container;
   eventManager: EventManager;
-  logManager: LogManagerInterface;
+  logNoticeManager: LogNoticeManagerInterface;
   eventCron: EventCron;
   uiService: UIService;
 
@@ -44,7 +44,7 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Get services from container
     this.uiService = this.container.get<UIService>(TYPES.UIService);
-    this.logManager = this.container.get<LogNoticeManager>(TYPES.LogManagerInterface);
+    this.logNoticeManager = this.container.get<LogNoticeManager>(TYPES.LogNoticeManagerInterface);
     this.eventManager = this.container.get<EventManager>(TYPES.EventManagerInterface);
     this.eventCron = this.container.get<EventCron>(TYPES.EventCron);
 

@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import type {LogManagerInterface} from '@metaflow/managers/types';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 import type {UIService} from '@metaflow/services/UIService';
 import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {SimpleCommand} from './types';
@@ -14,13 +14,13 @@ export class TogglePropertiesPanelCommand implements SimpleCommand {
     @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
     @inject(TYPES.UIService) private uiService: UIService,
     @inject(TYPES.SaveSettings) private saveSettings: () => Promise<void>,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
   ) { }
 
   execute(): void {
     this.settings.hidePropertiesInEditor = !this.settings.hidePropertiesInEditor;
     this.uiService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
     this.saveSettings();
-    this.logManager.addInfo(`Properties panel ${this.settings.hidePropertiesInEditor ? 'hidden' : 'shown'}`);
+    this.logNoticeManager.addInfo(`Properties panel ${this.settings.hidePropertiesInEditor ? 'hidden' : 'shown'}`);
   }
 }

@@ -1,7 +1,7 @@
 import {App, Modal, ProgressBarComponent} from "obsidian";
-import {LogManagerInterface, LogManagerLogLevel} from "@metaflow/managers/types";
+import {LogNoticeManagerInterface, LogNoticeManagerLogLevel} from "@metaflow/managers/types";
 
-export class ProgressModal extends Modal implements LogManagerInterface {
+export class ProgressModal extends Modal implements LogNoticeManagerInterface {
   cancelCallback: () => void;
   actionCallback: () => void;
   progressBar: ProgressBarComponent;
@@ -117,7 +117,7 @@ export class ProgressModal extends Modal implements LogManagerInterface {
     this.addResultItem(`[WARNING] ${message}`, 'progress-modal-warning-item');
   }
 
-  addMessage(message: string, logLevel: LogManagerLogLevel): void {
+  addMessage(message: string, logLevel: LogNoticeManagerLogLevel): void {
     switch (logLevel) {
       case "debug":
         this.addDebug(message);

@@ -72,7 +72,7 @@ describe('FolderFileClassMappingsSection', () => {
   let mockApp: any;
   let mockPlugin: any;
   let folderFileClassMappingsSection: FolderFileClassMappingsSection;
-  let mockLogManager: jest.Mocked<LogNoticeManager>;
+  let mockLogNoticeManager: jest.Mocked<LogNoticeManager>;
 
   beforeEach(() => {
     // Reset mocks
@@ -106,7 +106,7 @@ describe('FolderFileClassMappingsSection', () => {
       }
     } as any;
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addInfo: jest.fn(),
       addWarning: jest.fn(),
       addError: jest.fn()
@@ -139,7 +139,7 @@ describe('FolderFileClassMappingsSection', () => {
       document.createElement('div'),
       mockPlugin.settings.folderFileClassMappings,
       obsidianAdapter,
-      new MetadataMenuAdapter(mockApp, mockPlugin.settings, mockLogManager),
+      new MetadataMenuAdapter(mockApp, mockPlugin.settings, mockLogNoticeManager),
       new TemplaterAdapter(mockApp, mockPlugin.settings, obsidianAdapter),
       new LogNoticeManager(obsidianAdapter),
       jest.fn() // Mock saveSettings function

@@ -1,6 +1,6 @@
 import {injectable, inject} from 'inversify';
 import type {Editor, MarkdownView} from 'obsidian';
-import type {LogManagerInterface} from '@metaflow/managers/types';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 import {MetaFlowException} from '@metaflow/MetaFlowException';
 import type {MetaFlowService} from '@metaflow/services/MetaFlowService';
 import {EditorCommand} from './types';
@@ -13,7 +13,7 @@ import {TYPES} from '@metaflow/di/types';
 export class SortMetadataCommand implements EditorCommand {
   constructor(
     @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
   ) { }
 
   async execute(editor: Editor, view: MarkdownView): Promise<void> {
@@ -21,7 +21,7 @@ export class SortMetadataCommand implements EditorCommand {
     const file = view.file;
 
     if (!file) {
-      this.logManager.addWarning('No active file');
+      this.logNoticeManager.addWarning('No active file');
       return;
     }
 
@@ -30,9 +30,9 @@ export class SortMetadataCommand implements EditorCommand {
     } catch (error) {
       console.error('Error sorting metadata properties:', error);
       if (error instanceof MetaFlowException) {
-        this.logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
+        this.logNoticeManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
       } else {
-        this.logManager.addError('Error sorting metadata properties');
+        this.logNoticeManager.addError('Error sorting metadata properties');
       }
     }
   }

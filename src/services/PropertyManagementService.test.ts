@@ -4,7 +4,7 @@ import {MetaFlowSettings} from "@metaflow/settings/types";
 import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 import {MetadataMenuAdapter} from "src/externalApi/MetadataMenuAdapter";
 import {ScriptContextService} from "./ScriptContextService";
-import {LogManagerInterface} from "src/managers/types";
+import {LogNoticeManagerInterface} from "src/managers/types";
 
 describe('PropertyManagementService', () => {
   let propertyManagementService: PropertyManagementService;
@@ -12,7 +12,7 @@ describe('PropertyManagementService', () => {
   let mockMetadataMenuAdapter: MetadataMenuAdapter;
   let mockScriptContextService: ScriptContextService;
   let mockFile: TFile;
-  let mockLogManager: LogManagerInterface;
+  let mockLogNoticeManager: LogNoticeManagerInterface;
 
   beforeEach(() => {
     mockMetaFlowSettings = {
@@ -49,7 +49,7 @@ describe('PropertyManagementService', () => {
         metadata: {},
         fileClass: 'book',
         file: {},
-        logManager: {}
+        logNoticeManager: {}
       })
     };
 
@@ -61,7 +61,7 @@ describe('PropertyManagementService', () => {
       path: 'test.md'
     });
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addInfo: jest.fn(),
       addWarning: jest.fn(),
       addError: jest.fn(),
@@ -73,7 +73,7 @@ describe('PropertyManagementService', () => {
       mockMetaFlowSettings,
       mockMetadataMenuAdapter,
       mockScriptContextService,
-      mockLogManager
+      mockLogNoticeManager
     );
   });
 

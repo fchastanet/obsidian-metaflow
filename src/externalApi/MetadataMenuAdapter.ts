@@ -3,7 +3,7 @@ import type {App, FrontMatterCache} from 'obsidian';
 import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {MetadataMenuField, MetadataMenuPluginInterface} from './types.MetadataMenu';
 import {MetaFlowException} from '@metaflow/MetaFlowException';
-import type {LogManagerInterface} from 'src/managers/types';
+import type {LogNoticeManagerInterface} from 'src/managers/types';
 import {TYPES} from '@metaflow/di/types';
 
 export interface FieldsFileClassAssociation {
@@ -19,7 +19,7 @@ export class MetadataMenuAdapter {
   constructor(
     @inject(TYPES.App) private app: App,
     @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface,
   ) { }
 
   /**
@@ -182,7 +182,7 @@ export class MetadataMenuAdapter {
       // Access MetadataMenu's fieldIndex.fileClassesAncestors
       const fieldIndex = metadataMenuPlugin.fieldIndex;
       if (!fieldIndex?.fileClassesAncestors) {
-        this.logManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
+        this.logNoticeManager.addWarning('MetadataMenu fieldIndex.fileClassesAncestors not available');
         return [fileClassName];
       }
 

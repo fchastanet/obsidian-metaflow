@@ -1,5 +1,5 @@
 import {ScriptContextService} from './ScriptContextService';
-import {expectNoLogs} from '@metaflow/__mocks__/logManager';
+import {expectNoLogs} from '@metaflow/__mocks__/logNoticeManager';
 import {TFile} from 'obsidian';
 import {ObsidianAdapter as OriginalObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
 import {TemplaterAdapter} from 'src/externalApi/TemplaterAdapter';

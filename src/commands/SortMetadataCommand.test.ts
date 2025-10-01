@@ -1,6 +1,6 @@
 import {SortMetadataCommand} from './SortMetadataCommand';
 import {MetaFlowException} from '@metaflow/MetaFlowException';
-import {LogManagerInterface} from '@metaflow/managers/types';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Mock console.error to avoid cluttering test output
 const originalConsoleError = console.error;
@@ -29,7 +29,7 @@ const mockView = {
   },
 } as any;
 
-const mockLogManager: LogManagerInterface = {
+const mockLogNoticeManager: LogNoticeManagerInterface = {
   addDebug: jest.fn(),
   addInfo: jest.fn(),
   addWarning: jest.fn(),
@@ -42,7 +42,7 @@ describe('SortMetadataCommand', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    command = new SortMetadataCommand(mockMetaFlowService as any, mockLogManager);
+    command = new SortMetadataCommand(mockMetaFlowService as any, mockLogNoticeManager);
   });
 
   it('should sort metadata successfully', async () => {
@@ -61,7 +61,7 @@ describe('SortMetadataCommand', () => {
 
     await command.execute(mockEditor, viewWithoutFile);
 
-    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No active file');
+    expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith('No active file');
     expect(mockProcessSortContent).not.toHaveBeenCalled();
   });
 
@@ -72,7 +72,7 @@ describe('SortMetadataCommand', () => {
 
     await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addMessage).toHaveBeenCalledWith('Error: Sort error', 'error');
+    expect(mockLogNoticeManager.addMessage).toHaveBeenCalledWith('Error: Sort error', 'error');
   });
 
   it('should handle generic error', async () => {
@@ -82,6 +82,6 @@ describe('SortMetadataCommand', () => {
 
     await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addError).toHaveBeenCalledWith('Error sorting metadata properties');
+    expect(mockLogNoticeManager.addError).toHaveBeenCalledWith('Error sorting metadata properties');
   });
 });

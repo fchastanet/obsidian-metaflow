@@ -2,7 +2,7 @@ import {injectable, inject} from 'inversify';
 import {FrontMatterCache, TFile} from "obsidian";
 import type {MetaFlowSettings, FolderFileClassMapping} from "@metaflow/settings/types";
 import type {ScriptContextService} from "./ScriptContextService";
-import type {LogManagerInterface} from "@metaflow/managers/types";
+import type {LogNoticeManagerInterface} from "@metaflow/managers/types";
 import {TYPES} from '@metaflow/di/types';
 
 @injectable()
@@ -10,7 +10,7 @@ export class NoteTitleService {
   constructor(
     @inject(TYPES.MetaFlowSettings) private metaFlowSettings: MetaFlowSettings,
     @inject(TYPES.ScriptContextService) private scriptContextService: ScriptContextService,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
   ) { }
 
   /**
@@ -18,7 +18,7 @@ export class NoteTitleService {
    * @param file - The file to format title for
    * @param fileClass - The file class
    * @param metadata - The metadata object
-   * @param logManager - Log manager for reporting
+   * @param logNoticeManager - Log manager for reporting
    * @returns Formatted title or "Untitled" if generation fails
    */
   formatNoteTitle(

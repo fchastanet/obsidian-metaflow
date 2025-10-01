@@ -20,7 +20,7 @@ import {NoteTitleService} from '@metaflow/services/NoteTitleService';
 
 // Managers
 import {LogNoticeManager} from '@metaflow/managers/LogNoticeManager';
-import {LogManagerInterface} from '@metaflow/managers/types';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Legacy services
 import {MetaFlowService} from '@metaflow/services/MetaFlowService';
@@ -60,7 +60,7 @@ export function createContainer(app: App, settings: MetaFlowSettings, saveSettin
   container.bind<UIService>(TYPES.UIService).to(UIService).inSingletonScope();
 
   // Bind managers
-  container.bind<LogManagerInterface>(TYPES.LogManagerInterface).to(LogNoticeManager).inSingletonScope();
+  container.bind<LogNoticeManagerInterface>(TYPES.LogNoticeManagerInterface).to(LogNoticeManager).inSingletonScope();
 
   // Bind domain services
   container.bind<FileValidationService>(TYPES.FileValidationService).to(FileValidationService).inSingletonScope();

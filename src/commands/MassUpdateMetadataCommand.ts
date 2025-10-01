@@ -1,6 +1,6 @@
 import {injectable, inject} from 'inversify';
 import type {TFile} from 'obsidian';
-import type {LogManagerInterface} from '@metaflow/managers/types';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 import {ProgressModal} from '@metaflow/ui/ProgressModal';
 import {Utils} from '@metaflow/utils/Utils';
 import type {MetaFlowService} from '@metaflow/services/MetaFlowService';
@@ -20,7 +20,7 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
     @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
     @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService,
     @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
   ) { }
 
   async execute(): Promise<void> {
@@ -39,11 +39,11 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
     }).filter(file => file.extension === 'md');
     const totalFiles = filteredFiles.length;
     if (totalFiles === 0) {
-      this.logManager.addWarning('No files to update - all files are excluded or no markdown files found.');
+      this.logNoticeManager.addWarning('No files to update - all files are excluded or no markdown files found.');
       return;
     }
 
-    this.logManager.addInfo(`Mass updating ${totalFiles} files...`);
+    this.logNoticeManager.addInfo(`Mass updating ${totalFiles} files...`);
 
     let processedFiles = 0;
     let updatedFiles = 0;
@@ -93,9 +93,9 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
 
     // Final summary
     if (errorFiles.length > 0) {
-      this.logManager.addWarning(`Completed with errors. Updated ${updatedFiles} files, failed to process ${errorFiles.length} files.`);
+      this.logNoticeManager.addWarning(`Completed with errors. Updated ${updatedFiles} files, failed to process ${errorFiles.length} files.`);
     } else {
-      this.logManager.addInfo(`Successfully processed ${processedFiles} files, updated ${updatedFiles} files.`);
+      this.logNoticeManager.addInfo(`Successfully processed ${processedFiles} files, updated ${updatedFiles} files.`);
     }
   }
 }

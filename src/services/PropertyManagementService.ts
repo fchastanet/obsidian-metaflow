@@ -4,7 +4,7 @@ import type {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/setti
 import {MetaFlowException} from "@metaflow/MetaFlowException";
 import type {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import type {ScriptContextService} from "./ScriptContextService";
-import type {LogManagerInterface} from "@metaflow/managers/types";
+import type {LogNoticeManagerInterface} from "@metaflow/managers/types";
 import {MetadataMenuField} from "@metaflow/externalApi/types.MetadataMenu";
 import {TYPES} from '@metaflow/di/types';
 
@@ -14,7 +14,7 @@ export class PropertyManagementService {
     @inject(TYPES.MetaFlowSettings) private metaFlowSettings: MetaFlowSettings,
     @inject(TYPES.MetadataMenuAdapter) private metadataMenuAdapter: MetadataMenuAdapter,
     @inject(TYPES.ScriptContextService) private scriptContextService: ScriptContextService,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
   ) {
   }
 

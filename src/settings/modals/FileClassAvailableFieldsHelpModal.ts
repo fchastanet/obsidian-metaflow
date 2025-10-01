@@ -9,7 +9,7 @@ export class FileClassAvailableFieldsHelpModal extends Modal {
     app: App,
     private fileClass: string,
     private metadataMenuAdapter: MetadataMenuAdapter,
-    private logManager: LogNoticeManager,
+    private logNoticeManager: LogNoticeManager,
   ) {
     super(app);
   }

@@ -27,7 +27,7 @@ export class FolderFileClassMappingsSection {
     private obsidianAdapter: ObsidianAdapter,
     private metadataMenuAdapter: MetadataMenuAdapter,
     private templaterAdapter: TemplaterAdapter,
-    private logManager: LogNoticeManager,
+    private logNoticeManager: LogNoticeManager,
     private onChange: () => void
   ) {
     this.templateLinter = new TitleTemplateLinter();
@@ -400,7 +400,7 @@ export class FolderFileClassMappingsSection {
     const helpButton = toolbar.createEl('button', {text: '🛈 Help', cls: 'metaflow-settings-template-help-btn'});
     helpButton.addEventListener('click', async () => {
       // Import and open the modal
-      const modal = new FileClassAvailableFieldsHelpModal(this.app, mapping.fileClass, this.metadataMenuAdapter, this.logManager);
+      const modal = new FileClassAvailableFieldsHelpModal(this.app, mapping.fileClass, this.metadataMenuAdapter, this.logNoticeManager);
       modal.open();
     });
 

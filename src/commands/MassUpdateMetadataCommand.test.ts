@@ -22,7 +22,7 @@ import {TYPES} from '@metaflow/di/types';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import type {MetaFlowService} from '@metaflow/services/MetaFlowService';
 import type {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
-import type {LogManagerInterface} from '@metaflow/managers/types';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Mock Obsidian classes
 jest.mock('obsidian', () => ({
@@ -38,7 +38,7 @@ describe('MassUpdateMetadataCommand', () => {
   let mockApp: any;
   let mockMetaFlowService: jest.Mocked<MetaFlowService>;
   let mockObsidianAdapter: jest.Mocked<ObsidianAdapter>;
-  let mockLogManager: jest.Mocked<LogManagerInterface>;
+  let mockLogNoticeManager: jest.Mocked<LogNoticeManagerInterface>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -58,7 +58,7 @@ describe('MassUpdateMetadataCommand', () => {
       createProgressModal: jest.fn()
     } as any;
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addError: jest.fn(),
       addWarning: jest.fn(),
       addInfo: jest.fn(),
@@ -74,7 +74,7 @@ describe('MassUpdateMetadataCommand', () => {
     container.bind(TYPES.MetaFlowService).toConstantValue(mockMetaFlowService);
     container.bind(TYPES.ObsidianAdapter).toConstantValue(mockObsidianAdapter);
     container.bind(TYPES.MassUpdateMetadataCommand).to(MassUpdateMetadataCommand);
-    container.bind(TYPES.LogManagerInterface).toConstantValue(mockLogManager);
+    container.bind(TYPES.LogNoticeManagerInterface).toConstantValue(mockLogNoticeManager);
     // Create command instance
     command = container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
   });
@@ -85,7 +85,7 @@ describe('MassUpdateMetadataCommand', () => {
 
   it('should warn when no files to update', async () => {
     await command.execute();
-    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No files to update - all files are excluded or no markdown files found.');
+    expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith('No files to update - all files are excluded or no markdown files found.');
   });
 
   it('should call getMarkdownFiles when executed', async () => {

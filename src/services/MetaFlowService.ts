@@ -6,7 +6,7 @@ import type {FrontMatterService} from "./FrontMatterService";
 import type {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/settings/types";
 import {FolderFileClassMapping} from "@metaflow/settings/types";
 import {MetaFlowException} from "@metaflow/MetaFlowException";
-import type {LogManagerInterface} from "@metaflow/managers/types";
+import type {LogNoticeManagerInterface} from "@metaflow/managers/types";
 import {Utils} from "@metaflow/utils/Utils";
 import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 import type {FileValidationService} from "./FileValidationService";
@@ -29,7 +29,7 @@ export class MetaFlowService {
     @inject(TYPES.PropertyManagementService) private propertyManagementService: PropertyManagementService,
     @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
     @inject(TYPES.NoteTitleService) private noteTitleService: NoteTitleService,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface,
   ) {
     this.fixSettings();
   }
@@ -46,10 +46,10 @@ export class MetaFlowService {
       this.fileValidationService.checkIfMetadataInsertionApplicable(file);
     } catch (error) {
       if (error instanceof MetaFlowException) {
-        this.logManager.addMessage(`MetaFlow: ${error.message}`, error.noticeLevel);
+        this.logNoticeManager.addMessage(`MetaFlow: ${error.message}`, error.noticeLevel);
         return;
       } else {
-        this.logManager.addWarning(`Error checking file availability: ${error}`);
+        this.logNoticeManager.addWarning(`Error checking file availability: ${error}`);
         return;
       }
     }
@@ -111,7 +111,7 @@ export class MetaFlowService {
             `Error processing file operations: ${error.message}` :
             `Error processing file operations`;
           console.error(msg, error);
-          this.logManager.addMessage(msg, error?.noticeLevel ?? 'error');
+          this.logNoticeManager.addMessage(msg, error?.noticeLevel ?? 'error');
         }
       });
     } catch (error) {
@@ -119,7 +119,7 @@ export class MetaFlowService {
         `Error updating metadata properties: ${error.message}` :
         `Error updating metadata properties`;
       console.error(msg, error);
-      this.logManager.addMessage(msg, error?.noticeLevel ?? 'error');
+      this.logNoticeManager.addMessage(msg, error?.noticeLevel ?? 'error');
     }
   }
 
@@ -160,7 +160,7 @@ export class MetaFlowService {
       // Step 4: Synchronize frontmatter with new/obsolete fileClass's fields
       let updatedFrontmatter: FrontMatterCache = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass);
       if (newFileClass !== fileClass) {
-        this.logManager.addInfo(`File class changed for "${file.name}": ${fileClass} -> ${newFileClass}`);
+        this.logNoticeManager.addInfo(`File class changed for "${file.name}": ${fileClass} -> ${newFileClass}`);
       }
 
       // Step 5: sort properties if autoSort is enabled
@@ -266,14 +266,14 @@ export class MetaFlowService {
    * @param file - The file to format title for
    * @param fileClass - The file class
    * @param metadata - The metadata object
-   * @param logManager - Log manager for reporting
+   * @param logNoticeManager - Log manager for reporting
    * @returns Formatted title or "Untitled" if generation fails
    */
   public formatNoteTitle(
     file: TFile,
     fileClass: string,
     metadata: FrontMatterCache,
-    logManager: LogManagerInterface
+    logNoticeManager: LogNoticeManagerInterface
   ): string {
     return this.noteTitleService.formatNoteTitle(file, fileClass, metadata);
   }

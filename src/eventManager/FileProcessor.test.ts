@@ -4,7 +4,7 @@ import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
 import {MetaFlowSettings} from '@metaflow/settings/types';
 import {TFile, CachedMetadata} from 'obsidian';
 import {MetaFlowService} from '@metaflow/services/MetaFlowService';
-import {LogManagerInterface} from '@metaflow/managers/types';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Mock TFile
 jest.mock('obsidian', () => ({
@@ -22,7 +22,7 @@ describe('FileProcessor', () => {
   let mockObsidianAdapter: jest.Mocked<ObsidianAdapter>;
   let mockSettings: MetaFlowSettings;
   let metaFlowService: jest.Mocked<MetaFlowService>;
-  let logManager: jest.Mocked<LogManagerInterface>;
+  let logNoticeManager: jest.Mocked<LogNoticeManagerInterface>;
   let mockFile: TFile;
   let spyInfo: jest.SpyInstance;
   let spyWarn: jest.SpyInstance;
@@ -49,13 +49,13 @@ describe('FileProcessor', () => {
       handleFileClassChanged: jest.fn()
     } as any;
 
-    logManager = {
+    logNoticeManager = {
       addInfo: jest.fn(),
       addWarning: jest.fn(),
       addError: jest.fn()
     } as any;
 
-    processor = new FileProcessor(mockFileClassDeductionService, mockObsidianAdapter, mockSettings, metaFlowService, logManager);
+    processor = new FileProcessor(mockFileClassDeductionService, mockObsidianAdapter, mockSettings, metaFlowService, logNoticeManager);
 
     // Create mock file
     mockFile = Object.create(TFile.prototype);

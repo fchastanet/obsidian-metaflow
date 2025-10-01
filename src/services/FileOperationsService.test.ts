@@ -2,7 +2,7 @@ import {TFile, TFolder} from "obsidian";
 import {FileOperationsService} from "./FileOperationsService";
 import {MetaFlowSettings} from "@metaflow/settings/types";
 import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
-import {LogManagerInterface} from "@metaflow/managers/types";
+import {LogNoticeManagerInterface} from "@metaflow/managers/types";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -18,7 +18,7 @@ describe('FileOperationsService', () => {
   let mockFileValidationService: any;
   let mockNoteTitleService: any;
   let mockFile: TFile;
-  let mockLogManager: LogManagerInterface;
+  let mockLogNoticeManager: LogNoticeManagerInterface;
 
   beforeEach(() => {
     mockMetaFlowSettings = {
@@ -81,7 +81,7 @@ describe('FileOperationsService', () => {
       formatNoteTitle: jest.fn().mockReturnValue('New Title')
     };
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addDebug: jest.fn(),
       addInfo: jest.fn(),
       addWarning: jest.fn(),
@@ -105,7 +105,7 @@ describe('FileOperationsService', () => {
       mockObsidianAdapter,
       mockFileValidationService,
       mockNoteTitleService,
-      mockLogManager
+      mockLogNoticeManager
     );
   });
 
@@ -266,7 +266,7 @@ describe('FileOperationsService', () => {
 
       expect(result).toBe(renamedFile);
       expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title.md');
-      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title.md"');
+      expect(mockLogNoticeManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title.md"');
     });
 
     it('should return file if new title would be "Untitled"', async () => {
@@ -306,7 +306,7 @@ describe('FileOperationsService', () => {
 
       expect(result).toBe(renamedFile);
       expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title 1.md');
-      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title 1.md" (conflict resolved with incremental number)');
+      expect(mockLogNoticeManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title 1.md" (conflict resolved with incremental number)');
     });
   });
 
@@ -421,7 +421,7 @@ describe('FileOperationsService', () => {
       const result = await fileOperationsService.applyFileChanges(mockFile, 'New Title', '');
 
       expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title.md');
-      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title.md"');
+      expect(mockLogNoticeManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title.md"');
       expect(result).toBe(mockFile);
     });
 
@@ -433,7 +433,7 @@ describe('FileOperationsService', () => {
       const result = await fileOperationsService.applyFileChanges(mockFile, mockFile.basename, 'books');
 
       expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'books/test.md');
-      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "books/test.md"');
+      expect(mockLogNoticeManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "books/test.md"');
       expect(result).toBe(mockFile);
     });
 
@@ -450,7 +450,7 @@ describe('FileOperationsService', () => {
       const result = await fileOperationsService.applyFileChanges(mockFile, 'New Title', "");
 
       expect(mockObsidianAdapter.moveNote).toHaveBeenCalledWith(mockFile, 'New Title 2.md');
-      expect(mockLogManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title 2.md" (conflict resolved with incremental number)');
+      expect(mockLogNoticeManager.addInfo).toHaveBeenCalledWith('File "test.md" renamed to "New Title 2.md" (conflict resolved with incremental number)');
       expect(result).toBe(mockFile);
     });
 

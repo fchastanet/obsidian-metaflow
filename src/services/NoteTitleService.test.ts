@@ -8,7 +8,7 @@ describe('NoteTitleService', () => {
   let mockMetaFlowSettings: MetaFlowSettings;
   let mockScriptContextService: any;
   let mockFile: TFile;
-  let mockLogManager: any;
+  let mockLogNoticeManager: any;
 
   beforeEach(() => {
     mockMetaFlowSettings = {
@@ -44,7 +44,7 @@ describe('NoteTitleService', () => {
         metadata: {title: 'Test Book', author: 'Test Author'},
         fileClass: 'book',
         file: {},
-        logManager: {}
+        logNoticeManager: {}
       })
     };
 
@@ -56,7 +56,7 @@ describe('NoteTitleService', () => {
       path: 'test.md'
     });
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addInfo: jest.fn(),
       addWarning: jest.fn(),
       addError: jest.fn()
@@ -65,7 +65,7 @@ describe('NoteTitleService', () => {
     noteTitleService = new NoteTitleService(
       mockMetaFlowSettings,
       mockScriptContextService,
-      mockLogManager
+      mockLogNoticeManager
     );
   });
 

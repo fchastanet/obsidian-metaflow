@@ -6,7 +6,7 @@ import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import type {FileOperationsService} from '@metaflow/services/FileOperationsService';
 import type {FileValidationService} from '@metaflow/services/FileValidationService';
 import type {FileClassDeductionService} from '@metaflow/services/FileClassDeductionService';
-import type {LogManagerInterface} from '@metaflow/managers/types';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Mock Obsidian classes
 jest.mock('obsidian', () => ({
@@ -32,7 +32,7 @@ describe('MoveNoteToRightFolderCommand', () => {
   let mockFileOperationsService: jest.Mocked<FileOperationsService>;
   let mockFileValidationService: jest.Mocked<FileValidationService>;
   let mockFileClassDeductionService: jest.Mocked<FileClassDeductionService>;
-  let mockLogManager: jest.Mocked<LogManagerInterface>;
+  let mockLogNoticeManager: jest.Mocked<LogNoticeManagerInterface>;
   let mockEditor: any;
   let mockView: any;
   let mockFile: any;
@@ -76,7 +76,7 @@ describe('MoveNoteToRightFolderCommand', () => {
       getFileClassFromMetadata: jest.fn()
     } as any;
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addError: jest.fn(),
       addWarning: jest.fn(),
       addInfo: jest.fn(),
@@ -93,7 +93,7 @@ describe('MoveNoteToRightFolderCommand', () => {
     container.bind(TYPES.FileValidationService).toConstantValue(mockFileValidationService);
     container.bind(TYPES.FileClassDeductionService).toConstantValue(mockFileClassDeductionService);
     container.bind(TYPES.MoveNoteToRightFolderCommand).to(MoveNoteToRightFolderCommand);
-    container.bind(TYPES.LogManagerInterface).toConstantValue(mockLogManager);
+    container.bind(TYPES.LogNoticeManagerInterface).toConstantValue(mockLogNoticeManager);
 
     // Create command instance
     command = container.get<MoveNoteToRightFolderCommand>(TYPES.MoveNoteToRightFolderCommand);
@@ -173,7 +173,7 @@ describe('MoveNoteToRightFolderCommand', () => {
 
     await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No fileClass found in metadata');
+    expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith('No fileClass found in metadata');
     expect(mockFileOperationsService.moveNote).not.toHaveBeenCalled();
   });
 
@@ -182,7 +182,7 @@ describe('MoveNoteToRightFolderCommand', () => {
 
     await command.execute(mockEditor, viewWithoutFile as any);
 
-    expect(mockLogManager.addError).toHaveBeenCalledWith('No active file found');
+    expect(mockLogNoticeManager.addError).toHaveBeenCalledWith('No active file found');
     expect(mockFileValidationService.checkIfValidFile).not.toHaveBeenCalled();
   });
 
@@ -194,7 +194,7 @@ describe('MoveNoteToRightFolderCommand', () => {
 
     await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addMessage).toHaveBeenCalledWith('Error: Move error', 'error');
+    expect(mockLogNoticeManager.addMessage).toHaveBeenCalledWith('Error: Move error', 'error');
   });
 
   it('should handle generic error', async () => {
@@ -205,6 +205,6 @@ describe('MoveNoteToRightFolderCommand', () => {
 
     await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addError).toHaveBeenCalledWith('Error moving note to the right folder');
+    expect(mockLogNoticeManager.addError).toHaveBeenCalledWith('Error moving note to the right folder');
   });
 });

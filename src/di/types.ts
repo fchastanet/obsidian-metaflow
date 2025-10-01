@@ -36,7 +36,7 @@ export const TYPES = {
 
   // Managers
   FileClassStateManager: Symbol.for('FileClassStateManager'),
-  LogManagerInterface: Symbol.for('LogManagerInterface'),
+  LogNoticeManagerInterface: Symbol.for('LogNoticeManagerInterface'),
 
   // Commands
   UpdateMetadataCommand: Symbol.for('UpdateMetadataCommand'),

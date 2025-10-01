@@ -28,7 +28,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   metadataMenuAdapter: MetadataMenuAdapter;
   templaterAdapter: TemplaterAdapter;
   obsidianAdapter: ObsidianAdapter;
-  logManager: LogNoticeManager;
+  logNoticeManager: LogNoticeManager;
   simulationDetails: HTMLElement;
   simulationContainer: HTMLElement;
   metadataMenuStatus: HTMLElement;
@@ -42,7 +42,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     // Get services from the plugin's DI container
     this.metadataMenuAdapter = plugin.container.get<MetadataMenuAdapter>(TYPES.MetadataMenuAdapter);
     this.obsidianAdapter = plugin.container.get<ObsidianAdapter>(TYPES.ObsidianAdapter);
-    this.logManager = new LogNoticeManager(this.obsidianAdapter);
+    this.logNoticeManager = new LogNoticeManager(this.obsidianAdapter);
     this.metaflowService = plugin.container.get<MetaFlowService>(TYPES.MetaFlowService);
     this.templaterAdapter = plugin.container.get<TemplaterAdapter>(TYPES.TemplaterAdapter);
   }
@@ -115,7 +115,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
       this.obsidianAdapter,
       this.metadataMenuAdapter,
       this.templaterAdapter,
-      this.logManager,
+      this.logNoticeManager,
       async () => {await this.plugin.saveSettings();}
     );
     mappingsSection.render();

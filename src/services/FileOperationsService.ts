@@ -5,7 +5,7 @@ import type {MetaFlowSettings, FolderFileClassMapping} from "@metaflow/settings/
 import {MetaFlowException} from "@metaflow/MetaFlowException";
 import type {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import type {FileValidationService} from "./FileValidationService";
-import type {LogManagerInterface} from "@metaflow/managers/types";
+import type {LogNoticeManagerInterface} from "@metaflow/managers/types";
 import type {NoteTitleService} from "./NoteTitleService";
 import {TYPES} from '@metaflow/di/types';
 
@@ -17,7 +17,7 @@ export class FileOperationsService {
     @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
     @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
     @inject(TYPES.NoteTitleService) private noteTitleService: NoteTitleService,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
   ) { }
 
   public async moveNoteToTheRightFolder(file: TFile, fileClass: string): Promise<string | null> {
@@ -91,7 +91,7 @@ export class FileOperationsService {
   ): Promise<void> {
     const newFilePath = await this.moveNoteToTheRightFolder(file, fileClass);
     if (newFilePath) {
-      this.logManager.addInfo(`Moved note ${file.name} to ${newFilePath}`);
+      this.logNoticeManager.addInfo(`Moved note ${file.name} to ${newFilePath}`);
     }
   }
 
@@ -100,7 +100,7 @@ export class FileOperationsService {
    * @param file - The file to get new title for
    * @param fileClass - The file class
    * @param metadata - The metadata object
-   * @param logManager - Log manager for reporting
+   * @param logNoticeManager - Log manager for reporting
    * @returns New title or null if no change needed
    */
   public getNewNoteTitle(
@@ -181,7 +181,7 @@ export class FileOperationsService {
    * @param file - The original file
    * @param newTitle - New title (without extension) or null if no rename needed
    * @param newFolderPath - New folder path or null if no move needed
-   * @param logManager - Log manager for reporting
+   * @param logNoticeManager - Log manager for reporting
    * @returns The updated file reference
    */
   public async applyFileChanges(
@@ -232,7 +232,7 @@ export class FileOperationsService {
       }
 
       // Log the operation
-      this.logManager.addInfo(`File "${file.name}" renamed to "${targetPath}"${conflictsResolved ? ' (conflict resolved with incremental number)' : ''}`);
+      this.logNoticeManager.addInfo(`File "${file.name}" renamed to "${targetPath}"${conflictsResolved ? ' (conflict resolved with incremental number)' : ''}`);
 
       return updatedFile;
     } catch (error) {

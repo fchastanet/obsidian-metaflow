@@ -1,6 +1,6 @@
 import {injectable, inject} from 'inversify';
 import type {Editor, MarkdownView} from 'obsidian';
-import type {LogManagerInterface} from '@metaflow/managers/types';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 import {MetaFlowException} from '@metaflow/MetaFlowException';
 import type {FileOperationsService} from '@metaflow/services/FileOperationsService';
 import type {FileValidationService} from '@metaflow/services/FileValidationService';
@@ -21,14 +21,14 @@ export class MoveNoteToRightFolderCommand implements EditorCommand {
     @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
     @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
     @inject(TYPES.FileClassDeductionService) private fileClassDeductionService: FileClassDeductionService,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface,
   ) { }
 
   async execute(editor: Editor, view: MarkdownView): Promise<void> {
     try {
       const file = view.file;
       if (!file) {
-        this.logManager.addError('No active file found');
+        this.logNoticeManager.addError('No active file found');
         return;
       }
 
@@ -45,14 +45,14 @@ export class MoveNoteToRightFolderCommand implements EditorCommand {
 
         await this.fileOperationsService.moveNote(newFile, fileClass, metadata);
       } else {
-        this.logManager.addWarning('No fileClass found in metadata');
+        this.logNoticeManager.addWarning('No fileClass found in metadata');
       }
     } catch (error) {
       console.error('Error moving note:', error);
       if (error instanceof MetaFlowException) {
-        this.logManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
+        this.logNoticeManager.addMessage(`Error: ${error.message}`, error.noticeLevel);
       } else {
-        this.logManager.addError('Error moving note to the right folder');
+        this.logNoticeManager.addError('Error moving note to the right folder');
       }
     }
   }

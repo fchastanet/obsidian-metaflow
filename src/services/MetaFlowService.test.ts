@@ -1,7 +1,7 @@
 import {FileStats, TFile} from 'obsidian';
 import {MetaFlowService} from './MetaFlowService';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
-import {LogManagerInterface} from 'src/managers/types';
+import {LogNoticeManagerInterface} from 'src/managers/types';
 import {MetaFlowSettings} from '@metaflow/settings/types';
 
 // Mock Obsidian modules
@@ -16,7 +16,7 @@ describe('MetaFlowService', () => {
   let mockApp: any;
   let metaFlowService: MetaFlowService;
   let mockFile: TFile;
-  let mockLogManager: LogManagerInterface;
+  let mockLogNoticeManager: LogNoticeManagerInterface;
   let mockSettings: MetaFlowSettings;
 
   // Mock services
@@ -134,7 +134,7 @@ describe('MetaFlowService', () => {
       stat: {} as FileStats,
     });
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addDebug: jest.fn(),
       addInfo: jest.fn(),
       addWarning: jest.fn(),
@@ -153,7 +153,7 @@ describe('MetaFlowService', () => {
       mockPropertyManagementService,
       mockFileOperationsService,
       mockNoteTitleService,
-      mockLogManager,
+      mockLogNoticeManager,
     );
   });
 

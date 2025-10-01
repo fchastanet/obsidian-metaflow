@@ -7,7 +7,7 @@ import {inject} from "inversify";
 import {TYPES} from "@metaflow/di";
 import {FileState} from "./cache/types";
 import {MetaFlowService} from "@metaflow/services/MetaFlowService";
-import type {LogManagerInterface} from "@metaflow/managers/types";
+import type {LogNoticeManagerInterface} from "@metaflow/managers/types";
 
 /**
  * Handles file processing logic including checksum computation and file state creation
@@ -18,7 +18,7 @@ export class FileProcessor {
     @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
     @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
     @inject(TYPES.MetaFlowService) private metaFlowService: MetaFlowService,
-    @inject(TYPES.LogManagerInterface) private logManager: LogManagerInterface,
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface,
   ) { }
 
   async processFile(filePath: string, state: FileState): Promise<FileState> {
