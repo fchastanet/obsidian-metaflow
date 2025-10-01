@@ -27,6 +27,11 @@ describe('FileStateCache', () => {
     fileStateCache = new FileStateCache(mockSettings, mockCachePersistence, mockNow);
   });
 
+  it('should load cache from persistence', async () => {
+    await fileStateCache.loadCache();
+    expect(mockCachePersistence.loadCache).toHaveBeenCalledWith(mockSettings.fileClassStateCacheFilename);
+  });
+
   it('should initialize with empty cache', () => {
     expect(fileStateCache.getSize()).toBe(0);
   });

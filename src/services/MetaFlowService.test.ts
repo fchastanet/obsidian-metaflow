@@ -27,6 +27,7 @@ describe('MetaFlowService', () => {
   let mockPropertyManagementService: any;
   let mockFileOperationsService: any;
   let mockNoteTitleService: any;
+  let mockFileStateCache: any;
 
   beforeEach(() => {
     // Setup mock settings
@@ -142,6 +143,12 @@ describe('MetaFlowService', () => {
       addMessage: jest.fn(),
     };
 
+    mockFileStateCache = {
+      getState: jest.fn(),
+      setState: jest.fn(),
+      popState: jest.fn(),
+    };
+
     // Create MetaFlowService with all dependencies
     metaFlowService = new MetaFlowService(
       mockApp,
@@ -154,6 +161,7 @@ describe('MetaFlowService', () => {
       mockFileOperationsService,
       mockNoteTitleService,
       mockLogNoticeManager,
+      mockFileStateCache,
     );
   });
 
@@ -204,13 +212,16 @@ describe('MetaFlowService', () => {
 
       // Set up settings to enable auto metadata insertion
       mockSettings.autoMetadataInsertion = true;
+      mockFileOperationsService.applyFileChanges = jest.fn().mockResolvedValue(mockFile);
 
       const result = await metaFlowService.handleFileClassChanged(mockFile, metadata, 'default');
-      expect(result).toBeUndefined(); // void method
+      expect(result).toBe(mockFile);
 
       // Verify that the validation service was called
       expect(mockFileValidationService.checkIfAutomaticMetadataInsertionEnabled).toHaveBeenCalled();
       expect(mockFileValidationService.checkIfMetadataInsertionApplicable).toHaveBeenCalledWith(mockFile);
+      expect(mockFileStateCache.getState).not.toHaveBeenCalled();
+      expect(mockFileStateCache.setState).not.toHaveBeenCalled();
     });
 
     test('should process content', () => {

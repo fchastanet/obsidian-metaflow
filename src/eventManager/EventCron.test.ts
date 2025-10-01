@@ -23,6 +23,7 @@ describe('EventCron', () => {
       evictStaleEntries: jest.fn(),
       getDirtyFilePaths: jest.fn(),
       popState: jest.fn(),
+      setState: jest.fn(),
     } as unknown as jest.Mocked<FileStateCache>;
 
     settings = {
@@ -66,14 +67,31 @@ describe('EventCron', () => {
     expect(spyError).not.toHaveBeenCalled();
   });
 
-  test('run processes dirty files', () => {
+  test('run processes dirty files', async () => {
     fileStateCache.getDirtyFilePaths.mockReturnValue(['file1.md', 'file2.md']);
     fileStateCache.popState.mockReturnValue({fileMtime: 123, checksum: 'abc', isDirty: true, lastUpdateTime: 1000});
+    fileProcessor.processFile.
+      mockResolvedValueOnce(
+        {
+          file: {path: 'file1.md'} as any,
+          state: {fileMtime: 123, checksum: 'abc', isDirty: false, lastUpdateTime: 1000} as any
+        }
+      ).
+      mockResolvedValueOnce(
+        {
+          file: {path: 'file2.md'} as any,
+          state: {fileMtime: 123, checksum: 'abc', isDirty: false, lastUpdateTime: 1000} as any
+        }
+      )
+      ;
 
-    eventCron['run']();
+    await eventCron['run']();
 
     expect(fileStateCache.evictStaleEntries).toHaveBeenCalled();
     expect(fileStateCache.getDirtyFilePaths).toHaveBeenCalled();
+    expect(fileStateCache.setState).toHaveBeenCalledTimes(2);
+    expect(fileStateCache.setState).toHaveBeenCalledWith('file1.md', expect.objectContaining({isDirty: false}), false);
+    expect(fileStateCache.setState).toHaveBeenCalledWith('file2.md', expect.objectContaining({isDirty: false}), false);
     expect(fileProcessor.processFile).toHaveBeenCalledTimes(2);
     expect(fileProcessor.processFile).toHaveBeenCalledWith('file1.md', expect.any(Object));
     expect(fileProcessor.processFile).toHaveBeenCalledWith('file2.md', expect.any(Object));
@@ -81,10 +99,10 @@ describe('EventCron', () => {
     expect(spyError).not.toHaveBeenCalled();
   });
 
-  test('run handles no dirty files gracefully', () => {
+  test('run handles no dirty files gracefully', async () => {
     fileStateCache.getDirtyFilePaths.mockReturnValue([]);
 
-    eventCron['run']();
+    await eventCron['run']();
 
     expect(fileStateCache.evictStaleEntries).toHaveBeenCalled();
     expect(fileStateCache.getDirtyFilePaths).toHaveBeenCalled();
@@ -93,23 +111,37 @@ describe('EventCron', () => {
     expect(spyError).not.toHaveBeenCalled();
   });
 
-  test('run handles errors gracefully', () => {
+  test('run handles errors gracefully', async () => {
     fileStateCache.getDirtyFilePaths.mockImplementation(() => {throw new Error('Test error');});
 
-    expect(() => eventCron['run']()).not.toThrow();
+    await expect(eventCron['run']()).resolves.not.toThrow();
     expect(fileStateCache.evictStaleEntries).toHaveBeenCalled();
     expect(fileStateCache.getDirtyFilePaths).toHaveBeenCalled();
     expect(spyWarn).not.toHaveBeenCalled();
     expect(spyError).toHaveBeenCalledWith("EventCron encountered an error during execution.", expect.any(Error));
   });
 
-  test('run respects cron max duration', () => {
+  test('run respects cron max duration', async () => {
     settings.eventCronIntervalMs = 1015;
     fileStateCache.getDirtyFilePaths.mockReturnValue(['file1.md', 'file2.md', 'file3.md']);
     fileStateCache.popState.mockReturnValue({fileMtime: 123, checksum: 'abc', isDirty: true, lastUpdateTime: 1000});
     nowFn.mockReturnValueOnce(1000).mockReturnValueOnce(1005).mockReturnValueOnce(1010).mockReturnValueOnce(1020); // Simulate time passing
+    fileProcessor.processFile.
+      mockResolvedValueOnce(
+        {
+          file: {path: 'file1.md'} as any,
+          state: {fileMtime: 123, checksum: 'abc', isDirty: false, lastUpdateTime: 1000} as any
+        }
+      ).
+      mockResolvedValueOnce(
+        {
+          file: {path: 'file2.md'} as any,
+          state: {fileMtime: 123, checksum: 'abc', isDirty: false, lastUpdateTime: 1000} as any
+        }
+      )
+      ;
 
-    eventCron['run']();
+    await eventCron['run']();
 
     expect(fileProcessor.processFile).toHaveBeenCalledTimes(2); // Should stop before processing the third file
     expect(spyWarn).toHaveBeenCalledWith("EventCron: Scheduled tasks are taking longer than the interval.");

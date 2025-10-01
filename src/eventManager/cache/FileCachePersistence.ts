@@ -16,10 +16,9 @@ export default class FileCachePersistence<T> implements ICachePersistence<T> {
 
   async loadCache(fileName: string): Promise<Map<string, T>> {
     try {
-      const cacheData = await this.obsidianAdapter.loadFromPluginDirectory(fileName);
-      const obj: Record<string, T> = JSON.parse(cacheData as string);
+      const obj: [key: string, value: T][] = await this.obsidianAdapter.loadFromPluginDirectory(fileName) as [key: string, value: T][];
       const map = new Map<string, T>();
-      Object.entries(obj).forEach(([key, value]) => {
+      obj.forEach(([key, value]) => {
         map.set(key, value);
       });
       return map;

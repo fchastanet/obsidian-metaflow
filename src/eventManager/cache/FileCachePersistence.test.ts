@@ -35,7 +35,7 @@ describe('CachePersistence', () => {
   });
 
   it('should load cache data from plugin directory', async () => {
-    const mockData = JSON.stringify({key1: {value: 1}, key2: {value: 2}});
+    const mockData = [['key1', {value: 1}], ['key2', {value: 2}]];
     mockObsidianAdapter.loadFromPluginDirectory.mockResolvedValue(mockData);
 
     const result = await cachePersistence.loadCache('testCache.json');

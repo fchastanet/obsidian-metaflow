@@ -15,6 +15,8 @@ import type {PropertyManagementService} from "./PropertyManagementService";
 import type {FileOperationsService} from "./FileOperationsService";
 import type {NoteTitleService} from "./NoteTitleService";
 import {TYPES} from '@metaflow/di/types';
+import {FileStateCache} from '@metaflow/eventManager/cache/FileStateCache';
+import {SkipException} from '@metaflow/SkipException';
 
 @injectable()
 export class MetaFlowService {
@@ -30,16 +32,17 @@ export class MetaFlowService {
     @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
     @inject(TYPES.NoteTitleService) private noteTitleService: NoteTitleService,
     @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface,
+    @inject(TYPES.FileStateCache) private fileStateCache: FileStateCache,
   ) {
     this.fixSettings();
   }
 
   async handleFileClassChanged(
     file: TFile, cache: CachedMetadata | null, newFileClass: string
-  ): Promise<void> {
+  ): Promise<TFile> {
     if (!this.metaFlowSettings.autoMetadataInsertion) {
       console.info('Auto metadata insertion is disabled');
-      return;
+      throw new SkipException('Auto metadata insertion is disabled');
     }
     try {
       this.fileValidationService.checkIfAutomaticMetadataInsertionEnabled();
@@ -47,11 +50,10 @@ export class MetaFlowService {
     } catch (error) {
       if (error instanceof MetaFlowException) {
         this.logNoticeManager.addMessage(`MetaFlow: ${error.message}`, error.noticeLevel);
-        return;
       } else {
         this.logNoticeManager.addWarning(`Error checking file availability: ${error}`);
-        return;
       }
+      throw error;
     }
 
     try {
@@ -88,38 +90,34 @@ export class MetaFlowService {
         fileClass
       );
 
-      await Utils.sleep(this.metaFlowSettings.frontmatterUpdateDelayMs, async () => {
-        await this.fileOperationsService.updateFrontmatter(file, enrichedFrontmatter, true)
-        // Step 6: Move note to the right folder if autoMoveNoteToRightFolder is enabled
-        try {
-          // Get new title if autoRenameNote is enabled
-          let newTitle: string = file.basename;
-          if (this.metaFlowSettings.autoRenameNote) {
-            newTitle = this.fileOperationsService.getNewNoteTitle(file, fileClass, enrichedFrontmatter);
-          }
+      // Step 6: Write the updated content back to the file
+      await this.fileOperationsService.updateFrontmatter(file, enrichedFrontmatter, true)
 
-          // Get new folder path if autoMoveNoteToRightFolder is enabled
-          let newFolderPath: string = file.parent?.path ?? '';
-          if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
-            newFolderPath = this.fileOperationsService.getNewNoteFolder(file, fileClass);
-          }
+      // Step 7: Move note to the right folder if autoMoveNoteToRightFolder is enabled
+      // Get new title if autoRenameNote is enabled
+      let newTitle: string = file.basename;
+      if (this.metaFlowSettings.autoRenameNote) {
+        newTitle = this.fileOperationsService.getNewNoteTitle(file, fileClass, enrichedFrontmatter);
+      }
 
-          // Apply file operations if needed
-          await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath);
-        } catch (error) {
-          const msg = (error instanceof MetaFlowException) ?
-            `Error processing file operations: ${error.message}` :
-            `Error processing file operations`;
-          console.error(msg, error);
-          this.logNoticeManager.addMessage(msg, error?.noticeLevel ?? 'error');
-        }
-      });
+      // Step 8: Get new folder path if autoMoveNoteToRightFolder is enabled
+      let newFolderPath: string = file.parent?.path ?? '';
+      if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
+        newFolderPath = this.fileOperationsService.getNewNoteFolder(file, fileClass);
+      }
+
+      // Step 9: Apply file operations if needed
+      const newFile = await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath);
+
+      // Step 10: Update FileStateCache entry to avoid immediate re-processing
+      return newFile;
     } catch (error) {
       const msg = (error instanceof MetaFlowException) ?
-        `Error updating metadata properties: ${error.message}` :
-        `Error updating metadata properties`;
+        `Error handling file class change: ${error.message}` :
+        `Error handling file class change: ${error}`;
       console.error(msg, error);
       this.logNoticeManager.addMessage(msg, error?.noticeLevel ?? 'error');
+      throw error;
     }
   }
 

@@ -85,7 +85,8 @@ export default class MetaFlowPlugin extends Plugin {
   }
 
   private registerEvents() {
-    this.app.workspace.onLayoutReady(() => {
+    this.app.workspace.onLayoutReady(async () => {
+      await this.eventManager.init();
       this.eventCron.start();
       // leafChange event allow to initialize fileClass when the file is loading
       this.registerEvent(this.app.workspace.on(

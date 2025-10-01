@@ -25,6 +25,17 @@ export class FileStateCache {
     this.cache = new Map<string, InternalFileState>();
   }
 
+  public async loadCache(): Promise<void> {
+    try {
+      const cachedData = await this.cachePersistence.loadCache(this.settings.fileClassStateCacheFilename);
+      this.cache = new Map<string, InternalFileState>(cachedData);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: loadCache - loaded cache', this.cache);
+    } catch (error) {
+      console.error('FileClassStateManager: loadCache - failed to load cache - created a new cache', error);
+      this.cache = new Map<string, InternalFileState>();
+    }
+  }
+
   /**
    * Get file state from cache
    */
@@ -37,7 +48,9 @@ export class FileStateCache {
    */
   setState(filePath: string, state: FileState, isDirty: boolean = true): void {
     this.cache.set(filePath, {...state, lastUpdateTime: this.nowFn(), isDirty} as InternalFileState);
-    this.markDirty();
+    if (isDirty) {
+      this.markDirty();
+    }
   }
 
   popState(filePath: string): InternalFileState | undefined {

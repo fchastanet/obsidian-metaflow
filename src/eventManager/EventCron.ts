@@ -3,6 +3,8 @@ import type {MetaFlowSettings} from "@metaflow/settings/types";
 import {TYPES} from "@metaflow/di";
 import {inject} from "inversify";
 import {FileProcessor} from "./FileProcessor";
+import {MetaFlowException} from "@metaflow/MetaFlowException";
+import {SkipException} from "@metaflow/SkipException";
 
 class CronInterruptException extends Error {
 }
@@ -38,7 +40,7 @@ export default class EventCron {
     console.info('EventCron stopped.');
   }
 
-  private run() {
+  private async run(): Promise<void> {
     if (this.settings.debugMode) {
       console.debug('EventCron: Running scheduled tasks...');
     }
@@ -48,13 +50,26 @@ export default class EventCron {
       this.checkCronDuration(startTime);
 
       const dirtyFiles = this.fileStateCache.getDirtyFilePaths();
-      console.info(`EventCron: ${dirtyFiles.length} dirty files to process.`);
+      console.info(`EventCron: ${dirtyFiles.length} dirty files to process.`, dirtyFiles);
       for (const filePath of dirtyFiles) {
-        const state = this.fileStateCache.popState(filePath);
-        if (state) {
-          this.fileProcessor.processFile(filePath, state);
-        } else {
-          console.warn(`EventCron: No state found for dirty file ${filePath}`);
+        try {
+          const state = this.fileStateCache.popState(filePath);
+          if (state) {
+            const {file: newFile, state: newState} = await this.fileProcessor.processFile(filePath, state);
+            this.fileStateCache.setState(newFile.path, newState, false);
+          } else {
+            console.warn(`EventCron: No state found for dirty file ${filePath}`);
+          }
+        } catch (error) {
+          if (error instanceof SkipException) {
+            // Not an error, just skip processing
+            continue;
+          }
+          if (error instanceof MetaFlowException) {
+            // already logged in MetaFlowService
+            continue;
+          }
+          throw error;
         }
         this.checkCronDuration(startTime);
       }

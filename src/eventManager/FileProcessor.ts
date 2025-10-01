@@ -8,6 +8,7 @@ import {TYPES} from "@metaflow/di";
 import {FileState} from "./cache/types";
 import {MetaFlowService} from "@metaflow/services/MetaFlowService";
 import type {LogNoticeManagerInterface} from "@metaflow/managers/types";
+import {SkipException} from "@metaflow/SkipException";
 
 /**
  * Handles file processing logic including checksum computation and file state creation
@@ -21,34 +22,36 @@ export class FileProcessor {
     @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface,
   ) { }
 
-  async processFile(filePath: string, state: FileState): Promise<FileState> {
+  async processFile(filePath: string, state: FileState): Promise<{file: TFile, state: FileState}> {
     const file = this.obsidianAdapter.getAbstractFileByPath(filePath);
     if (!file) {
       console.warn(`FileProcessor: File not found for path ${filePath}`);
-      return state;
+      throw new SkipException(`File not found for path ${filePath}`);
     }
     if (!(file instanceof TFile)) {
       console.warn(`FileProcessor: Path is not a file ${filePath}`);
-      return state;
+      throw new SkipException(`Path is not a file ${filePath}`);
     }
     if (state?.fileMtime < file.stat.mtime) {
       // this state is obsolete
-      return state;
+      throw new SkipException(`State is obsolete for file ${filePath}`);
     }
     const cache = this.obsidianAdapter.getCachedFile(file);
     const checksum = this.computeChecksum(file, cache);
     if (state.checksum === checksum) {
       console.info(`No changes detected for file: ${filePath}`);
-      return state;
+      throw new SkipException(`No changes detected for file: ${filePath}`);
     }
 
     const newState = this.computeNewState(file, state, cache);
 
-    if (this.settings.autoMetadataInsertion) {
-      await this.metaFlowService.handleFileClassChanged(file, cache, newState.fileClass!);
-    }
+    console.info(`Processing file: ${filePath} with fileClass: ${newState.fileClass}`);
+    // handle file class change
+    const newFile = await this.metaFlowService.handleFileClassChanged(file, cache, newState.fileClass!);
+    newState.checksum = this.computeChecksum(newFile, this.obsidianAdapter.getCachedFile(newFile));
+    newState.fileMtime = newFile.stat.mtime;
 
-    return newState;
+    return {file: newFile, state: newState};
   }
 
   private computeNewState(file: TFile, state: FileState, cache: CachedMetadata | null): FileState {

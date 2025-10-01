@@ -35,7 +35,6 @@ export const TYPES = {
   EventCron: Symbol.for('EventCron'),
 
   // Managers
-  FileClassStateManager: Symbol.for('FileClassStateManager'),
   LogNoticeManagerInterface: Symbol.for('LogNoticeManagerInterface'),
 
   // Commands

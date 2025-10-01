@@ -23,6 +23,11 @@ export default class EventManager implements EventManagerInterface {
   ) {
   }
 
+  public async init() {
+    if (this.settings.debugMode) console.debug('FileClassStateManager: init - initializing file state cache');
+    await this.fileStateCache.loadCache();
+  }
+
   public handleActiveLeafChange(leaf: WorkspaceLeaf | null): void {
     if (!(leaf?.view instanceof MarkdownView)) return;
     const file = leaf.view.file;

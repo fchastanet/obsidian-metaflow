@@ -25,6 +25,7 @@ describe('EventManager', () => {
       updateState: jest.fn(),
       popState: jest.fn(),
       renameState: jest.fn(),
+      loadCache: jest.fn(),
     } as unknown as jest.Mocked<FileStateCache>;
 
     eventManager = new EventManager(mockSettings, mockFilter as FileFilter, mockFileStateCache);
@@ -32,6 +33,11 @@ describe('EventManager', () => {
 
   it('should create EventManager instance', () => {
     expect(eventManager).toBeDefined();
+  });
+
+  it('init should call loadCache on fileStateCache', async () => {
+    await eventManager.init();
+    expect(mockFileStateCache.loadCache).toHaveBeenCalled();
   });
 
   describe('handleActiveLeafChange', () => {

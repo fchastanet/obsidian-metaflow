@@ -5,6 +5,7 @@ import {MetaFlowSettings} from '@metaflow/settings/types';
 import {TFile, CachedMetadata} from 'obsidian';
 import {MetaFlowService} from '@metaflow/services/MetaFlowService';
 import {LogNoticeManagerInterface} from '@metaflow/managers/types';
+import {SkipException} from '@metaflow/SkipException';
 
 // Mock TFile
 jest.mock('obsidian', () => ({
@@ -72,8 +73,9 @@ describe('FileProcessor', () => {
   it('should return existing state if file not found', async () => {
     mockObsidianAdapter.getAbstractFileByPath = jest.fn().mockReturnValue(null);
     const state = {checksum: 'abc', fileClass: 'note', fileMtime: 500};
-    const result = await processor.processFile('nonexistent.md', state);
-    expect(result).toBe(state);
+
+    await expect(processor.processFile('nonexistent.md', state)).
+      rejects.toThrow(new SkipException('File not found for path nonexistent.md'));
     expect(mockObsidianAdapter.getAbstractFileByPath).toHaveBeenCalledWith('nonexistent.md');
     expect(spyInfo).not.toHaveBeenCalled();
     expect(spyWarn).toHaveBeenCalledWith("FileProcessor: File not found for path nonexistent.md");
@@ -83,8 +85,8 @@ describe('FileProcessor', () => {
   it('should return existing state if path is not a file', async () => {
     mockObsidianAdapter.getAbstractFileByPath = jest.fn().mockReturnValue({});
     const state = {checksum: 'abc', fileClass: 'note', fileMtime: 500};
-    const result = await processor.processFile('not-a-file.md', state);
-    expect(result).toBe(state);
+    await expect(processor.processFile('not-a-file.md', state)).
+      rejects.toThrow(new SkipException('Path is not a file not-a-file.md'));
     expect(mockObsidianAdapter.getAbstractFileByPath).toHaveBeenCalledWith('not-a-file.md');
     expect(spyInfo).not.toHaveBeenCalled();
     expect(spyWarn).toHaveBeenCalledWith("FileProcessor: Path is not a file not-a-file.md");
@@ -95,8 +97,8 @@ describe('FileProcessor', () => {
     mockObsidianAdapter.getAbstractFileByPath = jest.fn().mockReturnValue(mockFile);
     const state = {checksum: 'abc', fileClass: 'note', fileMtime: 900};
     mockFileClassDeductionService.getFileClassFromMetadata = jest.fn().mockReturnValue('newClass');
-    const result = await processor.processFile('test-file.md', state);
-    expect(result).toBe(state);
+    await expect(processor.processFile('test-file.md', state)).
+      rejects.toThrow(new SkipException('State is obsolete for file test-file.md'));
     expect(mockObsidianAdapter.getAbstractFileByPath).toHaveBeenCalledWith('test-file.md');
     expect(spyInfo).not.toHaveBeenCalled();
     expect(spyWarn).not.toHaveBeenCalled();
@@ -107,8 +109,8 @@ describe('FileProcessor', () => {
     mockObsidianAdapter.getAbstractFileByPath = jest.fn().mockReturnValue(mockFile);
     mockObsidianAdapter.getCachedFile = jest.fn().mockReturnValue({frontmatter: {key: 'value'}} as CachedMetadata);
     const state = {checksum: '2edad70e1d5d25e59c9e9c9f282bc9e5d8782b3b0e3c030bcc9150ef7e7c2275', fileClass: 'note', fileMtime: 1500};
-    const result = await processor.processFile('test-file.md', state);
-    expect(result).toBe(state);
+    await expect(processor.processFile('test-file.md', state)).
+      rejects.toThrow(new SkipException('No changes detected for file: test-file.md'));
     expect(mockObsidianAdapter.getAbstractFileByPath).toHaveBeenCalledWith('test-file.md');
     expect(mockObsidianAdapter.getCachedFile).toHaveBeenCalledWith(mockFile);
     expect(spyInfo).toHaveBeenCalledWith("No changes detected for file: test-file.md");
@@ -120,15 +122,18 @@ describe('FileProcessor', () => {
     mockObsidianAdapter.getAbstractFileByPath = jest.fn().mockReturnValue(mockFile);
     mockObsidianAdapter.getCachedFile = jest.fn().mockReturnValue({frontmatter: {key: 'value'}} as CachedMetadata);
     mockFileClassDeductionService.getFileClassFromMetadata = jest.fn().mockReturnValue('updated-class');
+    metaFlowService.handleFileClassChanged = jest.fn().mockResolvedValue(mockFile);
     const state = {checksum: 'old-checksum', fileClass: 'note', fileMtime: 1500};
-    const result = await processor.processFile('test-file.md', state);
-    expect(result).not.toBe(state);
-    expect(result.checksum).toBe('2edad70e1d5d25e59c9e9c9f282bc9e5d8782b3b0e3c030bcc9150ef7e7c2275');
-    expect(result.fileClass).toBe('updated-class');
+    const {file: newFile, state: newState} = await processor.processFile('test-file.md', state);
+    expect(newState).not.toBe(state);
+    expect(newState.checksum).toBe('2edad70e1d5d25e59c9e9c9f282bc9e5d8782b3b0e3c030bcc9150ef7e7c2275');
+    expect(newState.fileClass).toBe('updated-class');
+    expect(newState.fileMtime).toBe(1000);
+    expect(newFile).toBe(mockFile);
     expect(mockObsidianAdapter.getAbstractFileByPath).toHaveBeenCalledWith('test-file.md');
     expect(mockObsidianAdapter.getCachedFile).toHaveBeenCalledWith(mockFile);
     expect(mockFileClassDeductionService.getFileClassFromMetadata).toHaveBeenCalledWith({key: 'value'});
-    expect(spyInfo).not.toHaveBeenCalled();
+    expect(spyInfo).toHaveBeenCalledWith('Processing file: test-file.md with fileClass: updated-class');
     expect(spyWarn).not.toHaveBeenCalled();
     expect(spyError).not.toHaveBeenCalled();
   });

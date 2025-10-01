@@ -12,6 +12,7 @@ export class FileFilter {
     @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
     @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
     @inject(TYPES.MetaFlowSettings) private settings: import("src/settings/types").MetaFlowSettings,
+    private launchTime: number = Date.now(),
   ) { }
 
   /**
@@ -24,6 +25,10 @@ export class FileFilter {
     }
     if (!(file instanceof TFile)) {
       if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a TFile', file);
+      return false;
+    }
+    if (file.stat.mtime < this.launchTime) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is outdated', file);
       return false;
     }
     if (!file?.basename || !file?.path) {
