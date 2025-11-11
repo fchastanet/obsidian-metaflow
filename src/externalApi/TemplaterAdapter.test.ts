@@ -190,7 +190,7 @@ describe('TemplaterAdapter', () => {
         const parentFileObj = ObsidianAdapter.createMockTFile('parent.md');
         mockApp.workspace = {
           getActiveFile: () => activeFile,
-          recentFileTracker: {lastOpenFiles: ['file.md', 'parent.md']}
+          recentFileTracker: {lastOpenFiles: ['parent.md']}
         };
         mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(parentFileObj);
         const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));

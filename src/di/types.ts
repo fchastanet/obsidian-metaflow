@@ -30,8 +30,6 @@ export const TYPES = {
   FileCachePersistence: Symbol.for('FileCachePersistence<InternalFileState>'),
   FileStateCache: Symbol.for('FileStateCache'),
   FileFilter: Symbol.for('FileFilter'),
-  FileProcessor: Symbol.for('FileProcessor'),
-  DelayedFileProcessor: Symbol.for('DelayedFileProcessor'),
   EventCron: Symbol.for('EventCron'),
 
   // Managers

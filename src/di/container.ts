@@ -38,7 +38,6 @@ import {FileStateCache} from '@metaflow/eventManager/cache/FileStateCache';
 import FileCachePersistence from '@metaflow/eventManager/cache/FileCachePersistence';
 import {InternalFileState} from '@metaflow/eventManager/cache/types';
 import EventCron from '@metaflow/eventManager/EventCron';
-import {FileProcessor} from '@metaflow/eventManager/FileProcessor';
 
 /**
  * Creates and configures the dependency injection container
@@ -78,7 +77,6 @@ export function createContainer(app: App, settings: MetaFlowSettings, saveSettin
   container.bind<FileStateCache>(TYPES.FileStateCache).to(FileStateCache).inSingletonScope();
   container.bind<FileCachePersistence<InternalFileState>>(TYPES.FileCachePersistence).to(FileCachePersistence).inSingletonScope();
   container.bind<EventCron>(TYPES.EventCron).to(EventCron).inSingletonScope();
-  container.bind<FileProcessor>(TYPES.FileProcessor).to(FileProcessor).inSingletonScope();
 
   // Bind commands
   container.bind<UpdateMetadataCommand>(TYPES.UpdateMetadataCommand).to(UpdateMetadataCommand);

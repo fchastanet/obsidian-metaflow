@@ -85,7 +85,10 @@ export class MetadataMenuAdapter {
    * 2. More specific ancestor fields (e.g., "default")
    * 3. Finally the main fileClass fields (e.g., "book")
    */
-  syncFields(frontmatter: FrontMatterCache, fileClassName: string): FrontMatterCache {
+  syncFields(
+    frontmatter: FrontMatterCache,
+    fileClassName: string
+  ): {frontmatter: FrontMatterCache, addedFields: string[]} {
     if (!this.isMetadataMenuAvailable()) {
       throw new MetaFlowException('MetadataMenu integration is not enabled or plugin is not available', 'info');
     }
@@ -108,16 +111,16 @@ export class MetadataMenuAdapter {
       }
 
       // Step 3: Add missing fields from the ancestor chain
-      const fieldsToAdd: string[] = [];
+      const addedFields: string[] = [];
       for (const field of allFields) {
         if (!(field.name in frontmatter)) {
-          fieldsToAdd.push(field.name);
+          addedFields.push(field.name);
           frontmatter[field.name] = null; // Initialize missing fields with undefined
         }
       }
-      if (this.settings.debugMode) console.debug('Sync fields', {fieldsToAdd, fieldsToRemove, originalFrontmatter, frontmatter});
+      if (this.settings.debugMode) console.debug('Sync fields', {addedFields, fieldsToRemove, originalFrontmatter, frontmatter});
 
-      return frontmatter;
+      return {frontmatter, addedFields};
     } catch (error) {
       console.error('Error inserting missing fields:', error);
       throw error; // Re-throw error so the caller can handle it
@@ -219,6 +222,14 @@ export class MetadataMenuAdapter {
     }
     const fileClassAlias = this.getFileClassAlias();
     return metadata[fileClassAlias] || null;
+  }
+
+  setFileClassInMetadata(metadata: FrontMatterCache, fileClass: string): void {
+    if (!metadata || typeof metadata !== 'object') {
+      throw new MetaFlowException('Invalid metadata provided to set fileClass', 'error');
+    }
+    const fileClassAlias = this.getFileClassAlias();
+    metadata[fileClassAlias] = fileClass;
   }
 
   getFileClassAlias(): string {

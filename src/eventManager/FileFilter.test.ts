@@ -81,17 +81,6 @@ describe('FileFilter', () => {
     expect(spyDebug).toHaveBeenCalledWith("FileClassStateManager: isApplicable - file is excluded", file);
   });
 
-  it('should return false if file has no frontmatter', () => {
-    obsidianAdapter.getCachedFile.mockReturnValue({});
-    const file = Object.create(TFile.prototype);
-    file.basename = 'test';
-    file.path = 'test.md';
-    file.extension = 'md';
-    file.stat = {mtime: 2000};
-    expect(filter.isApplicable(file)).toBe(false);
-    expect(spyDebug).toHaveBeenCalledWith("FileClassStateManager: isApplicable - file is missing frontmatter", file);
-  });
-
   it('should return false if file is outdated', () => {
     const file = Object.create(TFile.prototype);
     file.basename = 'test';

@@ -21,7 +21,6 @@ export class FileStateCache {
     @inject(TYPES.FileCachePersistence) private cachePersistence: CachePersistence<InternalFileState>,
     private nowFn = Date.now,
   ) {
-    this.settings = settings;
     this.cache = new Map<string, InternalFileState>();
   }
 

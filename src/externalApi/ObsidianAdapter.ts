@@ -1,6 +1,6 @@
 import {injectable, inject} from 'inversify';
-import type {App, CachedMetadata} from 'obsidian';
-import {FileStats, normalizePath, Notice, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
+import type {App, CachedMetadata, FrontMatterCache} from 'obsidian';
+import {FileStats, getFrontMatterInfo, normalizePath, Notice, parseYaml, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
 import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {TYPES} from '@metaflow/di/types';
 
@@ -73,6 +73,13 @@ export class ObsidianAdapter {
 
   getCachedFile(file: TFile): CachedMetadata | null {
     return this.app.metadataCache.getFileCache(file);
+  }
+
+  async getFileFrontmatter(file: TFile): Promise<FrontMatterCache | null> {
+    const fileContent = await this.app.vault.read(file);
+    const frontMatterInfo = getFrontMatterInfo(fileContent);
+    const yamlFrontmatter = parseYaml(frontMatterInfo.frontmatter);
+    return yamlFrontmatter as FrontMatterCache;
   }
 
   folderPrefix(filePath: string): string {

@@ -50,12 +50,6 @@ jest.mock('../../externalApi/TemplaterAdapter', () => ({
   }))
 }));
 
-jest.mock('../../services/MetaFlowService', () => ({
-  MetaFlowService: jest.fn().mockImplementation(() => ({
-    handleFileClassChanged: jest.fn()
-  }))
-}));
-
 jest.mock('../modals/FileClassAvailableFieldsHelpModal.ts', () => ({
   FileClassAvailableFieldsHelpModal: jest.fn().mockImplementation(() => ({
     open: jest.fn()

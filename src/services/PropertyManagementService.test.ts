@@ -128,12 +128,13 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book'
+        'book',
+        ['title', 'tags'] // Simulate that 'title' and 'tags' were just added by syncFields
       );
 
       expect(result.fileClass).toBe('book');
       expect(result.title).toBe('My Book');
-      expect(result.author).toBe('Default Author');
+      expect(result.author).toBeUndefined(); // not just added
       expect(result.tags).toEqual(['default-tag']);
     });
 
@@ -146,7 +147,8 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book'
+        'book',
+        ['author', 'tags'] // Simulate that 'author' and 'tags' were just added by syncFields
       );
 
       expect(result.author).toBe('Existing Author'); // Should not be overridden
@@ -160,7 +162,8 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book'
+        'book',
+        ['author', 'tags'] // Simulate that 'author' and 'tags' were just added by syncFields
       );
 
       expect(result.author).toBeUndefined(); // Should not be added
@@ -192,7 +195,8 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book'
+        'book',
+        ['first', 'second'] // Simulate that 'first' and 'second' were just added by syncFields
       );
 
       // Both should be present, processed in order
@@ -212,7 +216,8 @@ describe('PropertyManagementService', () => {
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
-        'book'
+        'book',
+        [] // No fields were just added by syncFields
       );
 
       expect(result.nonExistentField).toBeUndefined();

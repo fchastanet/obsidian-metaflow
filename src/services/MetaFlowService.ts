@@ -1,5 +1,5 @@
 import {injectable, inject} from 'inversify';
-import type {App, CachedMetadata, FrontMatterCache} from "obsidian";
+import type {App, FrontMatterCache} from "obsidian";
 import {TFile} from "obsidian";
 import type {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import type {FrontMatterService} from "./FrontMatterService";
@@ -16,7 +16,6 @@ import type {FileOperationsService} from "./FileOperationsService";
 import type {NoteTitleService} from "./NoteTitleService";
 import {TYPES} from '@metaflow/di/types';
 import {FileStateCache} from '@metaflow/eventManager/cache/FileStateCache';
-import {SkipException} from '@metaflow/SkipException';
 
 @injectable()
 export class MetaFlowService {
@@ -35,90 +34,6 @@ export class MetaFlowService {
     @inject(TYPES.FileStateCache) private fileStateCache: FileStateCache,
   ) {
     this.fixSettings();
-  }
-
-  async handleFileClassChanged(
-    file: TFile, cache: CachedMetadata | null, newFileClass: string
-  ): Promise<TFile> {
-    if (!this.metaFlowSettings.autoMetadataInsertion) {
-      console.info('Auto metadata insertion is disabled');
-      throw new SkipException('Auto metadata insertion is disabled');
-    }
-    try {
-      this.fileValidationService.checkIfAutomaticMetadataInsertionEnabled();
-      this.fileValidationService.checkIfMetadataInsertionApplicable(file);
-    } catch (error) {
-      if (error instanceof MetaFlowException) {
-        this.logNoticeManager.addMessage(`MetaFlow: ${error.message}`, error.noticeLevel);
-      } else {
-        this.logNoticeManager.addWarning(`Error checking file availability: ${error}`);
-      }
-      throw error;
-    }
-
-    try {
-      // Step 1: Determine or validate fileClass if not available
-      let fileClass = newFileClass;
-      if (!fileClass || fileClass.trim() === '') {
-        // Try to deduce fileClass from folder/fileClass mapping
-        const deducedFileClass = this.fileClassDeductionService.deduceFileClassFromPath(file.path);
-        if (!deducedFileClass) {
-          throw new MetaFlowException(`No fileClass found for file "${file.name}" and no matching folder pattern.`, 'warning');
-        }
-        if (!this.fileClassDeductionService.validateFileClassAgainstMapping(file.path, deducedFileClass)) {
-          throw new MetaFlowException(`FileClass "${deducedFileClass}" does not match any folder/fileClass mapping.`, 'warning');
-        }
-        fileClass = deducedFileClass;
-      }
-
-      // Step 2: Validate fileClass exists in MetadataMenu, throw error if not found
-      this.metadataMenuAdapter.getFileClassByName(fileClass);
-
-      // Step 3: Synchronize frontmatter with new/obsolete fileClass's fields
-      let updatedFrontmatter: FrontMatterCache = cache?.frontmatter || {};
-      updatedFrontmatter = this.metadataMenuAdapter.syncFields(updatedFrontmatter, fileClass);
-
-      // Step 4: sort properties if autoSort is enabled
-      if (this.metaFlowSettings.autoSort) {
-        updatedFrontmatter = this.propertyManagementService.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
-      }
-
-      // Step 5: Add default values to properties
-      const enrichedFrontmatter = this.propertyManagementService.addDefaultValuesToProperties(
-        updatedFrontmatter || {},
-        file,
-        fileClass
-      );
-
-      // Step 6: Write the updated content back to the file
-      await this.fileOperationsService.updateFrontmatter(file, enrichedFrontmatter, true)
-
-      // Step 7: Move note to the right folder if autoMoveNoteToRightFolder is enabled
-      // Get new title if autoRenameNote is enabled
-      let newTitle: string = file.basename;
-      if (this.metaFlowSettings.autoRenameNote) {
-        newTitle = this.fileOperationsService.getNewNoteTitle(file, fileClass, enrichedFrontmatter);
-      }
-
-      // Step 8: Get new folder path if autoMoveNoteToRightFolder is enabled
-      let newFolderPath: string = file.parent?.path ?? '';
-      if (this.metaFlowSettings.autoMoveNoteToRightFolder) {
-        newFolderPath = this.fileOperationsService.getNewNoteFolder(file, fileClass);
-      }
-
-      // Step 9: Apply file operations if needed
-      const newFile = await this.fileOperationsService.applyFileChanges(file, newTitle, newFolderPath);
-
-      // Step 10: Update FileStateCache entry to avoid immediate re-processing
-      return newFile;
-    } catch (error) {
-      const msg = (error instanceof MetaFlowException) ?
-        `Error handling file class change: ${error.message}` :
-        `Error handling file class change: ${error}`;
-      console.error(msg, error);
-      this.logNoticeManager.addMessage(msg, error?.noticeLevel ?? 'error');
-      throw error;
-    }
   }
 
   processContent(content: string, file: TFile): string {
@@ -156,21 +71,22 @@ export class MetaFlowService {
       this.metadataMenuAdapter.getFileClassByName(newFileClass);
 
       // Step 4: Synchronize frontmatter with new/obsolete fileClass's fields
-      let updatedFrontmatter: FrontMatterCache = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass);
+      const result = this.metadataMenuAdapter.syncFields(frontmatter, newFileClass);
       if (newFileClass !== fileClass) {
         this.logNoticeManager.addInfo(`File class changed for "${file.name}": ${fileClass} -> ${newFileClass}`);
       }
 
       // Step 5: sort properties if autoSort is enabled
       if (this.metaFlowSettings.autoSort) {
-        updatedFrontmatter = this.propertyManagementService.sortProperties(updatedFrontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
+        result.frontmatter = this.propertyManagementService.sortProperties(result.frontmatter, this.metaFlowSettings.sortUnknownPropertiesLast);
       }
 
       // Step 6: Add default values to properties
       const enrichedFrontmatter = this.propertyManagementService.addDefaultValuesToProperties(
-        updatedFrontmatter || {},
+        result.frontmatter || {},
         file,
-        newFileClass
+        newFileClass,
+        result.addedFields
       );
 
       // Step 7: Write the updated content back to the file

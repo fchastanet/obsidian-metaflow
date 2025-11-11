@@ -208,9 +208,8 @@ export class TemplaterAdapter {
     const activeFile = this.app.workspace.getActiveFile();
     let parentFile = null;
     if (currentFile?.path === activeFile?.path) {
-      // currentFile is actually active file
       // deduce parent link from previous edited file
-      const parentFilePath = this.app.workspace?.recentFileTracker?.lastOpenFiles?.[1];
+      const parentFilePath = this.app.workspace?.recentFileTracker?.lastOpenFiles?.[0];
       if (parentFilePath) {
         parentFile = this.obsidianAdapter.getAbstractFileByPath(parentFilePath);
         if (!parentFile || !(parentFile instanceof TFile)) {

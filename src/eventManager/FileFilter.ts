@@ -54,13 +54,6 @@ export class FileFilter {
       return false;
     }
 
-    // Check if the file has a valid frontmatter
-    const cache = this.obsidianAdapter.getCachedFile(file);
-    if (!cache || !cache.frontmatter) {
-      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is missing frontmatter', file);
-      return false;
-    }
-
     return true;
   }
 }

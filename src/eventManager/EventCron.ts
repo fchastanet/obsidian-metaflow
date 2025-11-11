@@ -2,9 +2,9 @@ import {FileStateCache} from "./cache/FileStateCache";
 import type {MetaFlowSettings} from "@metaflow/settings/types";
 import {TYPES} from "@metaflow/di";
 import {inject} from "inversify";
-import {FileProcessor} from "./FileProcessor";
 import {MetaFlowException} from "@metaflow/MetaFlowException";
 import {SkipException} from "@metaflow/SkipException";
+import {FileOperationsService} from "@metaflow/services/FileOperationsService";
 
 class CronInterruptException extends Error {
 }
@@ -15,7 +15,7 @@ export default class EventCron {
   constructor(
     @inject(TYPES.FileStateCache) private fileStateCache: FileStateCache,
     @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
-    @inject(TYPES.FileProcessor) private fileProcessor: FileProcessor,
+    @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
     private nowFn = Date.now,
   ) {
   }
@@ -50,12 +50,16 @@ export default class EventCron {
       this.checkCronDuration(startTime);
 
       const dirtyFiles = this.fileStateCache.getDirtyFilePaths();
-      console.info(`EventCron: ${dirtyFiles.length} dirty files to process.`, dirtyFiles);
+      if (dirtyFiles.length > 0) {
+        console.debug(`EventCron: ${dirtyFiles.length} dirty files to process.`, dirtyFiles);
+      } else if (this.settings.debugMode) {
+        console.debug('EventCron: No dirty files to process.');
+      }
       for (const filePath of dirtyFiles) {
         try {
           const state = this.fileStateCache.popState(filePath);
           if (state) {
-            const {file: newFile, state: newState} = await this.fileProcessor.processFile(filePath, state);
+            const {file: newFile, state: newState} = await this.fileOperationsService.processFile(filePath, state);
             this.fileStateCache.setState(newFile.path, newState, false);
           } else {
             console.warn(`EventCron: No state found for dirty file ${filePath}`);

@@ -24,7 +24,8 @@ export class PropertyManagementService {
   addDefaultValuesToProperties(
     frontmatter: FrontMatterCache,
     file: TFile,
-    fileClass: string
+    fileClass: string,
+    addedFields: string[]
   ): FrontMatterCache {
     const enrichedFrontmatter = {...frontmatter};
 
@@ -48,17 +49,16 @@ export class PropertyManagementService {
 
     // Process each property default value script in order
     for (const script of orderedScripts) {
-      // Skip if property already has a value (not null, undefined, or empty string)
-      if (
-        !allFieldsMap.has(script.propertyName) || (
-          enrichedFrontmatter[script.propertyName] !== undefined &&
-          enrichedFrontmatter[script.propertyName] !== null &&
-          enrichedFrontmatter[script.propertyName] !== ''
-        )
-      ) {
+      if (!script.enabled) {
+        if (this.metaFlowSettings.debugMode) {
+          console.debug(`PropertyManagementService: Skipping disabled script for property "${script.propertyName}"`);
+        }
         continue;
       }
-      if (!script.enabled) continue;
+      // Skip if property already has a value (not null, undefined, or empty string)
+      if (!this.isNewField(enrichedFrontmatter, allFieldsMap, script, addedFields)) {
+        continue;
+      }
 
       try {
         const defaultValue = this.executePropertyScript(
@@ -77,6 +77,36 @@ export class PropertyManagementService {
     }
 
     return enrichedFrontmatter;
+  }
+
+  private isNewField(
+    enrichedFrontmatter: FrontMatterCache,
+    allFieldsMap: Map<string, MetadataMenuField>,
+    script: PropertyDefaultValueScript,
+    addedFields: string[]
+  ): boolean {
+    if (!allFieldsMap.has(script.propertyName)) {
+      if (this.metaFlowSettings.debugMode) {
+        console.debug(`PropertyManagementService: Skipping script for unknown property "${script.propertyName}"`);
+      }
+      return false;
+    }
+    if (
+      enrichedFrontmatter[script.propertyName] !== undefined &&
+      enrichedFrontmatter[script.propertyName] !== null &&
+      enrichedFrontmatter[script.propertyName] !== ''
+    ) {
+      return false;
+    }
+    if (!addedFields.includes(script.propertyName)) {
+      if (this.metaFlowSettings.debugMode) {
+        console.debug(`PropertyManagementService: Skipping script for property "${script.propertyName}" not recently added`);
+      }
+      return false;
+    }
+
+
+    return true;
   }
 
   /**

@@ -418,11 +418,12 @@ describe('MetadataMenuAdapter', () => {
       const frontmatter = {title: 'Existing Title'};
       const result = adapter.syncFields(frontmatter, 'book');
 
-      expect(result).toEqual({
+      expect(result.frontmatter).toEqual({
         title: 'Existing Title',  // Existing field preserved
         author: null,             // Missing field added
         date: null                // Missing field added
       });
+      expect(result.addedFields).toEqual(['author', 'date']);
       expect(mockLogNoticeManager.addError).not.toHaveBeenCalledWith();
       expectNoLogs();
     });
@@ -446,12 +447,13 @@ describe('MetadataMenuAdapter', () => {
       const frontmatter = {title: 'Existing Title'};
       const result = adapter.syncFields(frontmatter, 'book');
 
-      expect(result).toEqual({
+      expect(result.frontmatter).toEqual({
         title: 'Existing Title',  // Existing field preserved
         id: null,                 // From ancestor
         created: null,            // From ancestor
         author: null              // From main fileClass
       });
+      expect(result.addedFields).toEqual(['id', 'created', 'author']);
       expectNoLogs();
     });
 
@@ -480,13 +482,14 @@ describe('MetadataMenuAdapter', () => {
       };
       const result = adapter.syncFields(frontmatter, 'book');
 
-      expect(result).toEqual({
+      expect(result.frontmatter).toEqual({
         title: 'Existing Title',  // Existing field preserved
         id: null,                 // From ancestor
         fieldKept: 'value',
         created: null,            // From ancestor
         author: null              // From main fileClass
       });
+      expect(result.addedFields).toEqual(['id', 'created', 'author']);
       expectNoLogs();
     });
   });
@@ -534,10 +537,11 @@ describe('MetadataMenuAdapter', () => {
       const result = adapter.syncFields(frontmatter, 'book');
 
       // Should still process the main fileClass even if ancestors fail
-      expect(result).toEqual({
+      expect(result.frontmatter).toEqual({
         existing: 'value',
         title: null
       });
+      expect(result.addedFields).toEqual(['title']);
       expect(mockLogNoticeManager.addError).not.toHaveBeenCalled();
       expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith(
         'MetadataMenu fieldIndex.fileClassesAncestors not available'
@@ -573,13 +577,14 @@ describe('MetadataMenuAdapter', () => {
       const frontmatter = {title: 'Existing Title'};
       const result = adapter.syncFields(frontmatter, 'book');
 
-      expect(result).toEqual({
+      expect(result.frontmatter).toEqual({
         title: 'Existing Title',  // Existing field preserved
         id: null,                 // From basic (most basic ancestor)
         created: null,            // From default
         updated: null,            // From default
         author: null              // From book
       });
+      expect(result.addedFields).toEqual(['id', 'created', 'updated', 'author']);
       expect(mockLogNoticeManager.addError).not.toHaveBeenCalled();
       expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith(
         'MetadataMenu fieldIndex.fileClassesAncestors not available'
@@ -613,10 +618,11 @@ describe('MetadataMenuAdapter', () => {
       const frontmatter = {};
       const result = adapter.syncFields(frontmatter, 'book');
 
-      expect(result).toEqual({
+      expect(result.frontmatter).toEqual({
         created: null,  // From ancestor
         title: null     // From main fileClass
       });
+      expect(result.addedFields).toEqual(['created', 'title']);
       expect(mockLogNoticeManager.addError).not.toHaveBeenCalled();
       expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith(
         'MetadataMenu fieldIndex.fileClassesAncestors not available'
