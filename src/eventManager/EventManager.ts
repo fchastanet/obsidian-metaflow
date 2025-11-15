@@ -24,7 +24,7 @@ export default class EventManager implements EventManagerInterface {
   }
 
   public async init() {
-    if (this.settings.debugMode) console.debug('FileClassStateManager: init - initializing file state cache');
+    (this.settings.debugMode) && console.debug('FileClassStateManager: init - initializing file state cache');
     await this.fileStateCache.loadCache();
   }
 
@@ -33,7 +33,7 @@ export default class EventManager implements EventManagerInterface {
     const file = leaf.view.file;
     if (!this.filter.isApplicable(file)) return;
 
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleActiveLeafChange', {stack: Utils.stackTrace().stack, leaf, file});
+    (this.settings.debugMode) && console.debug('FileClassStateManager: handleActiveLeafChange', {stack: Utils.stackTrace().stack, leaf, file});
     this.fileStateCache.updateState(file.path, {
       fileMtime: file.stat.mtime,
     });
@@ -41,7 +41,7 @@ export default class EventManager implements EventManagerInterface {
 
   public handleMetadataChanged(file: TFile, data: string, cache: CachedMetadata): void {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleMetadataChanged', {stack: Utils.stackTrace().stack, file, data, cache});
+    (this.settings.debugMode) && console.debug('FileClassStateManager: handleMetadataChanged', {stack: Utils.stackTrace().stack, file, data, cache});
     this.fileStateCache.updateState(file.path, {
       fileMtime: file.stat.mtime,
     });
@@ -49,7 +49,7 @@ export default class EventManager implements EventManagerInterface {
 
   public handleCreateFileEvent(file: TAbstractFile) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleCreateFileEvent', {stack: Utils.stackTrace().stack, file});
+    (this.settings.debugMode) && console.debug('FileClassStateManager: handleCreateFileEvent', {stack: Utils.stackTrace().stack, file});
     this.fileStateCache.updateState(file.path, {
       fileMtime: file.stat.mtime,
     });
@@ -57,7 +57,7 @@ export default class EventManager implements EventManagerInterface {
 
   public handleModifyFileEvent(file: TAbstractFile) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleModifyFileEvent', {stack: Utils.stackTrace().stack, file});
+    (this.settings.debugMode) && console.debug('FileClassStateManager: handleModifyFileEvent', {stack: Utils.stackTrace().stack, file});
     this.fileStateCache.updateState(file.path, {
       fileMtime: file.stat.mtime,
     });
@@ -65,13 +65,13 @@ export default class EventManager implements EventManagerInterface {
 
   public handleDeleteFileEvent(file: TAbstractFile) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleDeleteFileEvent', {stack: Utils.stackTrace().stack, file});
+    (this.settings.debugMode) && console.debug('FileClassStateManager: handleDeleteFileEvent', {stack: Utils.stackTrace().stack, file});
     this.fileStateCache.popState(file.path);
   }
 
   public handleRenameFileEvent(file: TAbstractFile, oldPath: string) {
     if (!this.filter.isApplicable(file)) return;
-    if (this.settings.debugMode) console.debug('FileClassStateManager: handleRenameFileEvent', {stack: Utils.stackTrace().stack, file, oldPath});
+    (this.settings.debugMode) && console.debug('FileClassStateManager: handleRenameFileEvent', {stack: Utils.stackTrace().stack, file, oldPath});
 
     this.fileStateCache.renameState(oldPath, file.path);
     this.fileStateCache.updateState(file.path, {

@@ -12,11 +12,9 @@ export class ExportImportSection {
   ) { }
 
   render() {
-    this.container.createEl('p', {text: 'Export your MetaFlow settings as a JSON file or import settings from a JSON file.'});
-
     // Export button
     new Setting(this.container)
-      .setName('Export Settings')
+      .setName('Export settings')
       .setDesc('Download current settings as a JSON file')
       .addButton(btn => btn
         .setButtonText('⬇️ Export')
@@ -37,7 +35,7 @@ export class ExportImportSection {
 
     // Import button and file input
     new Setting(this.container)
-      .setName('Import Settings')
+      .setName('Import settings')
       .setDesc('Import settings from a JSON file (overwrites current settings)')
       .addButton(btn => {
         btn.setButtonText('⬆️ Import')

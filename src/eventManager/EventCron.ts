@@ -22,38 +22,38 @@ export default class EventCron {
 
   public start() {
     if (this.cronInterval !== null) {
-      console.warn('EventCron is already running.');
+      (this.settings.debugMode) && console.warn('EventCron is already running.');
       return;
     }
     const intervalMs = this.settings.eventCronIntervalMs;
     this.cronInterval = window.setInterval(() => this.run(), intervalMs);
-    console.info(`EventCron started with an interval of ${this.settings.eventCronIntervalMs / 1000} seconds.`);
+    (this.settings.debugMode) && console.info(`EventCron started with an interval of ${this.settings.eventCronIntervalMs / 1000} seconds.`);
   }
 
   public stop() {
     if (this.cronInterval === null) {
-      console.warn('EventCron is not running.');
+      (this.settings.debugMode) && console.warn('EventCron is not running.');
       return;
     }
     clearInterval(this.cronInterval);
     this.cronInterval = null;
-    console.info('EventCron stopped.');
+    (this.settings.debugMode) && console.info('EventCron stopped.');
   }
 
   private async run(): Promise<void> {
-    if (this.settings.debugMode) {
-      console.debug('EventCron: Running scheduled tasks...');
-    }
+    (this.settings.debugMode) && console.debug('EventCron: Running scheduled tasks...');
     const startTime = this.nowFn();
     try {
       this.fileStateCache.evictStaleEntries();
       this.checkCronDuration(startTime);
 
       const dirtyFiles = this.fileStateCache.getDirtyFilePaths();
-      if (dirtyFiles.length > 0) {
-        console.debug(`EventCron: ${dirtyFiles.length} dirty files to process.`, dirtyFiles);
-      } else if (this.settings.debugMode) {
-        console.debug('EventCron: No dirty files to process.');
+      if (this.settings.debugMode) {
+        if (dirtyFiles.length > 0) {
+          console.debug(`EventCron: ${dirtyFiles.length} dirty files to process.`, dirtyFiles);
+        } else {
+          console.debug('EventCron: No dirty files to process.');
+        }
       }
       for (const filePath of dirtyFiles) {
         try {
@@ -62,7 +62,7 @@ export default class EventCron {
             const {file: newFile, state: newState} = await this.fileOperationsService.processFile(filePath, state);
             this.fileStateCache.setState(newFile.path, newState, false);
           } else {
-            console.warn(`EventCron: No state found for dirty file ${filePath}`);
+            (this.settings.debugMode) && console.warn(`EventCron: No state found for dirty file ${filePath}`);
           }
         } catch (error) {
           if (error instanceof SkipException) {
@@ -78,9 +78,7 @@ export default class EventCron {
         this.checkCronDuration(startTime);
       }
 
-      if (this.settings.debugMode) {
-        console.debug('EventCron: Completed scheduled tasks.');
-      }
+      (this.settings.debugMode) && console.debug('EventCron: Completed scheduled tasks.');
     } catch (error) {
       if (error instanceof CronInterruptException) {
         return; // Gracefully exit if interrupted
@@ -92,7 +90,7 @@ export default class EventCron {
   private checkCronDuration(startDatetime: number) {
     const duration = this.nowFn() - startDatetime;
     if (duration > this.settings.eventCronIntervalMs - 1000) {
-      console.warn('EventCron: Scheduled tasks are taking longer than the interval.');
+      (this.settings.debugMode) && console.warn('EventCron: Scheduled tasks are taking longer than the interval.');
       throw new CronInterruptException();
     }
   }

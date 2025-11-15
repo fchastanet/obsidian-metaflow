@@ -11,7 +11,7 @@ import {TYPES} from '@metaflow/di/types';
 @injectable()
 export class PropertyManagementService {
   constructor(
-    @inject(TYPES.MetaFlowSettings) private metaFlowSettings: MetaFlowSettings,
+    @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
     @inject(TYPES.MetadataMenuAdapter) private metadataMenuAdapter: MetadataMenuAdapter,
     @inject(TYPES.ScriptContextService) private scriptContextService: ScriptContextService,
     @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
@@ -34,7 +34,7 @@ export class PropertyManagementService {
     enrichedFrontmatter[fileClassAlias] = fileClass;
 
     // Sort scripts by order (if specified) before processing
-    const orderedScripts = [...this.metaFlowSettings.propertyDefaultValueScripts].sort((a, b) => {
+    const orderedScripts = [...this.settings.propertyDefaultValueScripts].sort((a, b) => {
       const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
       const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
       return orderA - orderB;
@@ -50,9 +50,7 @@ export class PropertyManagementService {
     // Process each property default value script in order
     for (const script of orderedScripts) {
       if (!script.enabled) {
-        if (this.metaFlowSettings.debugMode) {
-          console.debug(`PropertyManagementService: Skipping disabled script for property "${script.propertyName}"`);
-        }
+        (this.settings.debugMode) && console.debug(`PropertyManagementService: Skipping disabled script for property "${script.propertyName}"`);
         continue;
       }
       // Skip if property already has a value (not null, undefined, or empty string)
@@ -86,9 +84,7 @@ export class PropertyManagementService {
     addedFields: string[]
   ): boolean {
     if (!allFieldsMap.has(script.propertyName)) {
-      if (this.metaFlowSettings.debugMode) {
-        console.debug(`PropertyManagementService: Skipping script for unknown property "${script.propertyName}"`);
-      }
+      (this.settings.debugMode) && console.debug(`PropertyManagementService: Skipping script for unknown property "${script.propertyName}"`);
       return false;
     }
     if (
@@ -99,9 +95,7 @@ export class PropertyManagementService {
       return false;
     }
     if (!addedFields.includes(script.propertyName)) {
-      if (this.metaFlowSettings.debugMode) {
-        console.debug(`PropertyManagementService: Skipping script for property "${script.propertyName}" not recently added`);
-      }
+      (this.settings.debugMode) && console.debug(`PropertyManagementService: Skipping script for property "${script.propertyName}" not recently added`);
       return false;
     }
 
@@ -121,7 +115,7 @@ export class PropertyManagementService {
     const propertyOrderMap = new Map<string, number>();
 
     // Sort scripts by order (if specified) to get the correct sequence
-    const orderedScripts = [...this.metaFlowSettings.propertyDefaultValueScripts].sort((a, b) => {
+    const orderedScripts = [...this.settings.propertyDefaultValueScripts].sort((a, b) => {
       const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
       const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
       return orderA - orderB;

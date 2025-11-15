@@ -118,7 +118,7 @@ export class MetadataMenuAdapter {
           frontmatter[field.name] = null; // Initialize missing fields with undefined
         }
       }
-      if (this.settings.debugMode) console.debug('Sync fields', {addedFields, fieldsToRemove, originalFrontmatter, frontmatter});
+      (this.settings.debugMode) && console.debug('Sync fields', {addedFields, fieldsToRemove, originalFrontmatter, frontmatter});
 
       return {frontmatter, addedFields};
     } catch (error) {

@@ -196,7 +196,7 @@ export class FolderFileClassMappingsSection {
     this.folderMappingDragDropHelper.makeDraggable(mappingDiv, index);
     this.makeFolderMappingDefaultFields(container, mapping, mappingDiv, index);
 
-    const templateSection = mappingDiv.createDiv({cls: 'note-title-template-section'});
+    const templateSection = mappingDiv.createDiv({cls: 'metaflow-note-title-template-section'});
     const modeRadioContainer = templateSection.createEl('div', {cls: 'metaflow-settings-mode-selector'});
     const templateSectionToolbar = templateSection.createEl('div', {cls: 'metaflow-settings-note-title-template-toolbar'});
     const modeContainer = templateSectionToolbar.createEl('div', {cls: 'metaflow-settings-mode-container'});
@@ -405,7 +405,7 @@ export class FolderFileClassMappingsSection {
     });
 
     // Add button only for templates mode (script mode allows only one script)
-    const addButton = toolbar.createEl('button', {text: '➕ Add Note Title Template'});
+    const addButton = toolbar.createEl('button', {text: '➕ Add note title template'});
     addButton.classList.add('metaflow-settings-note-title-template-add-btn');
     addButton.onclick = async () => {
       mapping.noteTitleTemplates.push({template: '', enabled: true});
@@ -560,14 +560,14 @@ export class FolderFileClassMappingsSection {
     }
 
     // Add a small delay to validation to avoid too frequent updates
-    let validationTimeout: NodeJS.Timeout | null = null;
+    let validationTimeout: number | null = null;
     const scriptElement = editDiv.querySelector('.ace_editor');
     if (scriptElement) {
       scriptElement.addEventListener('input', () => {
         if (validationTimeout) {
           clearTimeout(validationTimeout);
         }
-        validationTimeout = setTimeout(validateScript, 500);
+        validationTimeout = window.setTimeout(validateScript, 500);
       });
     }
 

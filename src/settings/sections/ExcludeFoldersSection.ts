@@ -12,9 +12,6 @@ export class ExcludeFoldersSection {
   render() {
     this.container.empty();
 
-    this.container.createEl('div', {text: 'Exclude folders', cls: 'setting-item-name'});
-    this.container.createEl('div', {text: 'Folders to exclude from metadata update commands. Add one per row.', cls: 'setting-item-description'});
-
     const excludeFoldersList = this.container.createDiv();
 
     // Render each folder row

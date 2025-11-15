@@ -29,9 +29,9 @@ export class ObsidianAdapter {
   }
 
   async moveNote(file: TFile, newPath: string): Promise<void> {
-    console.info(`Moving note ${file.path} to ${newPath}`);
+    (this.settings.debugMode) && console.info(`Moving note ${file.path} to ${newPath}`);
     if (file.path === newPath) {
-      console.info(`Note ${file.path} is already at ${newPath}`);
+      (this.settings.debugMode) && console.info(`Note ${file.path} is already at ${newPath}`);
       return;
     }
     return await this.app.fileManager.renameFile(file, newPath);
@@ -39,8 +39,8 @@ export class ObsidianAdapter {
 
   async renameNote(file: TFile, newName: string): Promise<TFile> {
     const newPath = file.parent ? `${file.parent.path}/${newName}` : newName;
-    console.info(`Renaming note ${file.path} to ${newPath}`);
-    await this.app.vault.rename(file, newPath);
+    (this.settings.debugMode) && console.info(`Renaming note ${file.path} to ${newPath}`);
+    await this.app.fileManager.renameFile(file, newPath);
     // Return the renamed file
     const renamedFile = this.app.vault.getAbstractFileByPath(newPath);
     if (renamedFile instanceof TFile) {
@@ -68,7 +68,9 @@ export class ObsidianAdapter {
   }
 
   normalizePath(filePath: string): string {
-    return normalizePath(filePath);
+    const sanitized = normalizePath(filePath);
+    // Limit length to reasonable size (Obsidian has filesystem limits)
+    return sanitized.substring(0, 255);
   }
 
   getCachedFile(file: TFile): CachedMetadata | null {

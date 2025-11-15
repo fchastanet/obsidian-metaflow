@@ -1,5 +1,6 @@
 import {ObsidianAdapter} from './ObsidianAdapter';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
+import {MetaFlowSettings} from '@metaflow/settings/types';
 import * as obsidian from 'obsidian';
 
 // Mock obsidian module at top level
@@ -56,7 +57,7 @@ describe('ObsidianAdapter', () => {
         getAbstractFileByPath: jest.fn((path) => ObsidianAdapter.createMockTFile(path))
       }
     };
-    adapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS);
+    adapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS && {debugMode: true} as unknown as jest.Mocked<MetaFlowSettings>);
   });
 
   test('generateMarkdownLink should call app.fileManager.generateMarkdownLink with correct args', () => {
@@ -121,7 +122,7 @@ describe('ObsidianAdapter', () => {
 
       const result = await adapter.renameNote(file, newName);
 
-      expect(mockApp.vault.rename).toHaveBeenCalledWith(file, expectedPath);
+      expect(mockApp.fileManager.renameFile).toHaveBeenCalledWith(file, expectedPath);
       expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith(expectedPath);
       expect(consoleSpy).toHaveBeenCalledWith(`Renaming note folder/old-name.md to ${expectedPath}`);
       expect(result).toBeDefined();
@@ -139,7 +140,7 @@ describe('ObsidianAdapter', () => {
 
       await adapter.renameNote(file, newName);
 
-      expect(mockApp.vault.rename).toHaveBeenCalledWith(file, newName);
+      expect(mockApp.fileManager.renameFile).toHaveBeenCalledWith(file, newName);
       expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith(newName);
       expect(consoleSpy).toHaveBeenCalledWith(`Renaming note old-name.md to ${newName}`);
 
@@ -167,7 +168,7 @@ describe('ObsidianAdapter', () => {
       const newName = 'new-name.md';
       const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
 
-      mockApp.vault.rename.mockRejectedValue(new Error('Rename failed'));
+      mockApp.fileManager.renameFile.mockRejectedValue(new Error('Rename failed'));
 
       await expect(adapter.renameNote(file, newName))
         .rejects.toThrow('Rename failed');

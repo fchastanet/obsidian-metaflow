@@ -119,7 +119,7 @@ export default class MetaFlowPlugin extends Plugin {
   private registerCommands() {
     // Register the main command for single file processing
     this.addCommand({
-      id: 'metaflow-update-metadata',
+      id: 'update-metadata',
       name: 'Update metadata properties',
       editorCallback: (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<UpdateMetadataCommand>(TYPES.UpdateMetadataCommand);
@@ -129,7 +129,7 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Register the command for single file processing to sort metadata
     this.addCommand({
-      id: 'metaflow-sort-metadata',
+      id: 'sort-metadata',
       name: 'Sort metadata properties',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<SortMetadataCommand>(TYPES.SortMetadataCommand);
@@ -139,7 +139,7 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Register the command to move the note to the right folder
     this.addCommand({
-      id: 'metaflow-move-note-to-right-folder',
+      id: 'move-note-to-right-folder',
       name: 'Move the note to the right folder',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<MoveNoteToRightFolderCommand>(TYPES.MoveNoteToRightFolderCommand);
@@ -149,7 +149,7 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Register the command to rename the file based on rules
     this.addCommand({
-      id: 'metaflow-rename-file-based-on-rules',
+      id: 'rename-file-based-on-rules',
       name: 'Rename the file based on rules',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<RenameFileBasedOnRulesCommand>(TYPES.RenameFileBasedOnRulesCommand);
@@ -159,7 +159,7 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Register the mass update command for vault-wide processing
     this.addCommand({
-      id: 'metaflow-mass-update-metadata',
+      id: 'mass-update-metadata',
       name: 'Mass-update metadata properties',
       callback: async () => {
         const command = this.container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
@@ -169,7 +169,7 @@ export default class MetaFlowPlugin extends Plugin {
 
     // Register toggle properties panel command
     this.addCommand({
-      id: 'metaflow-toggle-properties-panel',
+      id: 'toggle-properties-panel',
       name: 'Toggle properties panel visibility',
       callback: () => {
         const command = this.container.get<TogglePropertiesPanelCommand>(TYPES.TogglePropertiesPanelCommand);

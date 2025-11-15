@@ -462,6 +462,7 @@ describe('FileOperationsService - processFile', () => {
       autoMetadataInsertion: true,
       autoRenameNote: false,
       autoMoveNoteToRightFolder: false,
+      debugMode: true,
     } as MetaFlowSettings;
 
     mockApp = {

@@ -1,4 +1,4 @@
-import {App, Modal, ProgressBarComponent} from "obsidian";
+import {App, ButtonComponent, Modal, ProgressBarComponent, Setting} from "obsidian";
 import {LogNoticeManagerInterface, LogNoticeManagerLogLevel} from "@metaflow/managers/types";
 
 export class ProgressModal extends Modal implements LogNoticeManagerInterface {
@@ -9,8 +9,8 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
   currentItem: HTMLElement;
   numberErrorsText: HTMLElement;
   results: HTMLElement;
-  cancelButton: HTMLButtonElement;
-  actionButton: HTMLButtonElement;
+  cancelButton: ButtonComponent;
+  actionButton: ButtonComponent;
   current: number;
   total: number;
   errorCount: number;
@@ -37,7 +37,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
     this.contentEl.createEl('p', {text: message});
 
     const progressBlock = this.contentEl.createEl('div');
-    progressBlock.classList.add('progress-modal-progress-block');
+    progressBlock.classList.add('metaflow-progress-modal-progress-block');
     this.progressBar = new ProgressBarComponent(progressBlock);
     this.progressBar.setValue(0);
     const progressBar: HTMLElement = progressBlock.getElementsByClassName('setting-progress-bar')[0] as HTMLElement;
@@ -55,23 +55,35 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
 
     const modalButtonContainer = this.contentEl.createEl('div', {cls: 'modal-button-container'});
 
-    // Confirm action button
-    this.actionButton = modalButtonContainer.createEl('button', {text: 'Confirm'});
-    this.actionButton.classList.add('mod-cta');
-    this.actionButton.onclick = () => {
-      this.actionButton.disabled = true;
-      this.actionCallback();
-    };
-
-    // Cancel button
-    this.cancelButton = modalButtonContainer.createEl('button', {text: 'Cancel'});
-    this.cancelButton.onclick = () => {
-      super.close();
-    };
+    new Setting(modalButtonContainer)
+      // Confirm action button
+      .addButton((btn) => {
+        this.actionButton = btn;
+        btn
+          .setButtonText('Confirm')
+          .setCta()
+          .onClick(async () => {
+            this.actionButton.disabled = true;
+            this.actionCallback();
+          });
+      })
+      // Cancel button
+      .addButton((btn) => {
+        this.cancelButton = btn;
+        btn
+          .setButtonText('Cancel')
+          .onClick(async () => {
+            this.close();
+          });
+      });
   }
 
   open() {
     super.open();
+  }
+
+  close() {
+    super.close();
   }
 
   onClose(): void {
@@ -114,7 +126,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
   }
 
   addWarning(message: string): void {
-    this.addResultItem(`[WARNING] ${message}`, 'progress-modal-warning-item');
+    this.addResultItem(`[WARNING] ${message}`, 'metaflow-progress-modal-warning-item');
   }
 
   addMessage(message: string, logLevel: LogNoticeManagerLogLevel): void {
@@ -138,7 +150,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
 
   finish() {
     this.processFinished = true;
-    this.cancelButton.textContent = "Close";
+    this.cancelButton.buttonEl.textContent = "Close";
     this.actionButton.disabled = true;
     this.displayCurrentItem("");
   }

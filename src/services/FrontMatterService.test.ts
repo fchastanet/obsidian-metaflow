@@ -1,3 +1,6 @@
+import * as obsidian from 'obsidian';
+import {FrontMatterService} from './FrontMatterService';
+
 describe('FrontMatterService', () => {
   let service: FrontMatterService;
 
@@ -8,6 +11,11 @@ describe('FrontMatterService', () => {
   describe('parseRawFrontmatter', () => {
     test('parses valid YAML frontmatter', () => {
       const raw = `title: "My Note"\nfileClass: book\ncount: 5`;
+      jest.spyOn(obsidian, 'parseYaml').mockReturnValue({
+        title: "My Note",
+        fileClass: "book",
+        count: 5
+      });
       const result = service.parseRawFrontmatter(raw);
       expect(result).toEqual({
         title: "My Note",
@@ -17,6 +25,7 @@ describe('FrontMatterService', () => {
     });
 
     test('returns empty object for empty string', () => {
+      jest.spyOn(obsidian, 'parseYaml').mockReturnValue({});
       const result = service.parseRawFrontmatter('');
       expect(result).toEqual({});
     });
@@ -24,7 +33,7 @@ describe('FrontMatterService', () => {
     test('returns null for invalid YAML', () => {
       const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const raw = `title: "My Note"\nfileClass: [unclosed`;
-
+      jest.spyOn(obsidian, 'parseYaml').mockImplementation(() => {throw new Error('unexpected end of the stream within a flow collection (3:1)');});
       try {
         expect.assertions(3);
         service.parseRawFrontmatter(raw);
@@ -38,6 +47,10 @@ describe('FrontMatterService', () => {
 
     test('parses YAML with null values', () => {
       const raw = `title: null\nfileClass: book`;
+      jest.spyOn(obsidian, 'parseYaml').mockReturnValue({
+        title: null,
+        fileClass: "book"
+      });
       const result = service.parseRawFrontmatter(raw);
       expect(result).toEqual({
         title: null,
@@ -46,7 +59,6 @@ describe('FrontMatterService', () => {
     });
   });
 });
-import {FrontMatterService} from './FrontMatterService';
 
 describe('FrontMatterService', () => {
   let service: FrontMatterService;
@@ -57,6 +69,10 @@ describe('FrontMatterService', () => {
 
   describe('parseFrontmatter', () => {
     it('should parse valid YAML frontmatter', () => {
+      jest.spyOn(obsidian, 'parseYaml').mockReturnValue({
+        title: 'Test',
+        date: '2025-07-30'
+      });
       const content = `---\ntitle: Test\ndate: 2025-07-30\n---\nBody text here.`;
       const result = service.parseFrontmatter(content);
       expect(result).not.toBeNull();
@@ -97,6 +113,14 @@ describe('FrontMatterService', () => {
 
     it('should return empty frontmatter for malformed YAML', () => {
       const content = `---\ntitle: Test\ndate: [unclosed\n---\nBody`;
+      jest.spyOn(obsidian, 'getFrontMatterInfo').mockReturnValue({
+        contentStart: 20,
+        exists: true,
+        frontmatter: 'title: Test\ndate: [unclosed',
+        from: 0,
+        to: 20
+      });
+      jest.spyOn(obsidian, 'parseYaml').mockImplementation(() => {throw new Error('unexpected end of the stream within a flow collection (3:1)');});
       const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
       try {
         expect.assertions(3);
@@ -113,12 +137,31 @@ describe('FrontMatterService', () => {
   describe('parseFileClassFromContent', () => {
     it('should extract fileClass from frontmatter', () => {
       const content = `---\nfileClass: book\ntitle: Test\n---\nText`;
+      jest.spyOn(obsidian, 'getFrontMatterInfo').mockReturnValue({
+        contentStart: 30,
+        exists: true,
+        frontmatter: 'fileClass: book\ntitle: Test',
+        from: 0,
+        to: 30
+      });
+      jest.spyOn(obsidian, 'parseYaml').mockReturnValue({
+        fileClass: 'book',
+        title: 'Test'
+      });
       const result = service.parseFileClassFromContent(content, 'fileClass');
       expect(result).toBe('book');
     });
 
     it('should return null if no fileClass present', () => {
       const content = `---\ntitle: Test\n---\nText`;
+      jest.spyOn(obsidian, 'getFrontMatterInfo').mockReturnValue({
+        contentStart: 20,
+        exists: true,
+        frontmatter: 'title: Test',
+        from: 0,
+        to: 20
+      });
+      jest.spyOn(obsidian, 'parseYaml').mockReturnValue({title: 'Test'});
       const result = service.parseFileClassFromContent(content, 'fileClass');
       expect(result).toBeNull();
     });
@@ -142,6 +185,7 @@ describe('FrontMatterService', () => {
     it('should serialize metadata and append rest of content', () => {
       const metadata = {title: 'Test', date: '2025-07-30'};
       const rest = 'Body text.';
+      jest.spyOn(obsidian, 'stringifyYaml').mockReturnValue('title: Test\ndate: 2025-07-30\n');
       const result = service.serializeFrontmatter(metadata, rest);
       expect(result.startsWith('---\n')).toBe(true);
       expect(result).toContain('title: Test');
@@ -153,6 +197,7 @@ describe('FrontMatterService', () => {
       const circular: any = {};
       circular.self = circular;
       const rest = 'Body.';
+      jest.spyOn(obsidian, 'stringifyYaml').mockImplementation(() => {throw new Error('circular structure');});
       const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
       expect(() => service.serializeFrontmatter(circular, rest)).toThrow();
       spy.mockRestore();

@@ -19,11 +19,10 @@ export class SimulationSection {
   render() {
     this.container.empty();
     if (!this.metadataMenuAdapter.isMetadataMenuAvailable() || !this.templaterAdapter.isTemplaterAvailable()) {
-      this.container.setAttr('style', 'display: none');
+      this.container.addClass('meta-flow-hidden');
       return;
     }
-    this.container.setAttr('style', 'display: block');
-    this.container.empty();
+    this.container.removeClass('meta-flow-hidden');
 
     // FileClass selection
     const fileClassSetting = new Setting(this.container)

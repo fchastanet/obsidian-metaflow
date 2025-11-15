@@ -31,7 +31,7 @@ describe('EventCron', () => {
     settings = {
       eventCronIntervalMs: 1000,
       cronMaxDurationMs: 500,
-      debugMode: false,
+      debugMode: true,
     } as unknown as jest.Mocked<MetaFlowSettings>;
 
     fileOperationsService = {

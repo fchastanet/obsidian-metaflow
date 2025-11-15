@@ -29,11 +29,6 @@ export class MetaFlowSettingTab extends PluginSettingTab {
   templaterAdapter: TemplaterAdapter;
   obsidianAdapter: ObsidianAdapter;
   logNoticeManager: LogNoticeManager;
-  simulationDetails: HTMLElement;
-  simulationContainer: HTMLElement;
-  metadataMenuStatus: HTMLElement;
-  templaterStatus: HTMLElement;
-  metadataMenuImportButton: HTMLButtonElement;
 
   constructor(app: App, plugin: MetaFlowPlugin) {
     super(app, plugin);
@@ -55,11 +50,11 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     containerEl.setAttribute('id', 'metaflow-settings');
 
     containerEl.createDiv({cls: 'metaflow-settings-icon'});
-    containerEl.createEl('p', {text: 'MetaFlow Settings', cls: 'metaflow-settings-title'});
     containerEl.createEl('p', {
       text: 'Configure automated metadata workflow management including folder mappings, property scripts, and plugin integrations.',
       cls: 'metaflow-settings-description'
     });
+    containerEl.createDiv({cls: 'metaflow-settings-divider'});
 
     // Hide properties section setting
     new Setting(containerEl)
@@ -86,31 +81,31 @@ export class MetaFlowSettingTab extends PluginSettingTab {
         }));
 
     // Metadata insertion section
-    const metadataInsertionDetails = SettingsUtils.createSection(containerEl, 'Metadata insertion behavior');
+    SettingsUtils.createSection(containerEl, 'Metadata insertion behavior');
     new MetadataInsertionSection(
-      metadataInsertionDetails,
+      containerEl.createDiv(),
       this.plugin.settings,
       async () => {await this.plugin.saveSettings();}
     ).render();
 
     // Exclude folders section
-    const excludeFoldersDetails = SettingsUtils.createSection(containerEl, 'Exclude folders');
+    const excludeFoldersSection = SettingsUtils.createSection(containerEl, 'Exclude folders');
+    excludeFoldersSection.setDesc('Folders to exclude from metadata update commands. Add one per row.');
     new ExcludeFoldersSection(
       this.app,
-      excludeFoldersDetails,
+      containerEl.createDiv(),
       this.plugin.settings.excludeFolders || [],
       async () => {await this.plugin.saveSettings();}
     ).render();
 
     // Folder/fileClass mappings section
     const mappingsDetails = SettingsUtils.createSection(containerEl, 'Folder/fileClass mappings');
-    mappingsDetails.createEl('p', {text: 'Map folder patterns to MetadataMenu fileClasses. Uses the same pattern matching as Templater plugin. Patterns are evaluated in order, with the first match being used.'});
+    mappingsDetails.setDesc('Map folder patterns to MetadataMenu fileClasses. Uses the same pattern matching as Templater plugin. Patterns are evaluated in order, with the first match being used.');
 
     // Create container for mappings
-    const mappingsContainer = mappingsDetails.createEl('div');
     const mappingsSection = new FolderFileClassMappingsSection(
       this.app,
-      mappingsContainer,
+      containerEl.createDiv(),
       this.plugin.settings.folderFileClassMappings,
       this.obsidianAdapter,
       this.metadataMenuAdapter,
@@ -122,13 +117,12 @@ export class MetaFlowSettingTab extends PluginSettingTab {
 
     // Property default value scripts section
     const scriptsDetails = SettingsUtils.createSection(containerEl, 'Property default value scripts');
-    scriptsDetails.createEl('p', {text: 'Define JavaScript scripts to generate default values for metadata properties.'});
+    scriptsDetails.setDesc('Define JavaScript scripts to generate default values for metadata properties.');
 
     // Create container for scripts
-    const scriptsContainer = scriptsDetails.createEl('div');
     const scriptsSection = new PropertyDefaultValueScriptsSection(
       this.app,
-      scriptsContainer,
+      containerEl.createDiv(),
       this.plugin.settings,
       this.metadataMenuAdapter,
       async () => {await this.plugin.saveSettings();}
@@ -136,10 +130,10 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     scriptsSection.render();
 
     // Simulation Testing Section
-    this.simulationDetails = SettingsUtils.createSection(containerEl, '🧪 Simulation & Testing');
+    SettingsUtils.createSection(containerEl, '🧪 Simulation and testing');
     new SimulationSection(
       this.app,
-      this.simulationDetails,
+      containerEl.createDiv(),
       this.plugin.settings,
       this.metadataMenuAdapter,
       this.templaterAdapter,
@@ -147,11 +141,12 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     ).render();
 
     // Export/Import Settings Section
-    const exportImportDetails = SettingsUtils.createSection(containerEl, 'Export/Import');
+    const exportImportSection = SettingsUtils.createSection(containerEl, 'Export and import');
+    exportImportSection.setDesc('Export your MetaFlow settings as a JSON file or import settings from a JSON file.');
     new ExportImportSection(
       this.app,
       this.metaflowService,
-      exportImportDetails,
+      containerEl.createDiv(),
       this.plugin.settings,
       async () => {await this.plugin.saveSettings(); this.display();}
     ).render();
@@ -159,7 +154,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     // Plugins status section
     new PluginsStatusSection(
       this.app,
-      containerEl,
+      containerEl.createDiv(),
       this.metadataMenuAdapter,
       this.templaterAdapter
     ).render();

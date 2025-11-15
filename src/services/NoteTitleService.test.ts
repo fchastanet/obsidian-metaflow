@@ -1,7 +1,8 @@
-import {TFile} from "obsidian";
+import {App, TFile} from "obsidian";
 import {NoteTitleService} from "./NoteTitleService";
 import {MetaFlowSettings} from "@metaflow/settings/types";
 import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 
 describe('NoteTitleService', () => {
   let noteTitleService: NoteTitleService;
@@ -65,7 +66,8 @@ describe('NoteTitleService', () => {
     noteTitleService = new NoteTitleService(
       mockMetaFlowSettings,
       mockScriptContextService,
-      mockLogNoticeManager
+      mockLogNoticeManager,
+      new ObsidianAdapter({} as App, mockMetaFlowSettings),
     );
   });
 
@@ -102,6 +104,7 @@ describe('NoteTitleService', () => {
     });
 
     it('should sanitize filename with invalid characters', () => {
+      noteTitleService['obsidianAdapter'].normalizePath = jest.fn().mockReturnValue('TestBookWithInvalidCharacters');
       const metadata = {title: 'Test/Book:With*Invalid?Characters'};
       const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
       expect(result).toBe('TestBookWithInvalidCharacters');
@@ -165,7 +168,7 @@ describe('NoteTitleService', () => {
       const longTitle = 'a'.repeat(300);
       const metadata = {title: longTitle};
       const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
-      expect(result.length).toBeLessThanOrEqual(255);
+      expect(result).toEqual('a'.repeat(255));
     });
   });
 });

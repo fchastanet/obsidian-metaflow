@@ -31,7 +31,7 @@ export class CompletionsHelpModal extends Modal {
     contentEl.createEl('h4', {text: 'Completions help'});
     this.completions.forEach(c => {
       const item = contentEl.createDiv();
-      item.classList.add('completions-help-item');
+      item.classList.add('metaflow-completions-help-item');
       const value = item.createEl('code', {text: c.value});
       value.classList.add('completions-help-value');
       const doc = item.createEl('span', {text: c.docHTML || c.meta || ''});

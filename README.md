@@ -1,4 +1,4 @@
-# Obsidian MetaFlow
+# MetaFlow
 
 An advanced metadata workflow automation plugin for Obsidian that streamlines frontmatter management through intelligent
 sorting, automatic field insertion, and customizable default value scripts.
