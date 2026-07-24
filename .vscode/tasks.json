@@ -16,13 +16,24 @@
         "$tsc",
         "$eslint-stylish"
       ],
-      "command": "npm run lint",
+      "command": "npm run lint"
     },
     {
       "label": "ESLint:fix",
       "type": "shell",
       "problemMatcher": "$eslint-stylish",
-      "command": "npm run lint:eslint:fix",
+      "command": "npm run lint:eslint:fix"
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "npm run build",
+      "presentation": {
+        "close": true,
+        "reveal": "silent",
+        "revealProblems": "onProblem"
+      },
+      "problemMatcher": []
     }
   ]
 }
