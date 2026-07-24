@@ -29,9 +29,9 @@ export class ObsidianAdapter {
   }
 
   async moveNote(file: TFile, newPath: string): Promise<void> {
-    (this.settings.debugMode) && console.info(`Moving note ${file.path} to ${newPath}`);
+    if (this.settings.debugMode) console.info(`Moving note ${file.path} to ${newPath}`);
     if (file.path === newPath) {
-      (this.settings.debugMode) && console.info(`Note ${file.path} is already at ${newPath}`);
+      if (this.settings.debugMode) console.info(`Note ${file.path} is already at ${newPath}`);
       return;
     }
     return await this.app.fileManager.renameFile(file, newPath);
@@ -39,7 +39,7 @@ export class ObsidianAdapter {
 
   async renameNote(file: TFile, newName: string): Promise<TFile> {
     const newPath = file.parent ? `${file.parent.path}/${newName}` : newName;
-    (this.settings.debugMode) && console.info(`Renaming note ${file.path} to ${newPath}`);
+    if (this.settings.debugMode) console.info(`Renaming note ${file.path} to ${newPath}`);
     await this.app.fileManager.renameFile(file, newPath);
     // Return the renamed file
     const renamedFile = this.app.vault.getAbstractFileByPath(newPath);

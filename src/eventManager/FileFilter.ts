@@ -20,37 +20,37 @@ export class FileFilter {
    */
   isApplicable(file: TAbstractFile | null | undefined): file is TFile {
     if (!file) {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is null or undefined');
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is null or undefined');
       return false;
     }
     if (!(file instanceof TFile)) {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is not a TFile', file);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a TFile', file);
       return false;
     }
     if (file.stat.mtime < this.launchTime) {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is outdated', file);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is outdated', file);
       return false;
     }
     if (!file?.basename || !file?.path) {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is missing basename or path', file);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is missing basename or path', file);
       return false;
     }
     if (file?.deleted) {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is deleted', file);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is deleted', file);
       return false;
     }
     if (file.saving) {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is currently being saved', file);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is currently being saved', file);
     }
 
     // Check if the file is a Markdown file
     if (file.extension !== 'md') {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is not a Markdown file', file);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a Markdown file', file);
       return false;
     }
 
     if (this.fileValidationService.ifFileExcluded(file)) {
-      (this.settings.debugMode) && console.debug('FileClassStateManager: isApplicable - file is excluded', file);
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is excluded', file);
       return false;
     }
 

@@ -22,26 +22,26 @@ export default class EventCron {
 
   public start() {
     if (this.cronInterval !== null) {
-      (this.settings.debugMode) && console.warn('EventCron is already running.');
+      if (this.settings.debugMode) console.warn('EventCron is already running.');
       return;
     }
     const intervalMs = this.settings.eventCronIntervalMs;
     this.cronInterval = window.setInterval(() => this.run(), intervalMs);
-    (this.settings.debugMode) && console.info(`EventCron started with an interval of ${this.settings.eventCronIntervalMs / 1000} seconds.`);
+    if (this.settings.debugMode) console.info(`EventCron started with an interval of ${this.settings.eventCronIntervalMs / 1000} seconds.`);
   }
 
   public stop() {
     if (this.cronInterval === null) {
-      (this.settings.debugMode) && console.warn('EventCron is not running.');
+      if (this.settings.debugMode) console.warn('EventCron is not running.');
       return;
     }
     clearInterval(this.cronInterval);
     this.cronInterval = null;
-    (this.settings.debugMode) && console.info('EventCron stopped.');
+    if (this.settings.debugMode) console.info('EventCron stopped.');
   }
 
   private async run(): Promise<void> {
-    (this.settings.debugMode) && console.debug('EventCron: Running scheduled tasks...');
+    if (this.settings.debugMode) console.debug('EventCron: Running scheduled tasks...');
     const startTime = this.nowFn();
     try {
       this.fileStateCache.evictStaleEntries();
@@ -62,7 +62,7 @@ export default class EventCron {
             const {file: newFile, state: newState} = await this.fileOperationsService.processFile(filePath, state);
             this.fileStateCache.setState(newFile.path, newState, false);
           } else {
-            (this.settings.debugMode) && console.warn(`EventCron: No state found for dirty file ${filePath}`);
+            if (this.settings.debugMode) console.warn(`EventCron: No state found for dirty file ${filePath}`);
           }
         } catch (error) {
           if (error instanceof SkipException) {
@@ -78,7 +78,7 @@ export default class EventCron {
         this.checkCronDuration(startTime);
       }
 
-      (this.settings.debugMode) && console.debug('EventCron: Completed scheduled tasks.');
+      if (this.settings.debugMode) console.debug('EventCron: Completed scheduled tasks.');
     } catch (error) {
       if (error instanceof CronInterruptException) {
         return; // Gracefully exit if interrupted
@@ -90,7 +90,7 @@ export default class EventCron {
   private checkCronDuration(startDatetime: number) {
     const duration = this.nowFn() - startDatetime;
     if (duration > this.settings.eventCronIntervalMs - 1000) {
-      (this.settings.debugMode) && console.warn('EventCron: Scheduled tasks are taking longer than the interval.');
+      if (this.settings.debugMode) console.warn('EventCron: Scheduled tasks are taking longer than the interval.');
       throw new CronInterruptException();
     }
   }

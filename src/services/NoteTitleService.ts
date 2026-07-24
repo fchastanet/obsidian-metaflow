@@ -37,7 +37,7 @@ export class NoteTitleService {
       );
 
       if (!mapping) {
-        (this.settings.debugMode) && console.debug(`MetaFlow: No folder mapping found for fileClass "${fileClass}"`);
+        if (this.settings.debugMode) console.debug(`MetaFlow: No folder mapping found for fileClass "${fileClass}"`);
         return DEFAULT_TITLE;
       }
 
@@ -64,7 +64,7 @@ export class NoteTitleService {
     const DEFAULT_TITLE = "Untitled";
 
     if (!mapping.noteTitleScript?.enabled || !mapping.noteTitleScript?.script) {
-      (this.settings.debugMode) && console.debug(`MetaFlow: Note title script is disabled or empty for fileClass "${fileClass}"`);
+      if (this.settings.debugMode) console.debug(`MetaFlow: Note title script is disabled or empty for fileClass "${fileClass}"`);
       return DEFAULT_TITLE;
     }
 
@@ -91,19 +91,19 @@ export class NoteTitleService {
 
       // Validate result
       if (typeof result !== 'string') {
-        (this.settings.debugMode) && console.debug(`MetaFlow: Note title script returned non-string value (${typeof result}) for fileClass "${fileClass}"`);
+        if (this.settings.debugMode) console.debug(`MetaFlow: Note title script returned non-string value (${typeof result}) for fileClass "${fileClass}"`);
         return DEFAULT_TITLE;
       }
 
       if (!result.trim()) {
-        (this.settings.debugMode) && console.debug(`MetaFlow: Note title script returned empty string for fileClass "${fileClass}"`);
+        if (this.settings.debugMode) console.debug(`MetaFlow: Note title script returned empty string for fileClass "${fileClass}"`);
         return DEFAULT_TITLE;
       }
 
       // Validate filename
       const sanitizedTitle = this.obsidianAdapter.normalizePath(result.trim());
       if (!sanitizedTitle) {
-        (this.settings.debugMode) && console.debug(`MetaFlow: Note title script result "${result}" is not a valid filename for fileClass "${fileClass}"`);
+        if (this.settings.debugMode) console.debug(`MetaFlow: Note title script result "${result}" is not a valid filename for fileClass "${fileClass}"`);
         return DEFAULT_TITLE;
       }
 
@@ -126,7 +126,7 @@ export class NoteTitleService {
     const DEFAULT_TITLE = "Untitled";
 
     if (!mapping.noteTitleTemplates?.length) {
-      (this.settings.debugMode) && console.debug(`MetaFlow: No note title templates defined for fileClass "${fileClass}"`);
+      if (this.settings.debugMode) console.debug(`MetaFlow: No note title templates defined for fileClass "${fileClass}"`);
       return DEFAULT_TITLE;
     }
 
@@ -144,10 +144,10 @@ export class NoteTitleService {
           if (sanitizedTitle) {
             return sanitizedTitle;
           } else {
-            (this.settings.debugMode) && console.debug(`MetaFlow: Template result "${result}" is not a valid filename for fileClass "${fileClass}"`);
+            if (this.settings.debugMode) console.debug(`MetaFlow: Template result "${result}" is not a valid filename for fileClass "${fileClass}"`);
           }
         } else {
-          (this.settings.debugMode) && console.debug(`MetaFlow: Template "${template.template}" could not be processed due to missing metadata for fileClass "${fileClass}"`);
+          if (this.settings.debugMode) console.debug(`MetaFlow: Template "${template.template}" could not be processed due to missing metadata for fileClass "${fileClass}"`);
         }
       } catch (error) {
         console.error(`MetaFlow: Error processing template "${template.template}" for fileClass "${fileClass}": ${error.message}`);

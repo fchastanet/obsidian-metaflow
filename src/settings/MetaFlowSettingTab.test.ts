@@ -185,13 +185,16 @@ describe('MetaFlowSettingTab', () => {
         });
         // Simulate FileReader onload
         fileReaderMock.onload = jest.fn((e) => {
+          let error;
           try {
             const importedSettings = JSON.parse(fileContent);
             Object.assign(mockPlugin.settings, importedSettings);
             mockPlugin.saveSettings();
             expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(true);
-          } catch (err) {
-            expect(err).toBe(undefined); // Should not throw
+          } catch (e) {
+            error = e;
+          } finally {
+            expect(error).toBe(undefined); // Should not throw
           }
         });
         // Simulate file input change

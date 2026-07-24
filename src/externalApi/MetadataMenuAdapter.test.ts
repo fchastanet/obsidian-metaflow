@@ -2,7 +2,7 @@ import {MetadataMenuAdapter} from './MetadataMenuAdapter';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import {MetaFlowException} from '@metaflow/MetaFlowException';
 import {MetaFlowSettings} from '@metaflow/settings/types';
-import {expectNoLogs, mockLogNoticeManager} from '@metaflow/__mocks__/logNoticeManager';
+import {expectNoLogs, mockLogNoticeManager} from '@metaflow/__helpers__/logNoticeManager';
 
 describe('MetadataMenuAdapter', () => {
   let mockApp: any;
@@ -64,12 +64,15 @@ describe('MetadataMenuAdapter', () => {
     test('throw MetaFlowException if not available', async () => {
       adapter = new MetadataMenuAdapter(mockApp, settings, mockLogNoticeManager);
       expect.assertions(2);
+      let error;
       try {
         adapter.getMetadataMenuPlugin();
         expectNoLogs();
       } catch (e) {
-        expect(e).toBeInstanceOf(MetaFlowException);
-        expect(e.message).toBe('MetadataMenu integration is not enabled or plugin is not available');
+        error = e;
+      } finally {
+        expect(error).toBeInstanceOf(MetaFlowException);
+        expect(error.message).toBe('MetadataMenu integration is not enabled or plugin is not available');
       }
     });
 

@@ -213,7 +213,7 @@ export class TemplaterAdapter {
       if (parentFilePath) {
         parentFile = this.obsidianAdapter.getAbstractFileByPath(parentFilePath);
         if (!parentFile || !(parentFile instanceof TFile)) {
-          (this.settings.debugMode) && console.debug('Parent file not found in recent files, using active file as parent');
+          if (this.settings.debugMode) console.debug('Parent file not found in recent files, using active file as parent');
           parentFile = null;
         }
       }
@@ -221,7 +221,7 @@ export class TemplaterAdapter {
       parentFile = activeFile;
     }
     if (parentFile?.path === currentFile.path) {
-      (this.settings.debugMode) && console.debug('Parent file is the same as current file, cannot deduce parent file');
+      if (this.settings.debugMode) console.debug('Parent file is the same as current file, cannot deduce parent file');
       return null;
     }
 

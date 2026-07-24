@@ -34,10 +34,13 @@ describe('FrontMatterService', () => {
       const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const raw = `title: "My Note"\nfileClass: [unclosed`;
       jest.spyOn(obsidian, 'parseYaml').mockImplementation(() => {throw new Error('unexpected end of the stream within a flow collection (3:1)');});
+      let error;
       try {
         expect.assertions(3);
         service.parseRawFrontmatter(raw);
-      } catch (error) {
+      } catch (e) {
+        error = e;
+      } finally {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toContain('unexpected end of the stream within a flow collection (3:1)');
         expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));
@@ -57,14 +60,6 @@ describe('FrontMatterService', () => {
         fileClass: "book"
       });
     });
-  });
-});
-
-describe('FrontMatterService', () => {
-  let service: FrontMatterService;
-
-  beforeEach(() => {
-    service = new FrontMatterService();
   });
 
   describe('parseFrontmatter', () => {
@@ -122,10 +117,13 @@ describe('FrontMatterService', () => {
       });
       jest.spyOn(obsidian, 'parseYaml').mockImplementation(() => {throw new Error('unexpected end of the stream within a flow collection (3:1)');});
       const spy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      let error;
       try {
         expect.assertions(3);
         service.parseFrontmatter(content);
-      } catch (error) {
+      } catch (e) {
+        error = e;
+      } finally {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toContain('unexpected end of the stream within a flow collection (3:1)');
         expect(spy).toHaveBeenCalledWith('Error parsing YAML frontmatter:', expect.any(Error));

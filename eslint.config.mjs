@@ -1,33 +1,52 @@
-// @ts-check
+import {defineConfig, globalIgnores} from "eslint/config";
+import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import jest from "eslint-plugin-jest";
+import globals from "globals";
+import tsParser from "@typescript-eslint/parser";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import js from "@eslint/js";
+import {FlatCompat} from "@eslint/eslintrc";
 
-import eslint from '@eslint/js';
-import tsparser from "@typescript-eslint/parser";
-import {defineConfig} from "eslint/config";
-import obsidianmd from "eslint-plugin-obsidianmd";
-import tseslint from 'typescript-eslint';
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+  allConfig: js.configs.all
+});
 
 export default defineConfig([
-  eslint.configs.recommended,
-  tseslint.configs.recommended,
-  // @ts-ignore
-  ...obsidianmd.configs.recommended,
+  globalIgnores([".history/**", "node_modules/**", "dist/**", "out/**", ".obsidian/**", ".vscode/**"]),
   {
-    files: ["**/*.ts"],
-    languageOptions: {
-      parser: tsparser,
-      parserOptions: {project: "./tsconfig.json"},
+    extends: compat.extends(
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:jest/recommended",
+    ),
+
+    plugins: {
+      "@typescript-eslint": typescriptEslint,
+      jest,
     },
 
-    // You can add your own configuration to override or add rules
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+      parser: tsParser,
+      ecmaVersion: 5,
+      sourceType: "module",
+    },
+
     rules: {
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        {
-          "args": "none"
-        }
-      ],
+
+      "@typescript-eslint/no-unused-vars": ["error", {
+        args: "none",
+      }],
+
       "@typescript-eslint/ban-ts-comment": "off",
       "no-prototype-builtins": "off",
       "@typescript-eslint/no-empty-function": "off",
@@ -38,11 +57,21 @@ export default defineConfig([
       "no-case-declarations": "warn",
       "no-var": "error",
       "prefer-const": "error",
-      "no-extra-semi": "error"
+      "no-extra-semi": "error",
     },
-    ignores: [
-      'node_modules/',
-      'main.js'
-    ]
+  }, {
+    files: ["**/*.test.ts", "**/*.spec.ts", "src/__mocks__/**/*.ts"],
+
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+        ...jest.environments.globals.globals,
+      },
+    },
+
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
   },
 ]);

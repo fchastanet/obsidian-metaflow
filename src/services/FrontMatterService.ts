@@ -66,6 +66,7 @@ export class FrontMatterService {
     return this.getFileClassFromMetadata(parseResult.metadata, fileClassAlias);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getFileClassFromMetadata(metadata: any, fileClassAlias: string): string | null {
     return metadata?.[fileClassAlias] || null;
   }
@@ -73,6 +74,7 @@ export class FrontMatterService {
   /**
    * Serialize metadata back to YAML frontmatter format
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serializeFrontmatter(metadata: any, restOfContent: string): string {
     try {
       // Convert back to YAML

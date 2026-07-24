@@ -50,7 +50,7 @@ export class PropertyManagementService {
     // Process each property default value script in order
     for (const script of orderedScripts) {
       if (!script.enabled) {
-        (this.settings.debugMode) && console.debug(`PropertyManagementService: Skipping disabled script for property "${script.propertyName}"`);
+        if (this.settings.debugMode) console.debug(`PropertyManagementService: Skipping disabled script for property "${script.propertyName}"`);
         continue;
       }
       // Skip if property already has a value (not null, undefined, or empty string)
@@ -84,7 +84,7 @@ export class PropertyManagementService {
     addedFields: string[]
   ): boolean {
     if (!allFieldsMap.has(script.propertyName)) {
-      (this.settings.debugMode) && console.debug(`PropertyManagementService: Skipping script for unknown property "${script.propertyName}"`);
+      if (this.settings.debugMode) console.debug(`PropertyManagementService: Skipping script for unknown property "${script.propertyName}"`);
       return false;
     }
     if (
@@ -95,7 +95,7 @@ export class PropertyManagementService {
       return false;
     }
     if (!addedFields.includes(script.propertyName)) {
-      (this.settings.debugMode) && console.debug(`PropertyManagementService: Skipping script for property "${script.propertyName}" not recently added`);
+      if (this.settings.debugMode) console.debug(`PropertyManagementService: Skipping script for property "${script.propertyName}" not recently added`);
       return false;
     }
 
@@ -160,7 +160,6 @@ export class PropertyManagementService {
   /**
    * Execute a property default value script
    */
-  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   private executePropertyScript(
     script: PropertyDefaultValueScript,
     file: TFile,

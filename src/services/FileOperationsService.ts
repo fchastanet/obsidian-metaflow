@@ -106,11 +106,11 @@ export class FileOperationsService {
   public async processFile(filePath: string, state: FileState): Promise<{file: TFile, state: FileState}> {
     const file = this.obsidianAdapter.getAbstractFileByPath(filePath);
     if (!file) {
-      (this.settings.debugMode) && console.warn(`FileOperationsService: File not found for path ${filePath}`);
+      if (this.settings.debugMode) console.warn(`FileOperationsService: File not found for path ${filePath}`);
       throw new SkipException(`File not found for path ${filePath}`);
     }
     if (!(file instanceof TFile)) {
-      (this.settings.debugMode) && console.warn(`FileOperationsService: Path is not a file ${filePath}`);
+      if (this.settings.debugMode) console.warn(`FileOperationsService: Path is not a file ${filePath}`);
       throw new SkipException(`Path is not a file ${filePath}`);
     }
     if (state?.fileMtime < file.stat.mtime) {
@@ -132,13 +132,13 @@ export class FileOperationsService {
 
     const frontmatter = await this.obsidianAdapter.getFileFrontmatter(file);
     if (frontmatter === null) {
-      (this.settings.debugMode) && console.warn(`FileOperationsService: Unable to read frontmatter for file ${filePath}`);
+      if (this.settings.debugMode) console.warn(`FileOperationsService: Unable to read frontmatter for file ${filePath}`);
       throw new SkipException(`Unable to read frontmatter for file ${filePath}`);
     }
 
     const checksum = this.computeChecksum(file, frontmatter);
     if (state.checksum === checksum) {
-      (this.settings.debugMode) && console.info(`No changes detected for file: ${filePath}`);
+      if (this.settings.debugMode) console.info(`No changes detected for file: ${filePath}`);
       throw new SkipException(`No changes detected for file: ${filePath}`);
     }
 
@@ -229,10 +229,10 @@ export class FileOperationsService {
       // Check if the title needs to change
       const currentName = file.basename; // basename without extension
       if (currentName === newTitle) {
-        (this.settings.debugMode) && console.debug(`MetaFlow: Note "${file.name}" already has the correct title "${newTitle}"`);
+        if (this.settings.debugMode) console.debug(`MetaFlow: Note "${file.name}" already has the correct title "${newTitle}"`);
         return currentName;
       } else if (newTitle === 'Untitled') {
-        (this.settings.debugMode) && console.debug(`MetaFlow: Note "${file.name}", new title would be 'Untitled', keeping old name`);
+        if (this.settings.debugMode) console.debug(`MetaFlow: Note "${file.name}", new title would be 'Untitled', keeping old name`);
         return currentName;
       }
 
@@ -260,7 +260,7 @@ export class FileOperationsService {
       const targetFolderMapping = this.getTargetFolderMappingForFileClass(fileClass);
       if (targetFolderMapping) {
         if (targetFolderMapping?.moveToFolder === false) {
-          (this.settings.debugMode) && console.debug(`Auto-move for the folder "${targetFolderMapping.folder}" is disabled`);
+          if (this.settings.debugMode) console.debug(`Auto-move for the folder "${targetFolderMapping.folder}" is disabled`);
           return currentFolder;
         }
         return targetFolderMapping.folder.replace(/\/$/, ''); // Remove trailing slash
@@ -305,7 +305,7 @@ export class FileOperationsService {
 
     // Check if we actually need to do anything
     if (targetPath === file.path) {
-      (this.settings.debugMode) && console.debug(`File "${file.path}" is already at target location with correct name`);
+      if (this.settings.debugMode) console.debug(`File "${file.path}" is already at target location with correct name`);
       return file;
     }
 
@@ -317,7 +317,7 @@ export class FileOperationsService {
       const regex = new RegExp(`^${newTitle}(?<increment> \\d+)?$`);
       const match = file.basename.match(regex);
       if (match && match['groups'] && match['groups']['increment']) {
-        (this.settings.debugMode) && console.debug(`File "${file.path}" title already contains an incremental number`);
+        if (this.settings.debugMode) console.debug(`File "${file.path}" title already contains an incremental number`);
         return file;
       }
       // Compute new target path with incremental number
@@ -328,14 +328,14 @@ export class FileOperationsService {
 
     // it could be possible that the file was already renamed using an incremental number
     if (file.path === targetPath) {
-      (this.settings.debugMode) && console.debug(`File "${file.path}" is already at target location with correct name`);
+      if (this.settings.debugMode) console.debug(`File "${file.path}" is already at target location with correct name`);
       return file;
     }
 
     // Perform the actual file operation
     try {
       // Update the cache to avoid re-processing the file immediately
-      (this.settings.debugMode) && console.info(`Processing file: ${file.path} with fileClass: ${fileClass}`);
+      if (this.settings.debugMode) console.info(`Processing file: ${file.path} with fileClass: ${fileClass}`);
       const frontmatter = await this.obsidianAdapter.getFileFrontmatter(file);
       if (frontmatter === null) {
         throw new MetaFlowException(`Unable to read frontmatter for file ${file.path}`, 'warning');

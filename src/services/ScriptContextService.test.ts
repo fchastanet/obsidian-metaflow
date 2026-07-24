@@ -1,5 +1,5 @@
 import {ScriptContextService} from './ScriptContextService';
-import {expectNoLogs} from '@metaflow/__mocks__/logNoticeManager';
+import {expectNoLogs} from '@metaflow/__helpers__/logNoticeManager';
 import {TFile} from 'obsidian';
 import {ObsidianAdapter as OriginalObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
 import {TemplaterAdapter} from 'src/externalApi/TemplaterAdapter';
@@ -33,11 +33,8 @@ describe('ScriptContextService', () => {
       yesterday: jest.fn(() => '2025-07-29'),
       prompt: jest.fn(async (message: string) => 'mocked-input'),
       getParentFile: jest.fn((currentFile: TFile) => 'mocked-parent-file'),
-      //eslint-disable-next-line @typescript-eslint/no-explicit-any
       app: {} as any,
-      //eslint-disable-next-line @typescript-eslint/no-explicit-any
       settings: {} as any,
-      //eslint-disable-next-line @typescript-eslint/no-explicit-any
       obsidianAdapter: {} as any,
       TEMPLATER_PLUGIN_NAME: 'Templater',
     } as any;
