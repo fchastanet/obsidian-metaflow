@@ -567,3 +567,8 @@
 .meta-flow-hidden {
   display: none;
 }
+
+.meta-flow-button-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

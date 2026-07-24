@@ -43,8 +43,6 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
       return;
     }
 
-    this.logNoticeManager.addInfo(`Mass updating ${totalFiles} files...`);
-
     let processedFiles = 0;
     let updatedFiles = 0;
     const errorFiles: TFile[] = [];
@@ -62,6 +60,10 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
         try {
           for (const file of filteredFiles) {
             try {
+              if (progressModal.isAborted()) {
+                progressModal.addWarning(`Mass update aborted by user.`);
+                break;
+              }
               const content = await this.app.vault.read(file);
               progressModal.setCurrentItem(file.path);
 
@@ -82,6 +84,12 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
               progressModal.addError(`Error processing ${file.path}: ${error.message || error}`);
             }
           }
+          // Final summary
+          if (errorFiles.length > 0) {
+            progressModal.addWarning(`Completed with errors. Updated ${updatedFiles} files, failed to process ${errorFiles.length} files.`);
+          } else {
+            progressModal.addInfo(`Successfully processed ${processedFiles} files, updated ${updatedFiles} files.`);
+          }
         } catch (error) {
           console.error('Mass update error:', error);
           progressModal.addError(`Mass update failed: ${error.message || error}`);
@@ -89,13 +97,7 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
       }
     );
 
+    progressModal.addInfo(`Click on Proceed to update ${totalFiles} files ...`);
     progressModal.open();
-
-    // Final summary
-    if (errorFiles.length > 0) {
-      this.logNoticeManager.addWarning(`Completed with errors. Updated ${updatedFiles} files, failed to process ${errorFiles.length} files.`);
-    } else {
-      this.logNoticeManager.addInfo(`Successfully processed ${processedFiles} files, updated ${updatedFiles} files.`);
-    }
   }
 }

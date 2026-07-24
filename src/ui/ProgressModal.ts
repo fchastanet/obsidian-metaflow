@@ -9,8 +9,8 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
   currentItem: HTMLElement;
   numberErrorsText: HTMLElement;
   results: HTMLElement;
-  cancelButton: ButtonComponent;
-  actionButton: ButtonComponent;
+  cancelButton?: ButtonComponent;
+  actionButton?: ButtonComponent;
   current: number;
   total: number;
   errorCount: number;
@@ -30,7 +30,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
     this.total = total;
     super.setTitle(title);
     this.shouldRestoreSelection = true;
-    this.processFinished = false;
+    this.processFinished = true;
     this.cancelCallback = cancelCallback;
     this.actionCallback = actionCallback;
 
@@ -60,21 +60,24 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
       .addButton((btn) => {
         this.actionButton = btn;
         btn
-          .setButtonText('Confirm')
+          .setButtonText('Proceed')
           .setCta()
           .onClick(async () => {
-            this.actionButton.disabled = true;
+            this.reset();
+            this.processFinished = false;
+            this.actionButton!.disabled = true;
+            this.actionButton!.buttonEl.classList.add('meta-flow-button-disabled');
+            this.cancelButton!.buttonEl.textContent = "Abort";
             this.actionCallback();
           });
       })
-      // Cancel button
+      // Close button
       .addButton((btn) => {
         this.cancelButton = btn;
         btn
-          .setButtonText('Cancel')
-          .onClick(async () => {
-            this.close();
-          });
+          .setButtonText('Close')
+          .onClick(this.closeCallback.bind(this))
+        ;
       });
   }
 
@@ -83,16 +86,30 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
   }
 
   close() {
-    super.close();
+    this.closeCallback();
   }
 
-  onClose(): void {
+  closeCallback(): void {
     if (!this.processFinished) {
-      this.cancelCallback();
+      this.abort();
+    } else {
+      super.close();
     }
-    super.onClose();
   }
 
+  private reset() {
+    this.current = 0;
+    this.errorCount = 0;
+    this.progressBar.setValue(0);
+    this.progressText.setText('');
+    this.currentItem.setText('');
+    this.numberErrorsText.setText('');
+    this.results.empty();
+    this.actionButton!.disabled = false;
+    this.actionButton!.buttonEl.classList.remove('meta-flow-button-disabled');
+    this.cancelButton!.buttonEl.textContent = "Close";
+    this.processFinished = true;
+  }
 
   setCurrentItem(item: string) {
     this.current++;
@@ -148,10 +165,22 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
     }
   }
 
+  isAborted(): boolean {
+    return this.processFinished;
+  }
+
+  abort() {
+    this.processFinished = true;
+    this.cancelButton!.buttonEl.textContent = "Cancel";
+    this.actionButton!.disabled = false;
+    this.actionButton!.buttonEl.classList.remove('meta-flow-button-disabled');
+  }
+
   finish() {
     this.processFinished = true;
-    this.cancelButton.buttonEl.textContent = "Close";
-    this.actionButton.disabled = true;
+    this.cancelButton!.buttonEl.textContent = "Cancel";
+    this.actionButton!.disabled = false;
+    this.actionButton!.buttonEl.classList.remove('meta-flow-button-disabled');
     this.displayCurrentItem("");
   }
 
