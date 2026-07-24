@@ -310,7 +310,7 @@ export class PropertyDefaultValueScriptsSection {
             script: defaultScript,
             enabled: true,
             order: this.settings.propertyDefaultValueScripts.length,
-            fileClasses,
+            fileClasses: fileClasses.sort((a, b) => a.localeCompare(b)) // Sort fileClasses for consistency
           });
           importedCount++;
         } else {
