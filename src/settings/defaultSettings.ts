@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
   ],
   propertyDefaultValueScripts: [],
   excludeFolders: [],
-  autoMoveNoteToRightFolder: true,
+  autoMoveNoteToRightFolder: false, // disabled by default to avoid unexpected behavior
   autoRenameNote: true,
   debugMode: false,
   frontmatterUpdateDelayMs: 500,

@@ -49,7 +49,7 @@ export class MetadataInsertionSection {
 
     // Auto-move note to right folder setting
     const autoMoveNoteToRightFolderSetting = new Setting(this.container)
-      .setName('Auto-move note to the right folder')
+      .setName('Auto-move note to the right folder (Bêta)')
       .setDesc('Automatically move note to the correct folder based on Folder/FileClass mapping when updating metadata')
       .addToggle(toggle => toggle
         .setValue(this.settings.autoMoveNoteToRightFolder)
