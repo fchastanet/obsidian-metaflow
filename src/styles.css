@@ -21,6 +21,12 @@
 /* -------------------------------------------------- */
 /* ProgressModal                                      */
 /* -------------------------------------------------- */
+.metaflow-progress-modal .modal {
+  width: 80%;
+  min-width: 600px;
+  max-width: 90%;
+}
+
 .metaflow-progress-modal-progress-block {
   display: flex;
   align-items: center;

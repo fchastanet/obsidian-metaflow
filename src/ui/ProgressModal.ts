@@ -33,6 +33,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
     this.processFinished = true;
     this.cancelCallback = cancelCallback;
     this.actionCallback = actionCallback;
+    this.containerEl.addClass('metaflow-progress-modal');
 
     this.contentEl.createEl('p', {text: message});
 

@@ -93,6 +93,8 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
         } catch (error) {
           console.error('Mass update error:', error);
           progressModal.addError(`Mass update failed: ${error.message || error}`);
+        } finally {
+          progressModal.finish();
         }
       }
     );
