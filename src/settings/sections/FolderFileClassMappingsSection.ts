@@ -14,7 +14,7 @@ import {TitleScriptLinter} from "../../linters/TitleScriptLinter";
 import {DragDropHelper} from "@metaflow/settings/DragDropHelper";
 
 export class FolderFileClassMappingsSection {
-  private templaterImportButton: HTMLButtonElement;
+  private templaterImportButton?: HTMLButtonElement;
   private templateLinter: TitleTemplateLinter;
   private scriptLinter: TitleScriptLinter;
   private folderMappingDragDropHelper: DragDropHelper<FolderFileClassMapping>;

@@ -56,45 +56,40 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
       async () => {
         // Cancel callback - just close modal
       },
-      async () => {
-        // Main processing function
+      async (progressModal: ProgressModal) => {
+        progressModal.addInfo(`Processing ${totalFiles} files ...`);
+        // compute batches of files to process in parallel
+        const batchSize = this.settings.massUpdateBatchSize || 5;
+        const batches: TFile[][] = [];
+        for (let i = 0; i < filteredFiles.length; i += batchSize) {
+          batches.push(filteredFiles.slice(i, i + batchSize));
+        }
+
+        // Process each batch sequentially, but files within a batch in parallel
         try {
-          for (const file of filteredFiles) {
-            try {
-              if (progressModal.isAborted()) {
-                progressModal.addWarning(`Mass update aborted by user.`);
-                break;
-              }
-              const content = await this.app.vault.read(file);
-              progressModal.setCurrentItem(file.path);
-
-              const processedContent = this.metaFlowService.processContent(content, file);
-
-              if (processedContent !== content) {
-                await this.app.vault.modify(file, processedContent);
-                updatedFiles++;
-              }
-
-              processedFiles++;
-
-              // Add a small delay to prevent overwhelming the system
-              await Utils.sleep(this.settings.frontmatterUpdateDelayMs || 10, () => { });
-            } catch (error) {
-              console.error(`Error processing file ${file.path}:`, error);
-              errorFiles.push(file);
-              progressModal.addError(`Error processing ${file.path}: ${error.message || error}`);
+          for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+            if (progressModal.isAborted()) {
+              break;
             }
+            progressModal.addInfo(`Processing batch ${batchIndex + 1} of ${batches.length} ...`);
+            const batch = batches[batchIndex];
+            const {updatedInBatch, errorFilesInBatch} = await this.processInBatch(batch, progressModal);
+            errorFiles.push(...errorFilesInBatch);
+            processedFiles += batch.length;
+            updatedFiles += updatedInBatch;
+            // Add a small delay to prevent overwhelming the system
+            await Utils.sleep(this.settings.frontmatterUpdateDelayMs || 10, () => { });
           }
+        } catch (error) {
+          console.error('Mass update error:', error);
+          progressModal.addError(`Mass update failed: ${String(error)}`);
+        } finally {
           // Final summary
           if (errorFiles.length > 0) {
             progressModal.addWarning(`Completed with errors. Updated ${updatedFiles} files, failed to process ${errorFiles.length} files.`);
           } else {
             progressModal.addInfo(`Successfully processed ${processedFiles} files, updated ${updatedFiles} files.`);
           }
-        } catch (error) {
-          console.error('Mass update error:', error);
-          progressModal.addError(`Mass update failed: ${error.message || error}`);
-        } finally {
           progressModal.finish();
         }
       }
@@ -102,5 +97,41 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
 
     progressModal.addInfo(`Click on Proceed to update ${totalFiles} files ...`);
     progressModal.open();
+  }
+
+  private async processInBatch(files: TFile[], progressModal: ProgressModal): Promise<{updatedInBatch: number, errorFilesInBatch: TFile[]}> {
+    let updatedInBatch = 0;
+    const errorFilesInBatch: TFile[] = [];
+    const promises = files.map(async (file) => {
+      const result = await this.processFile(file, progressModal);
+      if (result === 1) {
+        updatedInBatch++;
+      } else if (result === -1) {
+        errorFilesInBatch.push(file);
+      }
+    });
+    await Promise.all(promises);
+    return {updatedInBatch, errorFilesInBatch};
+  }
+
+  private async processFile(file: TFile, progressModal: ProgressModal): Promise<number> {
+    if (progressModal.isAborted()) {
+      return 0;
+    }
+    try {
+      progressModal.setCurrentItem(`Processing: ${file.path}`);
+      const content = await this.app.vault.read(file);
+      const processedContent = this.metaFlowService.processContent(content, file);
+
+      if (processedContent !== content) {
+        await this.app.vault.modify(file, processedContent);
+        return 1; // Updated
+      }
+    } catch (error) {
+      progressModal.addError(`File ${file.path} mass update failed: ${String(error)}`);
+      console.error(`Error processing file ${file.path}:`, error);
+      return -1; // Error
+    }
+    return 0; // No update needed
   }
 }

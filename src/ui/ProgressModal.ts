@@ -3,7 +3,7 @@ import {LogNoticeManagerInterface, LogNoticeManagerLogLevel} from "@metaflow/man
 
 export class ProgressModal extends Modal implements LogNoticeManagerInterface {
   cancelCallback: () => void;
-  actionCallback: () => void;
+  actionCallback: (progressModal: ProgressModal) => void;
   progressBar: ProgressBarComponent;
   progressText: HTMLElement;
   currentItem: HTMLElement;
@@ -24,7 +24,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
     message: string,
     logNoticeManager: LogNoticeManagerInterface,
     cancelCallback: () => void,
-    actionCallback: () => void,
+    actionCallback: (progressModal: ProgressModal) => void,
   ) {
     super(app);
     this.current = 0;
@@ -72,7 +72,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
             this.actionButton!.disabled = true;
             this.actionButton!.buttonEl.classList.add('meta-flow-button-disabled');
             this.cancelButton!.buttonEl.textContent = "Abort";
-            this.actionCallback();
+            this.actionCallback(this);
           });
       })
       // Copy results to clipboard button
@@ -202,6 +202,8 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
     this.cancelButton!.buttonEl.textContent = "Cancel";
     this.actionButton!.disabled = false;
     this.actionButton!.buttonEl.classList.remove('meta-flow-button-disabled');
+    this.addWarning(`Process aborted by user.`);
+    this.displayCurrentItem("");
   }
 
   finish() {

@@ -33,4 +33,5 @@ export const DEFAULT_SETTINGS: MetaFlowSettings = {
   fileClassStateCacheSaveIntervalMs: 15000, // 15 seconds
   fileClassStateCacheEvictionThresholdMs: 86400000, // 24 hours
   eventCronIntervalMs: 3000, // 3 seconds
+  massUpdateBatchSize: 5, // Number of files to process in parallel during mass update
 };

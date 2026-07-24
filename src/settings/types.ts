@@ -42,4 +42,5 @@ export interface MetaFlowSettings {
   fileClassStateCacheSaveIntervalMs: number; // Interval in milliseconds to save the cache
   fileClassStateCacheEvictionThresholdMs: number; // Time in milliseconds to evict stale cache entries
   eventCronIntervalMs: number; // interval for event cron jobs
+  massUpdateBatchSize: number; // Number of files to process in parallel during mass update
 }

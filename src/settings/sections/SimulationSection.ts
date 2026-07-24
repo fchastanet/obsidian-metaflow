@@ -146,8 +146,13 @@ This is sample content for testing.`;
 
       } catch (error) {
         console.error('Simulation error:', error);
-        outputTextarea.value = `Error during simulation:\n${error.message}\n\nStack trace:\n${error.stack}`;
-        this.showStatus(statusDiv, `❌ Simulation failed: ${error.message}`, 'error');
+        if (error instanceof Error) {
+          outputTextarea.value = `Error during simulation:\n${error.message}\n\nStack trace:\n${error.stack}`;
+          this.showStatus(statusDiv, `❌ Simulation failed: ${error.message}`, 'error');
+        } else {
+          outputTextarea.value = `Error during simulation: ${String(error)}`;
+          this.showStatus(statusDiv, `❌ Simulation failed: ${String(error)}`, 'error');
+        }
       } finally {
         // Restore original method
         this.metadataMenuAdapter.getFileClassFromMetadata = originalGetFileClassFromMetadata;
