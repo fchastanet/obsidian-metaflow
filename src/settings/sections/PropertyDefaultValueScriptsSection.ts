@@ -5,10 +5,6 @@ import {SettingsUtils} from "@metaflow/settings/SettingsUtils";
 import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
 import {DragDropHelper} from "@metaflow/settings/DragDropHelper";
 
-//declare type AceModule = typeof import("ace-builds");
-//import * as Ace from "ace-builds";
-//declare const ace: AceModule;
-
 export class PropertyDefaultValueScriptsSection {
   private metadataMenuImportButton: HTMLButtonElement | null = null;
   private dragDropHelper: DragDropHelper<PropertyDefaultValueScript>;

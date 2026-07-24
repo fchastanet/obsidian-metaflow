@@ -2,7 +2,6 @@ import {App, PluginSettingTab, Setting} from "obsidian";
 import MetaFlowPlugin from "@metaflow/main";
 import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
-//declare type AceModule = typeof import("ace-builds");
 import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import {SettingsUtils} from "./SettingsUtils";
 import {MetadataInsertionSection} from "./sections/MetadataInsertionSection";
@@ -16,7 +15,6 @@ import {LogNoticeManager} from "@metaflow/managers/LogNoticeManager";
 import {MetaFlowService} from "@metaflow/services/MetaFlowService";
 import type {UIService} from "@metaflow/services/UIService";
 import {TYPES} from "@metaflow/di/types";
-//declare const ace: AceModule;
 
 /**
  * Settings tab for MetaFlow plugin

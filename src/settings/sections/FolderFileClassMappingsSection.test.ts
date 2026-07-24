@@ -202,7 +202,6 @@ describe('FolderFileClassMappingsSection', () => {
       }));
 
       // Re-import after mocking
-      //const {MetaFlowSettingTab} = require('../MetaFlowSettingTab');
       folderFileClassMappingsSection = getFolderFileClassMappingsSection();
       await folderFileClassMappingsSection['importFolderMappingsFromTemplater']();
 
