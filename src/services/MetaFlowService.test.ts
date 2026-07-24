@@ -1,7 +1,7 @@
 import {FileStats, TFile} from 'obsidian';
 import {MetaFlowService} from './MetaFlowService';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
-import {LogNoticeManagerInterface} from 'src/managers/types';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
 import {Utils} from '@metaflow/utils/Utils';
 import {MetaFlowSettings} from '@metaflow/settings/types';
 

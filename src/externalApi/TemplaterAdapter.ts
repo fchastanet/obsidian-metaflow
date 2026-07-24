@@ -1,7 +1,7 @@
 import {injectable, inject} from 'inversify';
 import type {App} from 'obsidian';
 import {TFile} from 'obsidian';
-import type {MetaFlowSettings} from 'src/settings/types';
+import type {MetaFlowSettings} from '@metaflow/settings/types';
 import type {ObsidianAdapter} from './ObsidianAdapter';
 import {TYPES} from '@metaflow/di/types';
 

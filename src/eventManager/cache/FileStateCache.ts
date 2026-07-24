@@ -1,4 +1,4 @@
-import type {MetaFlowSettings} from 'src/settings/types';
+import type {MetaFlowSettings} from '@metaflow/settings/types';
 import CachePersistence from './FileCachePersistence';
 import {FileState, InternalFileState} from './types';
 import {TYPES} from '@metaflow/di/types';

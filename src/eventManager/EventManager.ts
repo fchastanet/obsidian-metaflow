@@ -1,5 +1,5 @@
 import {CachedMetadata, MarkdownView, TAbstractFile, TFile, WorkspaceLeaf} from "obsidian";
-import type {MetaFlowSettings} from "src/settings/types";
+import type {MetaFlowSettings} from "@metaflow/settings/types";
 import {FileFilter} from "./FileFilter";
 import {FileStateCache} from "./cache/FileStateCache";
 import {TYPES} from "@metaflow/di/types";

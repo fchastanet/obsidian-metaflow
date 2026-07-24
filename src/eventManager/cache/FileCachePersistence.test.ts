@@ -1,4 +1,4 @@
-import {ObsidianAdapter} from "src/externalApi/ObsidianAdapter";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import CachePersistence from "./FileCachePersistence";
 
 describe('CachePersistence', () => {

@@ -1,7 +1,7 @@
 import {App, Modal} from 'obsidian';
 import {MetadataMenuAdapter} from '@metaflow/externalApi/MetadataMenuAdapter';
-import {LogNoticeManager} from 'src/managers/LogNoticeManager';
-import {MetadataMenuField} from 'src/externalApi/types.MetadataMenu';
+import {LogNoticeManager} from '@metaflow/managers/LogNoticeManager';
+import {MetadataMenuField} from '@metaflow/externalApi/types.MetadataMenu';
 
 export class FileClassAvailableFieldsHelpModal extends Modal {
 

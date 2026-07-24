@@ -3,7 +3,7 @@ import type {App, FrontMatterCache} from 'obsidian';
 import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {MetadataMenuField, MetadataMenuPluginInterface} from './types.MetadataMenu';
 import {MetaFlowException} from '@metaflow/MetaFlowException';
-import type {LogNoticeManagerInterface} from 'src/managers/types';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 import {TYPES} from '@metaflow/di/types';
 
 export interface FieldsFileClassAssociation {

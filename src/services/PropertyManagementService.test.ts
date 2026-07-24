@@ -2,9 +2,9 @@ import {TFile} from "obsidian";
 import {PropertyManagementService} from "./PropertyManagementService";
 import {MetaFlowSettings} from "@metaflow/settings/types";
 import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
-import {MetadataMenuAdapter} from "src/externalApi/MetadataMenuAdapter";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import {ScriptContextService} from "./ScriptContextService";
-import {LogNoticeManagerInterface} from "src/managers/types";
+import {LogNoticeManagerInterface} from "@metaflow/managers/types";
 
 describe('PropertyManagementService', () => {
   let propertyManagementService: PropertyManagementService;

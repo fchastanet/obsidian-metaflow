@@ -11,7 +11,7 @@ export class FileFilter {
   constructor(
     @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
     @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter,
-    @inject(TYPES.MetaFlowSettings) private settings: import("src/settings/types").MetaFlowSettings,
+    @inject(TYPES.MetaFlowSettings) private settings: import("@metaflow/settings/types").MetaFlowSettings,
     private launchTime: number = Date.now(),
   ) { }
 
