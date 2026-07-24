@@ -52,6 +52,7 @@ export class MassUpdateMetadataCommand implements SimpleCommand {
       totalFiles,
       `Mass Updating ${totalFiles} files`,
       `Mass Updating ${totalFiles} files in the folder "${directory}"`,
+      this.logNoticeManager,
       async () => {
         // Cancel callback - just close modal
       },

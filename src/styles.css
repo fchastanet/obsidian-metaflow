@@ -139,6 +139,7 @@
   width: 100%;
   background-color: #fff;
   scrollbar-width: thin;
+  user-select: text;
 }
 
 /* -------------------------------------------------- */

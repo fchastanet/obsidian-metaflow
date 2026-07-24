@@ -15,12 +15,14 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
   total: number;
   errorCount: number;
   processFinished: boolean;
+  private logNoticeManager: LogNoticeManagerInterface;
 
   constructor(
     app: App,
     total: number,
     title: string,
     message: string,
+    logNoticeManager: LogNoticeManagerInterface,
     cancelCallback: () => void,
     actionCallback: () => void,
   ) {
@@ -33,6 +35,7 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
     this.processFinished = true;
     this.cancelCallback = cancelCallback;
     this.actionCallback = actionCallback;
+    this.logNoticeManager = logNoticeManager;
     this.containerEl.addClass('metaflow-progress-modal');
 
     this.contentEl.createEl('p', {text: message});
@@ -72,6 +75,14 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
             this.actionCallback();
           });
       })
+      // Copy results to clipboard button
+      .addButton((btn) => {
+        btn
+          .setButtonText('Copy results to clipboard')
+          .onClick(() => {
+            this.copyResultsToClipboardCallback();
+          });
+      })
       // Close button
       .addButton((btn) => {
         this.cancelButton = btn;
@@ -80,6 +91,22 @@ export class ProgressModal extends Modal implements LogNoticeManagerInterface {
           .onClick(this.closeCallback.bind(this))
         ;
       });
+  }
+
+  private copyResultsToClipboardCallback() {
+    const resultsText = this.results.innerText;
+    if (resultsText) {
+      navigator.clipboard.writeText(resultsText)
+        .then(() => {
+          this.logNoticeManager.addInfo('Results copied to clipboard!');
+        })
+        .catch((err) => {
+          console.error('Failed to copy results to clipboard:', err);
+          this.logNoticeManager.addError('Failed to copy results to clipboard!');
+        });
+    } else {
+      this.logNoticeManager.addWarning('No results to copy!');
+    }
   }
 
   open() {
