@@ -1,4 +1,4 @@
-import {App, Notice, Setting} from "obsidian";
+import {App, Setting} from "obsidian";
 import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/settings/types";
 import {SettingsUtils} from "@metaflow/settings/SettingsUtils";
@@ -40,13 +40,22 @@ export class PropertyDefaultValueScriptsSection {
       .setName('Auto-populate from MetadataMenu')
       .setDesc('Automatically populate property scripts from MetadataMenu plugin fileClass definitions');
 
+    const importResultMessage = this.container.createEl('div', {
+      text: '',
+      cls: 'metaflow-settings-content metaflow-settings-import-result-message'
+    });
     metadataMenuImportSetting.addButton(button => {
       this.metadataMenuImportButton = button.buttonEl;
       button
         .setButtonText('📥 Import from MetadataMenu')
         .onClick(async () => {
-          await this.autoPopulatePropertyScriptsFromMetadataMenu();
-          this.displayPropertyScripts(scriptsContainer);
+          const {msg, level} = await this.autoPopulatePropertyScriptsFromMetadataMenu();
+          importResultMessage.setHTMLUnsafe(msg);
+          importResultMessage.removeClass('metaflow-settings-import-result-info');
+          importResultMessage.removeClass('metaflow-settings-import-result-warning');
+          importResultMessage.removeClass('metaflow-settings-import-result-error');
+          importResultMessage.addClass(`metaflow-settings-import-result-${level}`);
+          this.displayPropertyScripts(this.container.querySelector('.scripts-container') as HTMLElement);
         });
     });
 
@@ -96,7 +105,22 @@ export class PropertyDefaultValueScriptsSection {
     return `Used by fileClasses: ${fileClasses.map(fc => `<span class="metaflow-settings-script-class-list-used">${fc}</span>`).join(', ')}`;
   }
 
-  private displayPropertyScripts(container: HTMLElement, selectedFileClass: string = '', searchValue: string = '', showScriptPreview: boolean = true): void {
+  private displayPropertyScripts(
+    container: HTMLElement,
+    options: {
+      selectedFileClass: string;
+      searchValue: string;
+      showScriptPreview: boolean;
+      importResultMessage: string;
+      importResultLevel: 'info' | 'warning' | 'error';
+    } = {
+      selectedFileClass: '',
+      searchValue: '',
+      showScriptPreview: true,
+      importResultMessage: '',
+      importResultLevel: 'info'
+    }
+  ): void {
     container.empty();
 
     const fileClasses: string[] = this.getUniqueFileClasses();
@@ -105,19 +129,16 @@ export class PropertyDefaultValueScriptsSection {
       .slice()
       .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER))
       .filter(script => {
-        if (!selectedFileClass) return true;
-        return script.fileClasses?.includes(selectedFileClass) ?? false;
+        if (!options.selectedFileClass) return true;
+        return script.fileClasses?.includes(options.selectedFileClass) ?? false;
       })
       .filter(script => {
-        if (!searchValue) return true;
-        return script.propertyName?.toLowerCase().includes(searchValue.toLowerCase()) ?? false;
+        if (!options.searchValue) return true;
+        return script.propertyName?.toLowerCase().includes(options.searchValue.toLowerCase()) ?? false;
       });
 
 
     // Filters (by fileClass and search input)
-    let selectedFileClassValue = selectedFileClass;
-    let searchInputValue = searchValue;
-
     const filterSection = new Setting(container)
       .setName('Filter property scripts')
       .setDesc(`Filtering property scripts by fileClass or search by property name`)
@@ -126,7 +147,7 @@ export class PropertyDefaultValueScriptsSection {
     filterSection.controlEl.enterKeyHint = 'search';
     filterSection.controlEl.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
-        this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
+        this.displayPropertyScripts(container, options);
       }
     });
     filterSection.controlEl.classList.add('metaflow-settings-filter-section-controls');
@@ -135,10 +156,10 @@ export class PropertyDefaultValueScriptsSection {
       .setClass('metaflow-settings-component')
       .setName('Show script preview')
       .addToggle(toggle => toggle
-        .setValue(!!showScriptPreview)
+        .setValue(!!options.showScriptPreview)
         .onChange((value) => {
-          showScriptPreview = value;
-          this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
+          options.showScriptPreview = value;
+          this.displayPropertyScripts(container, options);
         })
       )
     ;
@@ -151,10 +172,10 @@ export class PropertyDefaultValueScriptsSection {
           fileClasses.forEach(fileClass => {
             dropdown.addOption(fileClass, fileClass);
           });
-          dropdown.setValue(selectedFileClass);
+          dropdown.setValue(options.selectedFileClass);
         }
         dropdown.onChange((newFileClass) => {
-          selectedFileClassValue = newFileClass;
+          options.selectedFileClass = newFileClass;
         });
       })
     ;
@@ -163,9 +184,9 @@ export class PropertyDefaultValueScriptsSection {
       .addSearch((searchInput) => {
         searchInput
           .setPlaceholder('Search property name...')
-          .setValue(searchValue)
+          .setValue(options.searchValue)
           .onChange((searchValue) => {
-            searchInputValue = searchValue;
+            options.searchValue = searchValue;
           })
         ;
         searchInput.inputEl.classList.add('metaflow-settings-search-input');
@@ -187,7 +208,7 @@ export class PropertyDefaultValueScriptsSection {
         button
           .setButtonText('Filter')
           .onClick(() => {
-            this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
+            this.displayPropertyScripts(container, options);
           });
       })
     new Setting(filterSectionControlsRow2)
@@ -195,7 +216,9 @@ export class PropertyDefaultValueScriptsSection {
       .addButton(button => {
         button.setButtonText('Clear Filters')
           .onClick(() => {
-            this.displayPropertyScripts(container, '', '', showScriptPreview);
+            options.selectedFileClass = '';
+            options.searchValue = '';
+            this.displayPropertyScripts(container, options);
           });
       });
 
@@ -245,7 +268,7 @@ export class PropertyDefaultValueScriptsSection {
       editButton.classList.add('metaflow-settings-script-edit-btn');
 
       // Script preview (extended to 100 characters)
-      if (showScriptPreview) {
+      if (options.showScriptPreview) {
         const classListPreview = scriptDiv.createEl('span');
         classListPreview.innerHTML = this.getClassListPreview(script.fileClasses, fileClasses);
         classListPreview.classList.add('metaflow-settings-script-class-list');
@@ -356,7 +379,7 @@ export class PropertyDefaultValueScriptsSection {
           event.preventDefault();
           script.enabled = !script.enabled;
           await this.onChange();
-          this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
+          this.displayPropertyScripts(container, options);
         });
 
         editButton.addEventListener('click', () => {
@@ -370,7 +393,7 @@ export class PropertyDefaultValueScriptsSection {
           script.script = scriptEditor.getValue();
           await this.onChange();
           scriptEditor.destroy();
-          this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
+          this.displayPropertyScripts(container, options);
         });
 
         cancelButton.addEventListener('click', () => {
@@ -391,7 +414,7 @@ export class PropertyDefaultValueScriptsSection {
         if (originalIdx !== -1) {
           this.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
           await this.onChange();
-          this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
+          this.displayPropertyScripts(container, options);
         }
       });
     });
@@ -410,16 +433,16 @@ export class PropertyDefaultValueScriptsSection {
     }
   }
 
-  private autoPopulatePropertyScriptsFromMetadataMenu() {
+  private autoPopulatePropertyScriptsFromMetadataMenu(): {msg: string, level: 'info' | 'warning' | 'error'} {
     try {
       if (!this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-        new Notice('MetadataMenu plugin not available');
-        return;
+        return {msg: 'MetadataMenu plugin not available', level: 'error'};
       }
 
       const allFields = this.metadataMenuAdapter.getAllFieldsFileClassesAssociation();
 
       let importedCount = 0;
+      let updatedCount = 0;
       for (const [propertyName, fieldData] of Object.entries(allFields)) {
         const {fileClasses} = fieldData;
         // Check if script already exists
@@ -427,6 +450,7 @@ export class PropertyDefaultValueScriptsSection {
           script => script.propertyName === propertyName
         );
 
+        const newFileClasses = fileClasses.sort((a, b) => a.localeCompare(b)); // Sort fileClasses for consistency
         if (!existingScript) {
           const defaultScript = `return "";`;
 
@@ -435,20 +459,37 @@ export class PropertyDefaultValueScriptsSection {
             script: defaultScript,
             enabled: true,
             order: this.settings.propertyDefaultValueScripts.length,
-            fileClasses: fileClasses.sort((a, b) => a.localeCompare(b)) // Sort fileClasses for consistency
+            fileClasses: newFileClasses
           });
           importedCount++;
-        } else {
-          existingScript.fileClasses = fileClasses;
+        } else if (JSON.stringify(existingScript.fileClasses) !== JSON.stringify(newFileClasses)) {
+          existingScript.fileClasses = newFileClasses;
+          updatedCount++;
         }
       }
 
-      this.onChange();
-      new Notice(`Imported ${importedCount} property scripts from MetadataMenu`);
+      // mark all scripts that are not in MetadataMenu as disabled and remove their fileClasses association
+      let disabledCount = 0;
+      this.settings.propertyDefaultValueScripts.forEach(script => {
+        if (!allFields[script.propertyName]) {
+          script.enabled = false;
+          script.fileClasses = [];
+          disabledCount++;
+        }
+      });
 
+      this.onChange();
+      let msg = `Imported ${importedCount} property scripts from MetadataMenu`;
+      if (updatedCount > 0) {
+        msg += `<br>Updated ${updatedCount} property scripts with new fileClasses`;
+      }
+      if (disabledCount > 0) {
+        msg += `<br>Disabled ${disabledCount} properties that were not found in MetadataMenu`;
+      }
+      return {msg, level: 'info'};
     } catch (error) {
       console.error('Error importing from MetadataMenu:', error);
-      new Notice('Error importing property scripts from MetadataMenu');
+      return {msg: 'Error importing property scripts from MetadataMenu', level: 'error'};
     }
   }
 

@@ -213,6 +213,26 @@ input.metaflow-settings-search-input {
   border-bottom-color: var(--text-accent);
 }
 
+/* message styles */
+.metaflow-settings-import-result-message {
+  margin-top: 5px;
+  font-size: 12px;
+  margin: 20px;
+}
+
+.metaflow-settings-import-result-info {
+  color: var(--text-muted);
+}
+
+.metaflow-settings-import-result-warning {
+  color: var(--text-warning);
+}
+
+.metaflow-settings-import-result-error {
+  color: var(--text-error);
+}
+
+/* Settings content styles */
 .metaflow-settings-content {
   padding: 0 8px;
 }
