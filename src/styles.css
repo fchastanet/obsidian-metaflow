@@ -343,6 +343,23 @@ input.metaflow-settings-search-input {
   white-space: pre;
 }
 
+.metaflow-settings-script-class-list {
+  width: 100%;
+  padding: 0 13px 5px 37px;
+  text-align: left;
+}
+
+.metaflow-settings-script-class-list-except {
+  color: var(--text-error);
+  white-space: nowrap;
+}
+
+.metaflow-settings-script-class-list-used {
+  color: var(--text-success);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
 .metaflow-settings-note-title-template-toolbar {
   display: flex;
   width: 100%;

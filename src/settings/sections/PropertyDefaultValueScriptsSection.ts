@@ -69,7 +69,34 @@ export class PropertyDefaultValueScriptsSection {
     return uniqueFileClasses;
   }
 
-  private displayPropertyScripts(container: HTMLElement, selectedFileClass: string = '', searchValue: string = '', showScriptPreview: boolean = false): void {
+  /**
+   * If fileClasses is undefined or empty
+   *    returns a message indicating that the property script is not used by any fileClasses.
+   * If all available fileClasses are associated with the property script
+   *    returns a message indicating that the property script is used by all fileClasses.
+   * if most of the available fileClasses are associated with the property script
+   *   returns a message indicating that the property script is used by all fileClasses except a few.
+   * Otherwise, returns a message listing the specific fileClasses associated with the property script.
+   * @param {string[] | undefined} fileClasses The list of file classes associated with the property script
+   * @param {string[]} allFileClasses The list of all available file classes
+   * @returns A formatted HTML string previewing the file classes
+   */
+  private getClassListPreview(fileClasses: string[] | undefined, allFileClasses: string[]): string {
+    if (!fileClasses || fileClasses.length === 0) {
+      return '<b>Not used by any fileClasses</b>';
+    }
+    if (fileClasses.length === allFileClasses.length) {
+      return '<span class="metaflow-settings-script-class-list-used">Used by all fileClasses</span>';
+    }
+    if (fileClasses.length > allFileClasses.length / 2) {
+      const exceptClasses = allFileClasses.filter(fc => !fileClasses.includes(fc));
+      // each fileClass is wrapped in a span with class metaflow-settings-script-class-list-except
+      return `Used by <span class="metaflow-settings-script-class-list-used">all</span> fileClasses except: ${exceptClasses.map(fc => `<span class="metaflow-settings-script-class-list-except">${fc}</span>`).join(', ')}`;
+    }
+    return `Used by fileClasses: ${fileClasses.map(fc => `<span class="metaflow-settings-script-class-list-used">${fc}</span>`).join(', ')}`;
+  }
+
+  private displayPropertyScripts(container: HTMLElement, selectedFileClass: string = '', searchValue: string = '', showScriptPreview: boolean = true): void {
     container.empty();
 
     const fileClasses: string[] = this.getUniqueFileClasses();
@@ -158,7 +185,7 @@ export class PropertyDefaultValueScriptsSection {
       .setClass('metaflow-settings-component')
       .addButton(button => {
         button
-          .setButtonText('Search')
+          .setButtonText('Filter')
           .onClick(() => {
             this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
           });
@@ -219,6 +246,10 @@ export class PropertyDefaultValueScriptsSection {
 
       // Script preview (extended to 100 characters)
       if (showScriptPreview) {
+        const classListPreview = scriptDiv.createEl('span');
+        classListPreview.innerHTML = this.getClassListPreview(script.fileClasses, fileClasses);
+        classListPreview.classList.add('metaflow-settings-script-class-list');
+
         // Script preview (extended to 100 characters)
         const scriptPreview = scriptDiv.createEl('span');
         const scriptPreviewText = script.script.replace(/\n/g, ' ').substring(0, 100);
@@ -306,11 +337,13 @@ export class PropertyDefaultValueScriptsSection {
         // Toggle between read-only and edit mode
         const toggleEditMode = (editMode: boolean) => {
           if (editMode) {
+            classListPreview.classList.add('metaflow-settings-hide');
             scriptPreview.classList.add('metaflow-settings-hide');
             readOnlyDiv.classList.add('metaflow-settings-hide');
             editDiv.classList.remove('metaflow-settings-hide');
             this.dragDropHelper.makeNonDraggable(scriptDiv);
           } else {
+            classListPreview.classList.remove('metaflow-settings-hide');
             scriptPreview.classList.remove('metaflow-settings-hide');
             readOnlyDiv.classList.remove('metaflow-settings-hide');
             editDiv.classList.add('metaflow-settings-hide');
@@ -323,7 +356,7 @@ export class PropertyDefaultValueScriptsSection {
           event.preventDefault();
           script.enabled = !script.enabled;
           await this.onChange();
-          this.displayPropertyScripts(container);
+          this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
         });
 
         editButton.addEventListener('click', () => {
@@ -337,7 +370,7 @@ export class PropertyDefaultValueScriptsSection {
           script.script = scriptEditor.getValue();
           await this.onChange();
           scriptEditor.destroy();
-          this.displayPropertyScripts(container);
+          this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
         });
 
         cancelButton.addEventListener('click', () => {
@@ -358,7 +391,7 @@ export class PropertyDefaultValueScriptsSection {
         if (originalIdx !== -1) {
           this.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
           await this.onChange();
-          this.displayPropertyScripts(container);
+          this.displayPropertyScripts(container, selectedFileClassValue, searchInputValue, showScriptPreview);
         }
       });
     });
@@ -376,7 +409,6 @@ export class PropertyDefaultValueScriptsSection {
       this.metadataMenuImportButton.title = 'Import property scripts from MetadataMenu plugin';
     }
   }
-
 
   private autoPopulatePropertyScriptsFromMetadataMenu() {
     try {
