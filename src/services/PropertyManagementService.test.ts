@@ -22,13 +22,15 @@ describe('PropertyManagementService', () => {
           propertyName: 'author',
           script: 'return "Default Author";',
           enabled: true,
-          order: 1
+          order: 1,
+          new: false
         },
         {
           propertyName: 'tags',
           script: 'return ["default-tag"];',
           enabled: true,
-          order: 2
+          order: 2,
+          new: false
         }
       ]
     };
@@ -177,13 +179,15 @@ describe('PropertyManagementService', () => {
           propertyName: 'second',
           script: 'return "second";',
           enabled: true,
-          order: 2
+          order: 2,
+          new: false
         },
         {
           propertyName: 'first',
           script: 'return "first";',
           enabled: true,
-          order: 1
+          order: 1,
+          new: false
         }
       ];
 
@@ -209,7 +213,8 @@ describe('PropertyManagementService', () => {
         propertyName: 'nonExistentField',
         script: 'return "value";',
         enabled: true,
-        order: 3
+        order: 3,
+        new: false
       });
 
       const frontmatter = {};

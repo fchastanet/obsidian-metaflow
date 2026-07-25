@@ -363,6 +363,20 @@ input.metaflow-settings-search-input {
   white-space: pre;
 }
 
+.metaflow-settings-script-new {
+  position: relative;
+}
+
+.metaflow-settings-script-new::before {
+  /* Solid star: ★ */
+  content: "\2605";
+  color: gold;
+  font-size: 24px;
+  position: absolute;
+  left: 11px;
+  top: 47px;
+}
+
 .metaflow-settings-script-class-list {
   width: 100%;
   padding: 0 13px 5px 37px;

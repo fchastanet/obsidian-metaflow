@@ -21,6 +21,7 @@ export interface PropertyDefaultValueScript {
   propertyName: string;
   script: string;
   enabled: boolean;
+  new: boolean; // Indicates if this is a newly added script that hasn't been saved yet
   order?: number;
   fileClasses?: string[]; // Optional array of file classes this script applies to
 }

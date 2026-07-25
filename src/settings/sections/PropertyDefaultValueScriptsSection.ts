@@ -226,6 +226,9 @@ export class PropertyDefaultValueScriptsSection {
     orderedProperties.forEach((script, index) => {
       const scriptDiv = container.createEl('div', {cls: 'setting-item'});
       scriptDiv.classList.add('metaflow-settings-script');
+      if (script.new) {
+        scriptDiv.classList.add('metaflow-settings-script-new');
+      }
 
       // Add drag and drop functionality using helper
       this.dragDropHelper.makeDraggable(scriptDiv, index);
@@ -378,6 +381,7 @@ export class PropertyDefaultValueScriptsSection {
         enabledLabelPreview.addEventListener('click', async (event) => {
           event.preventDefault();
           script.enabled = !script.enabled;
+          script.new = false; // Mark as not new when toggled
           await this.onChange();
           this.displayPropertyScripts(container, options);
         });
@@ -391,6 +395,7 @@ export class PropertyDefaultValueScriptsSection {
           script.propertyName = propertyInput.value;
           script.enabled = enabledToggle.checked;
           script.script = scriptEditor.getValue();
+          script.new = false; // Mark as not new when edited
           await this.onChange();
           scriptEditor.destroy();
           this.displayPropertyScripts(container, options);
@@ -457,24 +462,26 @@ export class PropertyDefaultValueScriptsSection {
           this.settings.propertyDefaultValueScripts.push({
             propertyName: propertyName,
             script: defaultScript,
-            enabled: true,
+            enabled: false,
+            new: true,
             order: this.settings.propertyDefaultValueScripts.length,
             fileClasses: newFileClasses
           });
           importedCount++;
         } else if (JSON.stringify(existingScript.fileClasses) !== JSON.stringify(newFileClasses)) {
           existingScript.fileClasses = newFileClasses;
+          existingScript.new = false; // Mark as not new when updated
           updatedCount++;
         }
       }
 
       // mark all scripts that are not in MetadataMenu as disabled and remove their fileClasses association
-      let disabledCount = 0;
+      const removedProperties: string[] = [];
       this.settings.propertyDefaultValueScripts.forEach(script => {
         if (!allFields[script.propertyName]) {
           script.enabled = false;
           script.fileClasses = [];
-          disabledCount++;
+          removedProperties.push(script.propertyName);
         }
       });
 
@@ -483,8 +490,8 @@ export class PropertyDefaultValueScriptsSection {
       if (updatedCount > 0) {
         msg += `<br>Updated ${updatedCount} property scripts with new fileClasses`;
       }
-      if (disabledCount > 0) {
-        msg += `<br>Disabled ${disabledCount} properties that were not found in MetadataMenu`;
+      if (removedProperties.length > 0) {
+        msg += `<br>Disabled ${removedProperties.length} properties that were not found in MetadataMenu: ${removedProperties.join(', ')}`;
       }
       return {msg, level: 'info'};
     } catch (error) {

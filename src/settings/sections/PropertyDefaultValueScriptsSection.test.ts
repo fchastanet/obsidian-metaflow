@@ -215,11 +215,11 @@ describe('PropertyDefaultValueScriptsSection', () => {
       // Should still have only one script (the existing one)
       expect(mockPlugin.settings.propertyDefaultValueScripts).toEqual(
         [
-          {"enabled": true, "fileClasses": ["book"], "order": 0, "propertyName": "title", "script": "return \"existing\";"},
-          {"enabled": true, "fileClasses": ["book"], "order": 1, "propertyName": "author", "script": "return \"\";"},
-          {"enabled": true, "fileClasses": ["book"], "order": 2, "propertyName": "isbn", "script": "return \"\";"},
-          {"enabled": true, "fileClasses": ["article"], "order": 3, "propertyName": "publication", "script": "return \"\";"},
-          {"enabled": true, "fileClasses": ["article"], "order": 4, "propertyName": "date", "script": "return \"\";"}
+          {"new": false, "enabled": true, "fileClasses": ["book"], "order": 0, "propertyName": "title", "script": "return \"existing\";"},
+          {"new": true, "enabled": false, "fileClasses": ["book"], "order": 1, "propertyName": "author", "script": "return \"\";"},
+          {"new": true, "enabled": false, "fileClasses": ["book"], "order": 2, "propertyName": "isbn", "script": "return \"\";"},
+          {"new": true, "enabled": false, "fileClasses": ["article"], "order": 3, "propertyName": "publication", "script": "return \"\";"},
+          {"new": true, "enabled": false, "fileClasses": ["article"], "order": 4, "propertyName": "date", "script": "return \"\";"}
         ]
       );
       expect(mockPlugin.settings.propertyDefaultValueScripts[0].script).toBe('return "existing";');
