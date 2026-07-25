@@ -19,7 +19,20 @@ jest.mock('obsidian', () => ({
     setDesc: jest.fn().mockReturnThis(),
     addToggle: jest.fn().mockReturnThis(),
     addButton: jest.fn().mockReturnThis(),
-    addTextArea: jest.fn().mockReturnThis()
+    addTextArea: jest.fn().mockReturnThis(),
+    setClass: jest.fn().mockReturnThis(),
+    addDropdown: jest.fn().mockReturnThis(),
+    addSearch: jest.fn().mockReturnThis(),
+    controlEl: {
+      createEl: jest.fn().mockReturnThis(),
+      addEventListener: jest.fn(),
+      enterKeyHint: '',
+      style: {},
+      disabled: false,
+      checked: false,
+      value: '',
+      classList: new Set(),
+    }
   })),
   Notice: jest.fn()
 }));
@@ -236,7 +249,8 @@ describe('PropertyDefaultValueScriptsSection', () => {
             value: ''
           }),
           style: {}
-        })
+        }),
+        setClass: jest.fn().mockReturnThis(),
       };
 
       mockPlugin.settings.propertyDefaultValueScripts = [];

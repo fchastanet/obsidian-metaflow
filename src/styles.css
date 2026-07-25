@@ -146,6 +146,45 @@
 /* Meta Flow Settings                                 */
 /* -------------------------------------------------- */
 
+/* Filter section styles */
+.metaflow-settings-filter-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+}
+
+.metaflow-settings-filter-section>.setting-item-info {
+  width: 100%;
+  padding-left: 0.5em;
+}
+
+.metaflow-settings-filter-section .setting-item {
+  padding: 0 10px 0 0 !important;
+}
+
+.metaflow-settings-filter-section-controls {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.metaflow-settings-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.metaflow-settings-row-right {
+  justify-content: flex-end;
+}
+
+input.metaflow-settings-search-input {
+  width: 200px;
+}
+
+/* Tabs styles */
 .metaflow-settings-tabs {
   display: flex;
   border-bottom: 2px solid var(--background-modifier-border);
@@ -381,6 +420,7 @@
   margin-left: 72px;
   padding-left: 10px;
   white-space: pre;
+  text-wrap: auto;
   padding-right: 200px;
   border-left: 1px solid var(--blockquote-border-color);
 }
