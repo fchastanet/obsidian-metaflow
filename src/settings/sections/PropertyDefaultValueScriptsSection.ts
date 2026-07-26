@@ -45,7 +45,7 @@ export class PropertyDefaultValueScriptsSection {
   private async changeSettings(options: Options): Promise<void> {
     this.clearEventListeners();
     await this.onChange();
-    this.displayPropertyScripts(this.container, options);
+    this.displayPropertyScripts(this.container.getElementsByClassName('scripts-container')[0] as HTMLElement, options);
   }
 
   render() {
