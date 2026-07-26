@@ -11,14 +11,11 @@ import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
 import {CompletionsHelpModal} from "@metaflow/settings/modals/CompletionsHelpModal";
 import {TitleTemplateLinter, ValidationResult} from "../../linters/TitleTemplateLinter";
 import {TitleScriptLinter} from "../../linters/TitleScriptLinter";
-import {DragDropHelper} from "@metaflow/settings/DragDropHelper";
 
 export class FolderFileClassMappingsSection {
   private templaterImportButton?: HTMLButtonElement;
   private templateLinter: TitleTemplateLinter;
   private scriptLinter: TitleScriptLinter;
-  private folderMappingDragDropHelper: DragDropHelper<FolderFileClassMapping>;
-  private templateDragDropHelper: (element: HTMLElement, childIndex: number, parentIndex: number) => void;
 
   constructor(
     private app: App,
@@ -32,33 +29,6 @@ export class FolderFileClassMappingsSection {
   ) {
     this.templateLinter = new TitleTemplateLinter();
     this.scriptLinter = new TitleScriptLinter();
-
-    // Initialize drag and drop helper for folder mappings
-    this.folderMappingDragDropHelper = new DragDropHelper<FolderFileClassMapping>({
-      container: this.container,
-      items: this.folderFileClassMappings,
-      onReorder: this.onChange,
-      refreshDisplay: () => {
-        const mappingsContainer = this.container.querySelector('.mappings-container') as HTMLElement;
-        if (mappingsContainer) {
-          this.displayFolderMappings(mappingsContainer);
-        }
-      }
-      // No order functions since this uses simple array ordering
-    });
-
-    // Initialize drag and drop helper for templates
-    this.templateDragDropHelper = DragDropHelper.createNestedArrayHelper(
-      this.folderFileClassMappings,
-      (mapping) => mapping.noteTitleTemplates,
-      this.onChange,
-      () => {
-        const mappingsContainer = this.container.querySelector('.mappings-container') as HTMLElement;
-        if (mappingsContainer) {
-          this.displayFolderMappings(mappingsContainer);
-        }
-      }
-    );
   }
 
   render() {
@@ -193,7 +163,6 @@ export class FolderFileClassMappingsSection {
 
   private displayFolderMapping(container: HTMLElement, mapping: FolderFileClassMapping, index: number): void {
     const mappingDiv = container.createEl('div', {cls: 'metaflow-settings-mapping-row metaflow-settings-grab'});
-    this.folderMappingDragDropHelper.makeDraggable(mappingDiv, index);
     this.makeFolderMappingDefaultFields(container, mapping, mappingDiv, index);
 
     const templateSection = mappingDiv.createDiv({cls: 'metaflow-note-title-template-section'});
@@ -415,9 +384,6 @@ export class FolderFileClassMappingsSection {
 
     mapping.noteTitleTemplates.forEach((template: NoteTitleTemplate, templateIndex: number) => {
       const templateRow = container.createDiv({cls: 'metaflow-settings-template-row'});
-
-      // Add drag and drop functionality for templates
-      this.templateDragDropHelper(templateRow, templateIndex, mappingIndex);
 
       // Drag handle
       templateRow.createEl('span', {cls: 'drag-handle', text: '⋮⋮', attr: {title: 'You can drag and drop this element to rearrange the order of the title templates.'}});
