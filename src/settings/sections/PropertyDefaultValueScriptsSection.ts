@@ -1,13 +1,30 @@
 import {App, Setting} from "obsidian";
 import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
-import {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/settings/types";
+import {MetaFlowSettings} from "@metaflow/settings/types";
 import {SettingsUtils} from "@metaflow/settings/SettingsUtils";
 import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
-import {DragDropHelper} from "@metaflow/settings/DragDropHelper";
+
+type Options =  {
+  selectedFileClass: string;
+  searchValue: string;
+  showScriptPreview: boolean;
+  currentSelectedScriptIndex?: number;
+  importResultMessage: string;
+  importResultLevel: 'info' | 'warning' | 'error';
+};
+
+const defaultOptions: Options = {
+  selectedFileClass: '',
+  searchValue: '',
+  showScriptPreview: true,
+  currentSelectedScriptIndex: undefined,
+  importResultMessage: '',
+  importResultLevel: 'info'
+};
 
 export class PropertyDefaultValueScriptsSection {
   private metadataMenuImportButton: HTMLButtonElement | null = null;
-  private dragDropHelper: DragDropHelper<PropertyDefaultValueScript>;
+  private eventListeners: { element: HTMLElement, event: string, listener: EventListenerOrEventListenerObject }[] = [];
 
   constructor(
     private app: App,
@@ -16,20 +33,19 @@ export class PropertyDefaultValueScriptsSection {
     private metadataMenuAdapter: MetadataMenuAdapter,
     private onChange: () => void
   ) {
-    // Initialize drag and drop helper
-    this.dragDropHelper = new DragDropHelper<PropertyDefaultValueScript>({
-      container: this.container,
-      items: this.settings.propertyDefaultValueScripts,
-      onReorder: this.onChange,
-      refreshDisplay: () => {
-        const scriptsContainer = this.container.querySelector('.scripts-container') as HTMLElement;
-        if (scriptsContainer) {
-          this.displayPropertyScripts(scriptsContainer);
-        }
-      },
-      getOrder: (script) => script.order ?? Number.MAX_SAFE_INTEGER,
-      setOrder: (script, order) => {script.order = order;}
-    });
+  }
+
+  private clearEventListeners(): void {
+    for (const {element, event, listener} of this.eventListeners) {
+      element.removeEventListener(event, listener);
+    }
+    this.eventListeners = [];
+  }
+
+  private async changeSettings(options: Options): Promise<void> {
+    this.clearEventListeners();
+    await this.onChange();
+    this.displayPropertyScripts(this.container, options);
   }
 
   render() {
@@ -105,21 +121,13 @@ export class PropertyDefaultValueScriptsSection {
     return `Used by fileClasses: ${fileClasses.map(fc => `<span class="metaflow-settings-script-class-list-used">${fc}</span>`).join(', ')}`;
   }
 
+  private isFiltered(options: Options): boolean {
+    return !!options.selectedFileClass || !!options.searchValue;
+  }
+
   private displayPropertyScripts(
     container: HTMLElement,
-    options: {
-      selectedFileClass: string;
-      searchValue: string;
-      showScriptPreview: boolean;
-      importResultMessage: string;
-      importResultLevel: 'info' | 'warning' | 'error';
-    } = {
-      selectedFileClass: '',
-      searchValue: '',
-      showScriptPreview: true,
-      importResultMessage: '',
-      importResultLevel: 'info'
-    }
+    options: Options = defaultOptions
   ): void {
     container.empty();
 
@@ -196,9 +204,12 @@ export class PropertyDefaultValueScriptsSection {
     const filterSectionControlsRow2 = filterSection.controlEl.createEl('div', {
       cls: 'metaflow-settings-row metaflow-settings-row-right'
     });
+    const msg = this.isFiltered(options) ?
+      `Order disabled - Filtered ${orderedProperties.length}/${this.settings.propertyDefaultValueScripts.length}` :
+      `Total ${orderedProperties.length}`;
     filterSectionControlsRow2.createEl('div',
       {
-        text: `Filtered ${orderedProperties.length}/${this.settings.propertyDefaultValueScripts.length}`,
+        text: msg,
         cls: 'metaflow-settings-component'
       }
     );
@@ -223,15 +234,17 @@ export class PropertyDefaultValueScriptsSection {
       });
 
     // Display scripts in order, filtered by fileClass if applicable
+    let scriptDivToScrollIntoView: HTMLDivElement | null = null;
     orderedProperties.forEach((script, index) => {
       const scriptDiv = container.createEl('div', {cls: 'setting-item'});
       scriptDiv.classList.add('metaflow-settings-script');
       if (script.new) {
         scriptDiv.classList.add('metaflow-settings-script-new');
       }
-
-      // Add drag and drop functionality using helper
-      this.dragDropHelper.makeDraggable(scriptDiv, index);
+      if (options.currentSelectedScriptIndex !== undefined && options.currentSelectedScriptIndex === index) {
+        scriptDiv.classList.add('metaflow-settings-script-selected');
+        scriptDivToScrollIntoView = scriptDiv;
+      }
 
       // Create read-only view
       const readOnlyDiv = scriptDiv.createEl('div', {cls: 'property-script-readonly'});
@@ -269,6 +282,41 @@ export class PropertyDefaultValueScriptsSection {
       // Edit button (aligned to right)
       const editButton = readOnlyDiv.createEl('button', {text: '✏️ Edit'});
       editButton.classList.add('metaflow-settings-script-edit-btn');
+
+      // order buttons (up and down) for reordering scripts, only if not filtered
+      if (!this.isFiltered(options)) {
+        // Up button for reordering
+        const upButton = readOnlyDiv.createEl('button', {
+          text: 'V',
+          cls: 'metaflow-settings-up-btn',
+          title: 'Move up',
+          attr: {
+            'disabled': index === 0 ? 'true' : null
+          }
+        });
+        const upButtonListener = async () => {
+          this.orderButtonListener(upButton, index, orderedProperties, scriptDiv, container, options, false);
+        };
+        upButton.addEventListener('click', upButtonListener);
+        this.eventListeners.push({element: upButton, event: 'click', listener: upButtonListener});
+
+        // Down button for reordering
+        const downButton = readOnlyDiv.createEl(
+          'button', {
+            text: 'V',
+            cls: 'metaflow-settings-down-btn',
+            title: 'Move down',
+            attr: {
+              'disabled': index === orderedProperties.length - 1 ? 'true' : null
+            }
+          }
+        );
+        const downButtonListener = async () => {
+          this.orderButtonListener(downButton, index, orderedProperties, scriptDiv, container, options, true);
+        }
+        downButton.addEventListener('click', downButtonListener);
+        this.eventListeners.push({element: downButton, event: 'click', listener: downButtonListener});
+      }
 
       // Script preview (extended to 100 characters)
       if (options.showScriptPreview) {
@@ -367,13 +415,11 @@ export class PropertyDefaultValueScriptsSection {
             scriptPreview.classList.add('metaflow-settings-hide');
             readOnlyDiv.classList.add('metaflow-settings-hide');
             editDiv.classList.remove('metaflow-settings-hide');
-            this.dragDropHelper.makeNonDraggable(scriptDiv);
           } else {
             classListPreview.classList.remove('metaflow-settings-hide');
             scriptPreview.classList.remove('metaflow-settings-hide');
             readOnlyDiv.classList.remove('metaflow-settings-hide');
             editDiv.classList.add('metaflow-settings-hide');
-            this.dragDropHelper.makeDraggable(scriptDiv, index);
           }
         };
 
@@ -382,7 +428,7 @@ export class PropertyDefaultValueScriptsSection {
           event.preventDefault();
           script.enabled = !script.enabled;
           script.new = false; // Mark as not new when toggled
-          await this.onChange();
+          await this.changeSettings(options);
           this.displayPropertyScripts(container, options);
         });
 
@@ -396,7 +442,7 @@ export class PropertyDefaultValueScriptsSection {
           script.enabled = enabledToggle.checked;
           script.script = scriptEditor.getValue();
           script.new = false; // Mark as not new when edited
-          await this.onChange();
+          await this.changeSettings(options);
           scriptEditor.destroy();
           this.displayPropertyScripts(container, options);
         });
@@ -418,10 +464,77 @@ export class PropertyDefaultValueScriptsSection {
         const originalIdx = this.settings.propertyDefaultValueScripts.indexOf(script);
         if (originalIdx !== -1) {
           this.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
-          await this.onChange();
+          await this.changeSettings(options);
           this.displayPropertyScripts(container, options);
         }
       });
+    });
+    if (scriptDivToScrollIntoView) {
+      (scriptDivToScrollIntoView as HTMLElement).scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+  }
+
+  private removeSelectedScriptScript(container: HTMLElement): void {
+    const allScriptDivs = container.querySelectorAll('.metaflow-settings-script-selected');
+    allScriptDivs.forEach(div => div.classList.remove('metaflow-settings-script-selected'));
+  }
+
+  private async orderButtonListener(
+    button: HTMLButtonElement,
+    index: number,
+    orderedProperties: typeof this.settings.propertyDefaultValueScripts,
+    scriptDiv: HTMLDivElement,
+    container: HTMLElement,
+    options: Options,
+    moveDown: boolean
+  ): Promise<void> {
+    this.removeSelectedScriptScript(container);
+    const script = orderedProperties[index];
+    const isSortable = moveDown ? index < orderedProperties.length : index > 0;
+    if (isSortable) {
+      const nextScript = moveDown ? orderedProperties[index + 1] : orderedProperties[index - 1];
+      const nextDivPosition = moveDown ? scriptDiv.nextSibling?.nextSibling : scriptDiv.previousSibling;
+      const currentOrder = script.order ?? Number.MAX_SAFE_INTEGER;
+      const nextOrder = nextScript.order ?? Number.MAX_SAFE_INTEGER;
+      script.order = nextOrder;
+      nextScript.order = currentOrder;
+      options.currentSelectedScriptIndex = moveDown ? index + 1 : index - 1; // Update the selected script index to the new position
+      await this.onChange();
+      // move the div to the new position in the DOM
+      scriptDiv.parentNode?.insertBefore(scriptDiv, nextDivPosition || null);
+      scriptDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
+      scriptDiv.classList.add('metaflow-settings-script-selected');
+      // Refresh the display to update the order numbers and button states
+      this.updateScriptOrderDisplay(container);
+      this.updateScriptButtonStates(container, orderedProperties);
+    }
+  }
+
+  private updateScriptOrderDisplay(container: HTMLElement): void {
+    const scriptDivs = container.querySelectorAll('.metaflow-settings-script');
+    scriptDivs.forEach((scriptDiv, index) => {
+      const orderSpan = scriptDiv.querySelector('.metaflow-settings-script-order');
+      if (orderSpan) {
+        orderSpan.textContent = `#${index + 1}`;
+      }
+      const itemOrder = scriptDiv.querySelector('.setting-item-order span');
+      if (itemOrder) {
+        itemOrder.textContent = `Order: ${index + 1}`;
+      }
+    });
+  }
+
+  private updateScriptButtonStates(container: HTMLElement, orderedProperties: typeof this.settings.propertyDefaultValueScripts): void {
+    const scriptDivs = container.querySelectorAll('.metaflow-settings-script');
+    scriptDivs.forEach((scriptDiv, index) => {
+      const downButton = scriptDiv.querySelector('.metaflow-settings-down-btn') as HTMLButtonElement;
+      const upButton = scriptDiv.querySelector('.metaflow-settings-up-btn') as HTMLButtonElement;
+      if (downButton) {
+        downButton.disabled = index === orderedProperties.length - 1;
+      }
+      if (upButton) {
+        upButton.disabled = index === 0;
+      }
     });
   }
 
@@ -485,7 +598,7 @@ export class PropertyDefaultValueScriptsSection {
         }
       });
 
-      this.onChange();
+      this.changeSettings(defaultOptions); // Refresh the display after import
       let msg = `Imported ${importedCount} property scripts from MetadataMenu`;
       if (updatedCount > 0) {
         msg += `<br>Updated ${updatedCount} property scripts with new fileClasses`;

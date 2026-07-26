@@ -146,6 +146,10 @@
 /* Meta Flow Settings                                 */
 /* -------------------------------------------------- */
 
+.metaflow-settings-content {
+  padding: 0 8px;
+}
+
 /* Filter section styles */
 .metaflow-settings-filter-section {
   display: flex;
@@ -233,10 +237,6 @@ input.metaflow-settings-search-input {
 }
 
 /* Settings content styles */
-.metaflow-settings-content {
-  padding: 0 8px;
-}
-
 .metaflow-settings-icon {
   background-image: url("./assets/icon.png");
   float: left;
@@ -622,8 +622,37 @@ input.metaflow-settings-search-input {
 }
 
 /* -------------------------------------------------- */
-/* Drag & Drop                                        */
+/* Scripts order                                      */
 /* -------------------------------------------------- */
+.metaflow-settings-up-btn,
+.metaflow-settings-down-btn {
+  border: 1px solid var(--tag-border-color);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 15px;
+}
+
+.metaflow-settings-up-btn:hover,
+.metaflow-settings-down-btn:hover {
+  background-color: buttonface;
+}
+
+.metaflow-settings-up-btn {
+  transform: rotate(180deg);
+}
+
+.metaflow-settings-script-selected {
+  background-color: var(--background-modifier-hover);
+}
+
+.metaflow-settings-down-btn {
+  background-image: var(--data-svg-icon-down);
+}
+
 .metaflow-settings-drag-handle-not-allowed {
   color: var(--text-error);
   cursor: not-allowed;

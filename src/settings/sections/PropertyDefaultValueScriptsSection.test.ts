@@ -179,6 +179,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
       ];
       propertyDefaultValueScriptsSection = getPropertyDefaultValueScriptsSection();
 
+      propertyDefaultValueScriptsSection['changeSettings'] = jest.fn();
       propertyDefaultValueScriptsSection['autoPopulatePropertyScriptsFromMetadataMenu']();
 
       // Should have imported unique properties
@@ -200,7 +201,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
       expect(authorScript).toBeDefined();
       expect(authorScript?.script).toContain('return "";');
 
-      expect(propertyDefaultValueScriptsSection['onChange']).toHaveBeenCalled();
+      expect(propertyDefaultValueScriptsSection['changeSettings']).toHaveBeenCalled();
     });
 
     test('should not duplicate existing property scripts', async () => {
@@ -209,6 +210,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
         {propertyName: 'title', script: 'return "existing";', enabled: true, order: 0}
       ];
       propertyDefaultValueScriptsSection = getPropertyDefaultValueScriptsSection();
+      propertyDefaultValueScriptsSection['changeSettings'] = jest.fn();
 
       await propertyDefaultValueScriptsSection['autoPopulatePropertyScriptsFromMetadataMenu']();
 
@@ -223,6 +225,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
         ]
       );
       expect(mockPlugin.settings.propertyDefaultValueScripts[0].script).toBe('return "existing";');
+      expect(propertyDefaultValueScriptsSection['changeSettings']).toHaveBeenCalled();
     });
 
     test('should handle missing MetadataMenu plugin gracefully', async () => {
