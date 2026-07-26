@@ -7,7 +7,7 @@ import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
 type Options =  {
   selectedFileClass: string;
   searchValue: string;
-  showScriptPreview: boolean;
+  showScriptDetails: boolean;
   currentSelectedScriptIndex?: number;
   importResultMessage: string;
   importResultLevel: 'info' | 'warning' | 'error';
@@ -16,7 +16,7 @@ type Options =  {
 const defaultOptions: Options = {
   selectedFileClass: '',
   searchValue: '',
-  showScriptPreview: true,
+  showScriptDetails: true,
   currentSelectedScriptIndex: undefined,
   importResultMessage: '',
   importResultLevel: 'info'
@@ -162,12 +162,25 @@ export class PropertyDefaultValueScriptsSection {
     const filterSectionControlsRow1 = filterSection.controlEl.createEl('div', {cls: 'metaflow-settings-row'});
     new Setting(filterSectionControlsRow1)
       .setClass('metaflow-settings-component')
-      .setName('Show script preview')
+      .setName('Show script details')
       .addToggle(toggle => toggle
-        .setValue(!!options.showScriptPreview)
+        .setValue(!!options.showScriptDetails)
         .onChange((value) => {
-          options.showScriptPreview = value;
-          this.displayPropertyScripts(container, options);
+          options.showScriptDetails = value;
+          container.querySelectorAll('.metaflow-settings-script-preview').forEach(preview => {
+            if (value) {
+              preview.classList.remove('metaflow-settings-hide');
+            } else {
+              preview.classList.add('metaflow-settings-hide');
+            }
+          });
+          container.querySelectorAll('.metaflow-settings-script-class-list').forEach(preview => {
+            if (value) {
+              preview.classList.remove('metaflow-settings-hide');
+            } else {
+              preview.classList.add('metaflow-settings-hide');
+            }
+          });
         })
       )
     ;
@@ -222,6 +235,7 @@ export class PropertyDefaultValueScriptsSection {
             this.displayPropertyScripts(container, options);
           });
       })
+    ;
     new Setting(filterSectionControlsRow2)
       .setClass('metaflow-settings-component')
       .addButton(button => {
@@ -319,145 +333,142 @@ export class PropertyDefaultValueScriptsSection {
       }
 
       // Script preview (extended to 100 characters)
-      if (options.showScriptPreview) {
-        const classListPreview = scriptDiv.createEl('span');
-        classListPreview.innerHTML = this.getClassListPreview(script.fileClasses, fileClasses);
-        classListPreview.classList.add('metaflow-settings-script-class-list');
+      const classListPreview = scriptDiv.createEl('span', {cls: 'metaflow-settings-script-class-list'});
+      classListPreview.innerHTML = this.getClassListPreview(script.fileClasses, fileClasses);
 
-        // Script preview (extended to 100 characters)
-        const scriptPreview = scriptDiv.createEl('span');
-        const scriptPreviewText = script.script.replace(/\n/g, ' ').substring(0, 100);
-        scriptPreview.textContent = scriptPreviewText + (script.script.length > 100 ? '...' : '');
-        scriptPreview.classList.add('metaflow-settings-script-preview');
+      // Script preview (extended to 100 characters)
+      const scriptPreview = scriptDiv.createEl('span');
+      const scriptPreviewText = script.script.replace(/\n/g, ' ').substring(0, 100);
+      scriptPreview.textContent = scriptPreviewText + (script.script.length > 100 ? '...' : '');
+      scriptPreview.classList.add('metaflow-settings-script-preview');
 
-        // Create edit view (hidden by default)
-        const editDiv = scriptDiv.createEl('div', {cls: 'property-script-edit'});
-        editDiv.classList.add('metaflow-settings-script-edit');
-        editDiv.classList.add('metaflow-settings-hide');
+      // Create edit view (hidden by default)
+      const editDiv = scriptDiv.createEl('div', {cls: 'property-script-edit'});
+      editDiv.classList.add('metaflow-settings-script-edit');
+      editDiv.classList.add('metaflow-settings-hide');
 
-        // Store original values for cancel functionality
-        const originalPropertyName = script.propertyName;
-        const originalScript = script.script;
-        const originalEnabled = script.enabled;
+      // Store original values for cancel functionality
+      const originalPropertyName = script.propertyName;
+      const originalScript = script.script;
+      const originalEnabled = script.enabled;
 
-        // Property name input
-        const propertyRow = editDiv.createEl('div');
-        propertyRow.classList.add('metaflow-settings-script-property-row');
+      // Property name input
+      const propertyRow = editDiv.createEl('div');
+      propertyRow.classList.add('metaflow-settings-script-property-row');
 
-        propertyRow.createEl('label', {text: 'Property:'});
-        const propertyInput = propertyRow.createEl('input', {
-          type: 'text',
-          placeholder: 'Property name (e.g., title, author)',
-          value: script.propertyName
-        });
-        propertyInput.classList.add('metaflow-settings-script-property-input');
+      propertyRow.createEl('label', {text: 'Property:'});
+      const propertyInput = propertyRow.createEl('input', {
+        type: 'text',
+        placeholder: 'Property name (e.g., title, author)',
+        value: script.propertyName
+      });
+      propertyInput.classList.add('metaflow-settings-script-property-input');
 
-        const [enabledToggle,] = SettingsUtils.createCheckboxWithLabel(
-          propertyRow, {
-            labelClass: 'metaflow-settings-script-enabled-label',
-            labelTitle: 'Allows this script to run',
-            checkboxClass: 'metaflow-settings-script-enabled-toggle',
-            label: 'Enabled',
-            checked: script.enabled,
-          }
-        );
-
-        // Order controls
-        const orderDiv = propertyRow.createEl('div', {cls: 'setting-item-order'});
-        orderDiv.createEl('span', {text: `Order: ${index + 1}`});
-
-        // Script textarea
-        const scriptRow = editDiv.createEl('div');
-        let scriptLabel = 'Script';
-        if (script.fileClasses) {
-          scriptLabel += ` (used by fileClasses: ${script.fileClasses.join(', ')})`;
+      const [enabledToggle,] = SettingsUtils.createCheckboxWithLabel(
+        propertyRow, {
+          labelClass: 'metaflow-settings-script-enabled-label',
+          labelTitle: 'Allows this script to run',
+          checkboxClass: 'metaflow-settings-script-enabled-toggle',
+          label: 'Enabled',
+          checked: script.enabled,
         }
-        scriptLabel += ':';
-        scriptRow.createEl('label', {text: scriptLabel});
+      );
 
-        // Add help button for completions
-        const helpButton = scriptRow.createEl('button', {text: '🛈 Help'});
-        helpButton.classList.add('metaflow-settings-script-help-btn');
-        helpButton.addEventListener('click', async () => {
-          // Import and open the modal
-          // @ts-ignore
-          const mod = await import('../modals/CompletionsHelpModal');
-          new mod.CompletionsHelpModal(this.app, scriptEditor.getCompletions()).open();
-        });
+      // Order controls
+      const orderDiv = propertyRow.createEl('div', {cls: 'setting-item-order'});
+      orderDiv.createEl('span', {text: `Order: ${index + 1}`});
 
-        // Create script editor
-        const scriptEditor = new ScriptEditor(this.app, this.metadataMenuAdapter, {
-          enableDateFunctions: true,
-          enablePromptFunction: true
-        });
+      // Script edit section
+      const scriptRow = editDiv.createEl('div');
+      const classListPreviewEditMode = scriptRow.createEl('span', {cls: 'metaflow-settings-script-class-list metaflow-settings-hide'});
+      classListPreviewEditMode.innerHTML = this.getClassListPreview(script.fileClasses, fileClasses);
 
-        scriptEditor.createEditor(scriptRow, 'return "default value";', script.script);
-        // Button row
-        const buttonRow = editDiv.createEl('div');
-        buttonRow.classList.add('metaflow-settings-script-btn-row');
+      // Add help button for completions
+      const helpButton = scriptRow.createEl('button', {text: '🛈 Help'});
+      helpButton.classList.add('metaflow-settings-script-help-btn');
+      helpButton.addEventListener('click', async () => {
+        // Import and open the modal
+        // @ts-ignore
+        const mod = await import('../modals/CompletionsHelpModal');
+        new mod.CompletionsHelpModal(this.app, scriptEditor.getCompletions()).open();
+      });
 
-        // Add a spacer
-        const spacer2 = buttonRow.createDiv();
-        spacer2.classList.add('metaflow-settings-script-btn-spacer');
+      // Create script editor
+      const scriptEditor = new ScriptEditor(this.app, this.metadataMenuAdapter, {
+        enableDateFunctions: true,
+        enablePromptFunction: true
+      });
 
-        // OK button
-        const okButton = buttonRow.createEl('button', {text: '✅ OK'});
-        okButton.classList.add('metaflow-settings-script-ok-btn');
+      scriptEditor.createEditor(scriptRow, 'return "default value";', script.script);
+      // Button row
+      const buttonRow = editDiv.createEl('div');
+      buttonRow.classList.add('metaflow-settings-script-btn-row');
 
-        // Cancel button
-        const cancelButton = buttonRow.createEl('button', {text: '❌ Cancel'});
-        cancelButton.classList.add('metaflow-settings-script-cancel-btn');
+      // Add a spacer
+      const spacer2 = buttonRow.createDiv();
+      spacer2.classList.add('metaflow-settings-script-btn-spacer');
 
-        // Toggle between read-only and edit mode
-        const toggleEditMode = (editMode: boolean) => {
-          if (editMode) {
-            classListPreview.classList.add('metaflow-settings-hide');
-            scriptPreview.classList.add('metaflow-settings-hide');
-            readOnlyDiv.classList.add('metaflow-settings-hide');
-            editDiv.classList.remove('metaflow-settings-hide');
-          } else {
+      // OK button
+      const okButton = buttonRow.createEl('button', {text: '✅ OK'});
+      okButton.classList.add('metaflow-settings-script-ok-btn');
+
+      // Cancel button
+      const cancelButton = buttonRow.createEl('button', {text: '❌ Cancel'});
+      cancelButton.classList.add('metaflow-settings-script-cancel-btn');
+
+      // Toggle between read-only and edit mode
+      const toggleEditMode = (editMode: boolean) => {
+        if (editMode) {
+          classListPreviewEditMode.classList.remove('metaflow-settings-hide');
+          classListPreview.classList.add('metaflow-settings-hide');
+          scriptPreview.classList.add('metaflow-settings-hide');
+          readOnlyDiv.classList.add('metaflow-settings-hide');
+          editDiv.classList.remove('metaflow-settings-hide');
+        } else {
+          if (options.showScriptDetails) {
             classListPreview.classList.remove('metaflow-settings-hide');
             scriptPreview.classList.remove('metaflow-settings-hide');
-            readOnlyDiv.classList.remove('metaflow-settings-hide');
-            editDiv.classList.add('metaflow-settings-hide');
           }
-        };
+          classListPreviewEditMode.classList.add('metaflow-settings-hide');
+          readOnlyDiv.classList.remove('metaflow-settings-hide');
+          editDiv.classList.add('metaflow-settings-hide');
+        }
+      };
 
-        // Event listeners
-        enabledLabelPreview.addEventListener('click', async (event) => {
-          event.preventDefault();
-          script.enabled = !script.enabled;
-          script.new = false; // Mark as not new when toggled
-          await this.changeSettings(options);
-          this.displayPropertyScripts(container, options);
-        });
+      // Event listeners
+      enabledLabelPreview.addEventListener('click', async (event) => {
+        event.preventDefault();
+        script.enabled = !script.enabled;
+        script.new = false; // Mark as not new when toggled
+        await this.changeSettings(options);
+        this.displayPropertyScripts(container, options);
+      });
 
-        editButton.addEventListener('click', () => {
-          toggleEditMode(true);
-        });
+      editButton.addEventListener('click', () => {
+        toggleEditMode(true);
+      });
 
-        okButton.addEventListener('click', async () => {
-          // Apply changes
-          script.propertyName = propertyInput.value;
-          script.enabled = enabledToggle.checked;
-          script.script = scriptEditor.getValue();
-          script.new = false; // Mark as not new when edited
-          await this.changeSettings(options);
-          scriptEditor.destroy();
-          this.displayPropertyScripts(container, options);
-        });
+      okButton.addEventListener('click', async () => {
+        // Apply changes
+        script.propertyName = propertyInput.value;
+        script.enabled = enabledToggle.checked;
+        script.script = scriptEditor.getValue();
+        script.new = false; // Mark as not new when edited
+        await this.changeSettings(options);
+        scriptEditor.destroy();
+        this.displayPropertyScripts(container, options);
+      });
 
-        cancelButton.addEventListener('click', () => {
-          // Revert changes
-          script.propertyName = originalPropertyName;
-          script.script = originalScript;
-          script.enabled = originalEnabled;
-          propertyInput.value = originalPropertyName;
-          scriptEditor.setValue(originalScript);
-          enabledToggle.checked = originalEnabled;
-          toggleEditMode(false);
-        });
-      }
+      cancelButton.addEventListener('click', () => {
+        // Revert changes
+        script.propertyName = originalPropertyName;
+        script.script = originalScript;
+        script.enabled = originalEnabled;
+        propertyInput.value = originalPropertyName;
+        scriptEditor.setValue(originalScript);
+        enabledToggle.checked = originalEnabled;
+        toggleEditMode(false);
+      });
 
       deleteButton.addEventListener('click', async () => {
         // Find the correct index in the original array
