@@ -58,6 +58,12 @@ jest.mock('./modals/FileClassAvailableFieldsHelpModal.ts', () => ({
   }))
 }));
 
+jest.mock('./modals/ConfirmModal.ts', () => ({
+  ConfirmModal: jest.fn().mockImplementation(() => ({
+    open: jest.fn()
+  }))
+}));
+
 describe('MetaFlowSettingTab', () => {
   let mockApp: any;
   let mockPlugin: any;

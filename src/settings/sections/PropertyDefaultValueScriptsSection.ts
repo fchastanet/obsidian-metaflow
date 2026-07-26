@@ -3,6 +3,7 @@ import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import {MetaFlowSettings} from "@metaflow/settings/types";
 import {SettingsUtils} from "@metaflow/settings/SettingsUtils";
 import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
+import {ConfirmModal} from "../modals/ConfirmModal";
 
 type Options =  {
   selectedFileClass: string;
@@ -474,9 +475,19 @@ export class PropertyDefaultValueScriptsSection {
         // Find the correct index in the original array
         const originalIdx = this.settings.propertyDefaultValueScripts.indexOf(script);
         if (originalIdx !== -1) {
-          this.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
-          await this.changeSettings(options);
-          this.displayPropertyScripts(container, options);
+          new ConfirmModal(
+              this.app,
+              "Are you sure you want to delete this script? This cannot be undone.",
+              async () => {
+                this.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
+                options.currentSelectedScriptIndex = undefined; // Reset the selected script index
+                await this.changeSettings(options);
+                this.displayPropertyScripts(container, options);
+              },
+              () => {
+                  console.info("User cancelled the deletion of the script.");
+              }
+          ).open();
         }
       });
     });

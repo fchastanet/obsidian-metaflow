@@ -59,6 +59,12 @@ jest.mock('../../externalApi/TemplaterAdapter', () => ({
   }))
 }));
 
+jest.mock('../modals/ConfirmModal.ts', () => ({
+  ConfirmModal: jest.fn().mockImplementation(() => ({
+    open: jest.fn()
+  }))
+}));
+
 describe('PropertyDefaultValueScriptsSection', () => {
   let mockApp: any;
   let mockPlugin: any;
