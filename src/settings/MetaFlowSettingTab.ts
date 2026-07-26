@@ -212,7 +212,7 @@ export class MetaFlowSettingTab extends PluginSettingTab {
     const scriptsSection = new PropertyDefaultValueScriptsSection(
       this.app,
       containerEl.createDiv(),
-      this.plugin.settings,
+      this.plugin,
       this.metadataMenuAdapter,
       async () => {await this.plugin.saveSettings();}
     );

@@ -150,7 +150,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
     return new PropertyDefaultValueScriptsSection(
       mockApp,
       document.createElement("div"),
-      mockPlugin.settings,
+      mockPlugin,
       mockMetadataMenuAdapter,
       jest.fn()
     );
@@ -189,7 +189,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
       propertyDefaultValueScriptsSection['autoPopulatePropertyScriptsFromMetadataMenu']();
 
       // Should have imported unique properties
-      const propertyDefaultValueScripts = propertyDefaultValueScriptsSection['settings'].propertyDefaultValueScripts;
+      const propertyDefaultValueScripts = propertyDefaultValueScriptsSection['plugin'].settings.propertyDefaultValueScripts;
       expect(propertyDefaultValueScripts.length).toBeGreaterThan(0);
 
       // Check that title script exists (used by both fileClasses)

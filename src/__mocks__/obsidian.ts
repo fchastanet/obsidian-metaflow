@@ -120,6 +120,12 @@ export const getFrontMatterInfo = jest.fn().mockImplementation((content: string)
   };
 });
 
+export class Workspace {
+  getActiveFile(): TFile | null {
+    return null; // Default mock implementation
+  }
+}
+
 export class App {
   vault: {
     read: jest.Mock;

@@ -49,7 +49,7 @@ export class FileClassAvailableFieldsHelpModal extends Modal {
         contentEl.createEl('p', {text: 'MetadataMenu plugin is not available. Cannot show field information.'});
       }
     } catch (error) {
-      contentEl.createEl('p', {text: `Error retrieving fields: ${error.message}`});
+      contentEl.createEl('p', {text: `Error retrieving fields: ${(error as Error).message}`});
     }
 
     // Add template syntax help

@@ -1,9 +1,9 @@
 import {App, Setting} from "obsidian";
 import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
-import {MetaFlowSettings} from "@metaflow/settings/types";
 import {SettingsUtils} from "@metaflow/settings/SettingsUtils";
 import {ScriptEditor} from "@metaflow/settings/ScriptEditor";
 import {ConfirmModal} from "../modals/ConfirmModal";
+import MetaFlowPlugin from "@metaflow/main";
 
 type Options =  {
   selectedFileClass: string;
@@ -30,7 +30,7 @@ export class PropertyDefaultValueScriptsSection {
   constructor(
     private app: App,
     private container: HTMLElement,
-    private settings: MetaFlowSettings,
+    private plugin: MetaFlowPlugin,
     private metadataMenuAdapter: MetadataMenuAdapter,
     private onChange: () => void
   ) {
@@ -86,7 +86,7 @@ export class PropertyDefaultValueScriptsSection {
 
   private getUniqueFileClasses(): string[] {
     const fileClasses: string[] = [];
-    this.settings.propertyDefaultValueScripts.forEach(script => {
+    this.plugin.settings.propertyDefaultValueScripts.forEach(script => {
       if (script.fileClasses && script.fileClasses.length > 0) {
         fileClasses.push(...script.fileClasses);
       }
@@ -134,7 +134,7 @@ export class PropertyDefaultValueScriptsSection {
 
     const fileClasses: string[] = this.getUniqueFileClasses();
 
-    const orderedProperties = this.settings.propertyDefaultValueScripts
+    const orderedProperties = this.plugin.settings.propertyDefaultValueScripts
       .slice()
       .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER))
       .filter(script => {
@@ -219,7 +219,7 @@ export class PropertyDefaultValueScriptsSection {
       cls: 'metaflow-settings-row metaflow-settings-row-right'
     });
     const msg = this.isFiltered(options) ?
-      `Order disabled - Filtered ${orderedProperties.length}/${this.settings.propertyDefaultValueScripts.length}` :
+      `Order disabled - Filtered ${orderedProperties.length}/${this.plugin.settings.propertyDefaultValueScripts.length}` :
       `Total ${orderedProperties.length}`;
     filterSectionControlsRow2.createEl('div',
       {
@@ -473,13 +473,13 @@ export class PropertyDefaultValueScriptsSection {
 
       deleteButton.addEventListener('click', async () => {
         // Find the correct index in the original array
-        const originalIdx = this.settings.propertyDefaultValueScripts.indexOf(script);
+        const originalIdx = this.plugin.settings.propertyDefaultValueScripts.indexOf(script);
         if (originalIdx !== -1) {
           new ConfirmModal(
               this.app,
               "Are you sure you want to delete this script? This cannot be undone.",
               async () => {
-                this.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
+                this.plugin.settings.propertyDefaultValueScripts.splice(originalIdx, 1);
                 options.currentSelectedScriptIndex = undefined; // Reset the selected script index
                 await this.changeSettings(options);
                 this.displayPropertyScripts(container, options);
@@ -504,7 +504,7 @@ export class PropertyDefaultValueScriptsSection {
   private async orderButtonListener(
     button: HTMLButtonElement,
     index: number,
-    orderedProperties: typeof this.settings.propertyDefaultValueScripts,
+    orderedProperties: typeof this.plugin.settings.propertyDefaultValueScripts,
     scriptDiv: HTMLDivElement,
     container: HTMLElement,
     options: Options,
@@ -546,7 +546,7 @@ export class PropertyDefaultValueScriptsSection {
     });
   }
 
-  private updateScriptButtonStates(container: HTMLElement, orderedProperties: typeof this.settings.propertyDefaultValueScripts): void {
+  private updateScriptButtonStates(container: HTMLElement, orderedProperties: typeof this.plugin.settings.propertyDefaultValueScripts): void {
     const scriptDivs = container.querySelectorAll('.metaflow-settings-script');
     scriptDivs.forEach((scriptDiv, index) => {
       const downButton = scriptDiv.querySelector('.metaflow-settings-down-btn') as HTMLButtonElement;
@@ -586,7 +586,7 @@ export class PropertyDefaultValueScriptsSection {
       for (const [propertyName, fieldData] of Object.entries(allFields)) {
         const {fileClasses} = fieldData;
         // Check if script already exists
-        const existingScript = this.settings.propertyDefaultValueScripts.find(
+        const existingScript = this.plugin.settings.propertyDefaultValueScripts.find(
           script => script.propertyName === propertyName
         );
 
@@ -594,12 +594,12 @@ export class PropertyDefaultValueScriptsSection {
         if (!existingScript) {
           const defaultScript = `return "";`;
 
-          this.settings.propertyDefaultValueScripts.push({
+          this.plugin.settings.propertyDefaultValueScripts.push({
             propertyName: propertyName,
             script: defaultScript,
             enabled: false,
             new: true,
-            order: this.settings.propertyDefaultValueScripts.length,
+            order: this.plugin.settings.propertyDefaultValueScripts.length,
             fileClasses: newFileClasses
           });
           importedCount++;
@@ -612,7 +612,7 @@ export class PropertyDefaultValueScriptsSection {
 
       // mark all scripts that are not in MetadataMenu as disabled and remove their fileClasses association
       const removedProperties: string[] = [];
-      this.settings.propertyDefaultValueScripts.forEach(script => {
+      this.plugin.settings.propertyDefaultValueScripts.forEach(script => {
         if (!allFields[script.propertyName]) {
           script.enabled = false;
           script.fileClasses = [];
