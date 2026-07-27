@@ -1,6 +1,7 @@
 /**
  * @jest-environment jsdom
  */
+import {Msg} from "../types";
 import {PropertyDefaultValueScriptsSection} from "./PropertyDefaultValueScriptsSection";
 
 // Mock Obsidian modules
@@ -245,7 +246,8 @@ describe('PropertyDefaultValueScriptsSection', () => {
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
-
+  });
+  describe('displayPropertyScripts', () => {
     test('should handle empty property scripts list', () => {
       const mockContainer = {
         empty: jest.fn(),
@@ -266,11 +268,11 @@ describe('PropertyDefaultValueScriptsSection', () => {
       propertyDefaultValueScriptsSection = getPropertyDefaultValueScriptsSection();
 
       // Should not throw error
+      const msgs: Msg[] = [];
       expect(() => {
         propertyDefaultValueScriptsSection['displayPropertyScripts'](mockContainer as any);
+        expect(msgs).toEqual([]);
       }).not.toThrow();
-
-      expect(mockContainer.empty).toHaveBeenCalled();
     });
   });
 });

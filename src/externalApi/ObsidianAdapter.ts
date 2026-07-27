@@ -148,7 +148,7 @@ export class ObsidianAdapter {
       const jsonData = await this.app.vault.adapter.read(filePath);
       return JSON.parse(jsonData);
     } catch (error) {
-      if (error.message?.includes('ENOENT') || error.message?.includes('does not exist')) {
+      if (typeof error.message === 'string' && (error.message.includes('ENOENT') || error.message.includes('does not exist'))) {
         // File doesn't exist, return null
         return null;
       }

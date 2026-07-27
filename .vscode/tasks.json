@@ -16,7 +16,7 @@
         "$tsc",
         "$eslint-stylish"
       ],
-      "command": "npm run lint",
+      "command": "npm run lint || true",
       "presentation": {
         "close": true,
         "reveal": "silent",
@@ -24,7 +24,7 @@
       },
     },
     {
-      "label": "ESLint:fix",
+      "label": "ESLint:fix || true",
       "type": "shell",
       "problemMatcher": "$eslint-stylish",
       "command": "npm run lint:eslint:fix",

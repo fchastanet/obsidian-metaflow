@@ -1,7 +1,8 @@
 import {injectable, inject} from 'inversify';
 import type {App} from 'obsidian';
 import {TFile} from 'obsidian';
-import type {MetaFlowSettings} from '@metaflow/settings/types';
+import type {MetaFlowSettings, Msg} from '@metaflow/settings/types';
+import {MsgLevel} from '@metaflow/settings/types';
 import type {ObsidianAdapter} from './ObsidianAdapter';
 import {TYPES} from '@metaflow/di/types';
 
@@ -58,8 +59,9 @@ export class TemplaterAdapter {
     return templater.settings;
   }
 
-  getFolderTemplatesMapping(): FolderTemplate[] {
+  getFolderTemplatesMapping(msgs: Msg[]): FolderTemplate[] {
     if (!this.isTemplaterAvailable()) {
+      msgs.push({level: MsgLevel.Warning, text: 'Templater plugin not found but integration is enabled'});
       return [];
     }
     const templater = this.getTemplater();

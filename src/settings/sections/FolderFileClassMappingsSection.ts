@@ -1,5 +1,5 @@
-import {App, Setting, Notice} from "obsidian";
-import {FolderFileClassMapping, NoteTitleTemplate} from "@metaflow/settings/types";
+import {App, Setting, TFile} from "obsidian";
+import {FolderFileClassMapping, Msg, MsgLevel, NoteTitleTemplate} from "@metaflow/settings/types";
 import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
 import {FolderSuggest} from "@metaflow/settings/FolderSuggest";
 import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
@@ -38,14 +38,19 @@ export class FolderFileClassMappingsSection {
     const templaterImportSetting = new Setting(this.container)
       .setName('Auto-populate from Templater')
       .setDesc('Automatically populate folder mappings from Templater plugin configuration');
+    const importFromTemplaterMsgsContainer = this.container.createEl('div', {cls: 'metaflow-settings-import-feedback'});
 
     templaterImportSetting.addButton(button => {
       this.templaterImportButton = button.buttonEl;
       button
         .setButtonText('📥 Import from Templater')
         .onClick(async () => {
-          await this.importFolderMappingsFromTemplater();
-          this.render();
+          importFromTemplaterMsgsContainer.empty();
+          const msgs: Msg[] = [];
+          await this.importFolderMappingsFromTemplater(msgs);
+          const mappingsContainer = this.container.getElementsByClassName('mappings-container')[0] as HTMLElement;
+          this.displayFolderMappings(mappingsContainer, msgs);
+          this.displayMsgs(importFromTemplaterMsgsContainer, msgs);
         });
     });
     this.updateTemplaterButtonState();
@@ -53,29 +58,19 @@ export class FolderFileClassMappingsSection {
     // Create container for mappings
     const mappingsContainer = this.container.createEl('div');
     mappingsContainer.classList.add('mappings-container');
-    this.displayFolderMappings(mappingsContainer);
+    const msgs: Msg[] = [];
+    this.displayFolderMappings(mappingsContainer, msgs);
+    this.displayMsgs(importFromTemplaterMsgsContainer, msgs);
+  }
 
-    // Add new mapping button
-    new Setting(this.container)
-      .setName('Add folder mapping')
-      .addButton(button => button
-        .setButtonText('➕ Add mapping')
-        .setCta()
-        .onClick(() => {
-          this.folderFileClassMappings.push({
-            folder: '',
-            fileClass: '',
-            moveToFolder: false,
-            noteTitleTemplates: [],
-            noteTitleScript: {
-              script: 'return "";',
-              enabled: true
-            },
-            templateMode: 'template'
-          });
-          this.onChange();
-          this.render();
-        }));
+  private displayMsgs(container: HTMLElement, msgs: Msg[]): void {
+    if (msgs.length === 0) {
+      return;
+    }
+    const ul = container.createEl('ul', {cls: 'metaflow-settings-import-feedback'});
+    msgs.forEach(msgObj => {
+      ul.createEl('li', {text: `${msgObj.level} - ${msgObj.text}`, cls: `metaflow-settings-mapping-fileclass-${msgObj.level}`});
+    });
   }
 
   private updateTemplaterButtonState(): void {
@@ -93,77 +88,16 @@ export class FolderFileClassMappingsSection {
     }
   }
 
-  private async importFolderMappingsFromTemplater(): Promise<void> {
-    try {
-      const folderTemplateMapping = this.templaterAdapter.getFolderTemplatesMapping();
-
-      let importedCount = 0;
-      for (const folderTemplate of folderTemplateMapping) {
-        // Check if mapping already exists
-        const existingMapping = this.folderFileClassMappings.find(
-          mapping => mapping.folder === folderTemplate.folder
-        );
-
-        if (!existingMapping) {
-          this.folderFileClassMappings.push({
-            folder: folderTemplate.folder,
-            fileClass: '',
-            moveToFolder: true,
-            noteTitleTemplates: [],
-            noteTitleScript: {
-              script: 'return "";',
-              enabled: true
-            },
-            templateMode: 'template'
-          });
-          importedCount++;
-        }
-      }
-
-      // Create a map of folder names to their index in folderTemplateMapping
-      const templaterOrder = new Map();
-      folderTemplateMapping.forEach((template, index) => {
-        templaterOrder.set(template.folder, index);
-      });
-
-      // make order of folderFileClassMappings elements, the same as folderTemplateMapping
-      this.folderFileClassMappings.sort((a, b) => {
-        const aIndex = templaterOrder.get(a.folder);
-        const bIndex = templaterOrder.get(b.folder);
-
-        // If both patterns exist in templater settings, sort by their order
-        if (aIndex !== undefined && bIndex !== undefined) {
-          return aIndex - bIndex;
-        }
-
-        // If only one exists in templater settings, prioritize it
-        if (aIndex !== undefined) return -1;
-        if (bIndex !== undefined) return 1;
-
-        // If neither exists in templater settings, maintain current order
-        return 0;
-      });
-
-      await this.onChange();
-      new Notice(`Imported ${importedCount} folder mappings from Templater`);
-
-    } catch (error) {
-      console.error('Error importing from Templater:', error);
-      new Notice('Error importing folder mappings from Templater');
-    }
-  }
-
-  private displayFolderMappings(container: HTMLElement): void {
-    container.empty();
-
-    this.folderFileClassMappings.forEach((mapping, index) => {
+  private displayFolderMappings(container: HTMLElement, msgs: Msg[]): void {
+    const folderMappings = this.getFolderFileClassMappings(msgs)
+    folderMappings.forEach((mapping, index) => {
       this.displayFolderMapping(container, mapping, index);
     });
   }
 
   private displayFolderMapping(container: HTMLElement, mapping: FolderFileClassMapping, index: number): void {
-    const mappingDiv = container.createEl('div', {cls: 'metaflow-settings-mapping-row metaflow-settings-grab'});
-    this.makeFolderMappingDefaultFields(container, mapping, mappingDiv, index);
+    const mappingDiv = container.createEl('div', {cls: 'metaflow-settings-mapping-row'});
+    this.makeFolderMappingDefaultFields(mapping, mappingDiv, index);
 
     const templateSection = mappingDiv.createDiv({cls: 'metaflow-note-title-template-section'});
     const modeRadioContainer = templateSection.createEl('div', {cls: 'metaflow-settings-mode-selector'});
@@ -220,7 +154,164 @@ export class FolderFileClassMappingsSection {
     });
   }
 
-  private makeFolderMappingDefaultFields(container: HTMLElement, mapping: FolderFileClassMapping, mappingDiv: HTMLElement, index: number) {
+  /**
+   * try to deduce the fileClass from the template associated with the folder
+   * @param path {string} The path to the template file
+   * @param msgs {any[]} An array to collect warning and info messages
+   * @returns The deduced fileClass or null if it cannot be determined
+   */
+  private async getFileClassFromFileFrontmatter(path: string, msgs: Msg[]): Promise<string | null> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      msgs.push({level: MsgLevel.Warning, text: `Template file ${path} does not exist or is not a TFile`});
+      return null;
+    }
+    const frontmatter = await this.obsidianAdapter.getFileFrontmatter(file);
+    if (!frontmatter) {
+      msgs.push({level: MsgLevel.Warning, text: `Template file ${path} does not have frontmatter`});
+      return null;
+    }
+    return this.metadataMenuAdapter.getFileClassFromMetadata(frontmatter);
+  }
+
+  private async importFolderMappingsFromTemplater(msgs: Msg[]): Promise<void> {
+    try {
+      const folderMappings = this.getFolderFileClassMappings(msgs);
+      if (folderMappings.length === 0) {
+        return;
+      }
+      const folderTemplateMapping = this.templaterAdapter.getFolderTemplatesMapping(msgs);
+
+      let importedCount = 0;
+      const fileClassesUsed = new Set<string>();
+      for (const folderTemplate of folderTemplateMapping) {
+        const fileClass = await this.getFileClassFromFileFrontmatter(folderTemplate.template, msgs);
+        if (!fileClass) {
+          msgs.push({level: MsgLevel.Warning, text: `${folderTemplate.folder} - Template file ${folderTemplate.template} does not have a fileClass in frontmatter`});
+          continue;
+        }
+        if (fileClassesUsed.has(fileClass)) {
+          msgs.push({level: MsgLevel.Warning, text: `${folderTemplate.folder} - FileClass ${fileClass} already imported, skipping duplicate`});
+          continue;
+        }
+        fileClassesUsed.add(fileClass);
+        // Check if folder mapping exists for this fileClass
+        const existingMapping = this.folderFileClassMappings.find(mapping => mapping.fileClass === fileClass);
+        if (typeof existingMapping === 'undefined') {
+          msgs.push({level: MsgLevel.Info, text: `${folderTemplate.folder} - Folder mapping for fileClass ${fileClass} does not exist, skipping`});
+          continue;
+        }
+        const oldFolder = existingMapping.folder;
+        if (oldFolder === folderTemplate.folder) {
+          // No change needed
+          continue;
+        } else if (oldFolder === '') {
+          msgs.push({level: MsgLevel.Success, text: `${folderTemplate.folder} - Folder mapping for fileClass ${fileClass} updated to ${folderTemplate.folder}`});
+        } else {
+          msgs.push({level: MsgLevel.Success, text: `${folderTemplate.folder} - Folder mapping for fileClass ${fileClass} updated from ${oldFolder} to ${folderTemplate.folder}`});
+        }
+        existingMapping.folder = this.obsidianAdapter.normalizePath(folderTemplate.folder);
+        importedCount++;
+      }
+
+      await this.onChange();
+      msgs.push({level: MsgLevel.Success, text: `Imported ${importedCount} folder mappings from Templater`});
+    } catch (error) {
+      console.error('Error importing from Templater:', error);
+      msgs.push({level: MsgLevel.Error, text: 'Error importing folder mappings from Templater'});
+    }
+  }
+
+  private getFileClassesFromMetadataMenu() {
+    const plugin = this.metadataMenuAdapter.getMetadataMenuPlugin();
+    if (plugin?.fieldIndex?.fileClassesFields) {
+      return Array.from(plugin.fieldIndex.fileClassesFields.keys()).map(String);
+    }
+    return [];
+  }
+
+  private tryToGetFileClassesFromMetadataMenu(msgs: Msg[]): string[] {
+    // Try to get fileClasses from MetadataMenu
+    let fileClasses: string[] = [];
+    let msg = '';
+    let msgType: MsgLevel = MsgLevel.Success;
+    try {
+      if (!this.metadataMenuAdapter.isMetadataMenuAvailable()) {
+        msgs.push({level: MsgLevel.Error, text: 'MetadataMenu plugin is not available.'});
+        return [];
+      }
+      fileClasses = this.getFileClassesFromMetadataMenu();
+      if (fileClasses.length === 0) {
+        msg = 'MetadataMenu plugin - no fileClasses found.';
+      } else {
+        msg = `MetadataMenu plugin - found ${fileClasses.length} fileClasses.`;
+      }
+    } catch (error) {
+      console.error('Error getting fileClasses:', error);
+      msg = 'MetadataMenu plugin - Error getting fileClasses.';
+      msgType = MsgLevel.Error;
+    }
+    if (msg) {
+      msgs.push({level: msgType, text: msg});
+    }
+    return fileClasses;
+  }
+
+  private getFolderFileClassMappings(msgs: Msg[]): FolderFileClassMapping[] {
+    // Try to get fileClasses from MetadataMenu
+    const fileClasses = this.tryToGetFileClassesFromMetadataMenu(msgs);
+    if (fileClasses.length === 0) {
+      return []; // No fileClasses available, skip rendering the fileClass input
+    }
+
+    // remove folderMappings with no longer existing fileClasses
+    this.folderFileClassMappings = this.folderFileClassMappings.filter(mapping => {
+      const fileClassExists = mapping.fileClass && mapping.fileClass !== '' && fileClasses.includes(mapping.fileClass);
+      if (!fileClassExists) {
+        msgs.push({level: MsgLevel.Warning, text: `${mapping.folder} - Folder mapping for fileClass ${mapping.fileClass} does not exist, skipping`});
+      }
+      return fileClassExists;
+    });
+
+    // add folderMappings for fileClasses that are not already in the list
+    fileClasses.forEach(fileClass => {
+      if (!this.folderFileClassMappings.some(mapping => mapping.fileClass === fileClass)) {
+        msgs.push({level: MsgLevel.Info, text: `Folder mapping for fileClass ${fileClass} does not exist, adding default mapping`});
+        this.folderFileClassMappings.push({
+          folder: '',
+          fileClass: fileClass,
+          moveToFolder: true,
+          noteTitleTemplates: [],
+          noteTitleScript: {
+            script: 'return "";',
+            enabled: true
+          },
+          templateMode: 'template'
+        });
+      }
+    });
+
+    // sort folderFileClassMappings by fileClass
+    this.folderFileClassMappings.sort((a, b) => a.fileClass.localeCompare(b.fileClass));
+
+    // ensure all needed fields are set
+    this.folderFileClassMappings.forEach(mapping => {
+      // make autoMoveToFolder false for folderMappings with no folder set
+      if (typeof mapping.folder !== 'string' || mapping.folder === '') {
+        mapping.moveToFolder = false;
+      }
+      if (typeof mapping.moveToFolder !== 'boolean') {
+        mapping.moveToFolder = false;
+      }
+      if (typeof mapping.templateMode !== 'string' || (mapping.templateMode !== 'template' && mapping.templateMode !== 'script')) {
+        mapping.templateMode = 'template';
+      }
+    });
+
+    return this.folderFileClassMappings;
+  }
+
+  private makeFolderMappingDefaultFields(mapping: FolderFileClassMapping, mappingDiv: HTMLElement, index: number) {
     const mappingControl = mappingDiv.createEl('div', {cls: 'setting-item-control'});
     mappingControl.classList.add('metaflow-settings-mapping-control');
 
@@ -232,6 +323,9 @@ export class FolderFileClassMappingsSection {
     const orderSpan = controlRow.createEl('span');
     orderSpan.textContent = `#${index + 1}`;
     orderSpan.classList.add('metaflow-settings-mapping-folder-order');
+
+    // FileClass label
+    controlRow.createEl('span', {text: `${mapping.fileClass}`, cls: 'metaflow-settings-mapping-fileclass-label', attr: {title: 'FileClass'}});
 
     // Folder pattern input
     const inputId = `metaflow-settings-mapping-folder-${index}`;
@@ -251,55 +345,6 @@ export class FolderFileClassMappingsSection {
       await this.onChange();
     });
 
-    // FileClass input or select (dropdown) based on MetadataMenu availability
-    let fileClassControl: HTMLInputElement | HTMLSelectElement;
-    let fileClasses: string[] = [];
-
-    // Try to get fileClasses from MetadataMenu
-    try {
-      if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-        const plugin = this.metadataMenuAdapter.getMetadataMenuPlugin();
-        if (plugin?.fieldIndex?.fileClassesFields) {
-          fileClasses = Array.from(plugin.fieldIndex.fileClassesFields.keys()).map(String);
-        }
-      }
-    } catch (error) {
-      console.error('Error getting fileClasses:', error);
-    }
-
-    if (fileClasses.length > 0) {
-      // Create select dropdown when fileClasses are available
-      const fileClassSelect = controlRow.createEl('select');
-      fileClassSelect.classList.add('metaflow-settings-mapping-fileclass-select');
-
-      // Add default option
-      fileClassSelect.createEl('option', {value: '', text: 'Select fileClass...'});
-
-      // Add fileClasses from MetadataMenu
-      fileClasses.sort().forEach(fc => {
-        fileClassSelect.createEl('option', {value: fc, text: fc});
-      });
-
-      // Add existing fileClasses from mappings if not already present
-      this.folderFileClassMappings.forEach(m => {
-        if (m.fileClass && !fileClasses.includes(m.fileClass)) {
-          fileClassSelect.createEl('option', {value: m.fileClass, text: m.fileClass});
-        }
-      });
-
-      fileClassSelect.value = mapping.fileClass || '';
-      fileClassControl = fileClassSelect;
-    } else {
-      // Fallback to text input when MetadataMenu not available
-      const fileClassInput = controlRow.createEl('input', {
-        type: 'text',
-        placeholder: 'FileClass name',
-        value: mapping.fileClass
-      });
-      fileClassInput.classList.add('metaflow-settings-mapping-fileclass-input');
-      fileClassControl = fileClassInput;
-    }
-
     // moveToFolder toggle
     const [moveToFolderToggle] = SettingsUtils.createCheckboxWithLabel(controlRow, {
       label: 'Auto-Move',
@@ -308,32 +353,9 @@ export class FolderFileClassMappingsSection {
       checkboxClass: 'metaflow-settings-mapping-moveToFolder-checkbox',
       checked: mapping.moveToFolder || false
     });
-    moveToFolderToggle.addEventListener('change', async (event) => {
+    moveToFolderToggle.addEventListener('change', async () => {
       mapping.moveToFolder = moveToFolderToggle.checked;
-      await this.onChange();
-    });
-
-    // Delete button
-    const deleteButton = controlRow.createEl('button', {text: '🗑️ Delete'});
-    deleteButton.classList.add('metaflow-settings-mapping-delete');
-
-    // Event listeners
-    fileClassControl.addEventListener('change', async () => {
-      mapping.fileClass = fileClassControl.value;
-      await this.onChange();
-    });
-
-    if (fileClassControl.tagName === 'INPUT') {
-      fileClassControl.addEventListener('input', async () => {
-        mapping.fileClass = fileClassControl.value;
-        await this.onChange();
-      });
-    }
-
-    deleteButton.addEventListener('click', async () => {
-      this.folderFileClassMappings.splice(index, 1);
-      await this.onChange();
-      this.displayFolderMappings(container);
+      this.onChange();
     });
   }
 

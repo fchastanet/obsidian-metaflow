@@ -333,18 +333,30 @@ input.metaflow-settings-search-input {
   flex-grow: 1;
 }
 
-.metaflow-settings-mapping-fileclass-select,
-.metaflow-settings-mapping-fileclass-input {
-  width: 150px;
+.metaflow-settings-mapping-fileclass-label {
+  font-weight: bold;
+  min-width: 100px;
+  text-align: left;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
-.metaflow-settings-mapping-delete {
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 3px;
+.metaflow-settings-mapping-fileclass-error {
+  color: var(--text-error);
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.metaflow-settings-mapping-fileclass-warning {
+  color: var(--text-warning);
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.metaflow-settings-mapping-fileclass-success {
+  color: var(--text-success);
+  font-size: 12px;
+  margin-left: 10px;
 }
 
 .metaflow-settings-radio-container {
@@ -460,6 +472,19 @@ input.metaflow-settings-search-input {
 
 .metaflow-settings-mode-container {
   width: 100%;
+}
+
+.metaflow-settings-mode-label {
+  margin: 3px;
+  padding-right: 12px;
+  padding-left: 12px;
+  display: inline-block;
+}
+
+.metaflow-settings-radio-label {
+  padding: 3px;
+  margin-right: 15px;
+  display: inline-block;
 }
 
 .metaflow-settings-script-preview {
@@ -652,25 +677,6 @@ input.metaflow-settings-search-input {
 .metaflow-settings-down-btn {
   background-image: var(--data-svg-icon-down);
 }
-
-.metaflow-settings-drag-handle-not-allowed {
-  color: var(--text-error);
-  cursor: not-allowed;
-}
-
-.metaflow-settings-grab {
-  cursor: grab;
-}
-
-.metaflow-settings-dragging {
-  opacity: 0.5;
-  cursor: grabbing;
-}
-
-.metaflow-settings-dragover {
-  border-top: 2px solid var(--interactive-accent);
-}
-
 
 /* -------------------------------------------------- */
 /* Settings Support                                   */

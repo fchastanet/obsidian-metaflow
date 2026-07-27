@@ -8,13 +8,27 @@ export interface NoteTitleScript {
   enabled: boolean;
 }
 
+export type TemplateMode = 'template' | 'script'; // Default to 'template' for backward compatibility
+
 export interface FolderFileClassMapping {
   folder: string;
   fileClass: string;
   moveToFolder: boolean;
   noteTitleTemplates: NoteTitleTemplate[];
   noteTitleScript: NoteTitleScript;
-  templateMode: 'template' | 'script'; // Default to 'template' for backward compatibility
+  templateMode: TemplateMode; // Default to 'template' for backward compatibility
+}
+
+export enum MsgLevel {
+  Info = 'info',
+  Warning = 'warning',
+  Error = 'error',
+  Success = 'success',
+}
+
+export interface Msg {
+  level: MsgLevel;
+  text: string;
 }
 
 export interface PropertyDefaultValueScript {
