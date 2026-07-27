@@ -1,14 +1,15 @@
-import {TFile} from "obsidian";
+import {App, TFile} from "obsidian";
 import {NoteTitleService} from "./NoteTitleService";
-import {MetaFlowSettings} from "../settings/types";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 
 describe('NoteTitleService', () => {
   let noteTitleService: NoteTitleService;
   let mockMetaFlowSettings: MetaFlowSettings;
   let mockScriptContextService: any;
   let mockFile: TFile;
-  let mockLogManager: any;
+  let mockLogNoticeManager: any;
 
   beforeEach(() => {
     mockMetaFlowSettings = {
@@ -44,7 +45,7 @@ describe('NoteTitleService', () => {
         metadata: {title: 'Test Book', author: 'Test Author'},
         fileClass: 'book',
         file: {},
-        logManager: {}
+        logNoticeManager: {}
       })
     };
 
@@ -56,7 +57,7 @@ describe('NoteTitleService', () => {
       path: 'test.md'
     });
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addInfo: jest.fn(),
       addWarning: jest.fn(),
       addError: jest.fn()
@@ -64,52 +65,55 @@ describe('NoteTitleService', () => {
 
     noteTitleService = new NoteTitleService(
       mockMetaFlowSettings,
-      mockScriptContextService
+      mockScriptContextService,
+      mockLogNoticeManager,
+      new ObsidianAdapter({} as App, mockMetaFlowSettings),
     );
   });
 
   describe('formatNoteTitle', () => {
     it('should format title using template mode', () => {
       const metadata = {title: 'My Great Book'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
       expect(result).toBe('My Great Book');
     });
 
     it('should format title using script mode', () => {
       const metadata = {title: 'Test Book', author: 'Test Author'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata);
       expect(result).toBe('Test Book by Test Author');
     });
 
     it('should return "Untitled" when no mapping found', () => {
       const metadata = {title: 'Test'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'unknown', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'unknown', metadata);
       expect(result).toBe('Untitled');
     });
 
     it('should return "Untitled" when required metadata is missing for template', () => {
       const metadata = {author: 'Test Author'}; // missing title
-      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
       expect(result).toBe('Untitled');
     });
 
     it('should return "Untitled" when script is disabled', () => {
       mockMetaFlowSettings.folderFileClassMappings[1].noteTitleScript.enabled = false;
       const metadata = {title: 'Test Book', author: 'Test Author'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata);
       expect(result).toBe('Untitled');
     });
 
     it('should sanitize filename with invalid characters', () => {
+      noteTitleService['obsidianAdapter'].normalizePath = jest.fn().mockReturnValue('TestBookWithInvalidCharacters');
       const metadata = {title: 'Test/Book:With*Invalid?Characters'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
       expect(result).toBe('TestBookWithInvalidCharacters');
     });
 
     it('should handle array values in templates', () => {
       mockMetaFlowSettings.folderFileClassMappings[0].noteTitleTemplates[0].template = '{{tags}}';
       const metadata = {tags: ['fiction', 'adventure']};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
       expect(result).toBe('fiction, adventure');
     });
 
@@ -120,7 +124,7 @@ describe('NoteTitleService', () => {
       // Suppress console.error for this test
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
-      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata);
       expect(result).toBe('Untitled');
 
       consoleSpy.mockRestore();
@@ -129,14 +133,14 @@ describe('NoteTitleService', () => {
     it('should handle non-string script results', () => {
       mockMetaFlowSettings.folderFileClassMappings[1].noteTitleScript.script = 'return 123;';
       const metadata = {title: 'Test Book', author: 'Test Author'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata);
       expect(result).toBe('Untitled');
     });
 
     it('should handle empty script results', () => {
       mockMetaFlowSettings.folderFileClassMappings[1].noteTitleScript.script = 'return "";';
       const metadata = {title: 'Test Book', author: 'Test Author'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'book', metadata);
       expect(result).toBe('Untitled');
     });
 
@@ -146,7 +150,7 @@ describe('NoteTitleService', () => {
         {enabled: true, template: '{{title}}'}     // This will work
       ];
       const metadata = {title: 'My Great Book'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
       expect(result).toBe('My Great Book');
     });
 
@@ -156,15 +160,15 @@ describe('NoteTitleService', () => {
         {enabled: true, template: '{{author}}'}    // This will work
       ];
       const metadata = {title: 'My Great Book', author: 'Test Author'};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata, mockLogManager);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
       expect(result).toBe('Test Author');
     });
 
     it('should limit filename length', () => {
       const longTitle = 'a'.repeat(300);
       const metadata = {title: longTitle};
-      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata, mockLogManager);
-      expect(result.length).toBeLessThanOrEqual(255);
+      const result = noteTitleService.formatNoteTitle(mockFile, 'default', metadata);
+      expect(result).toEqual('a'.repeat(255));
     });
   });
 });

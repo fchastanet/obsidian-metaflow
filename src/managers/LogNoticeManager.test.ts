@@ -1,10 +1,10 @@
-import {domCreate} from "../__mocks__/dom";
+import {domCreate} from "@metaflow/__helpers__/dom";
 import {LogNoticeManager} from "./LogNoticeManager";
 
 describe("LogNoticeManager", () => {
   let obsidianAdapter: any;
   let manager: LogNoticeManager;
-  let domCreateFn: any = domCreate;
+  const domCreateFn: any = domCreate;
 
   beforeEach(() => {
     // Reset mocks

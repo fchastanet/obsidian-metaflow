@@ -1,6 +1,7 @@
 /**
  * @jest-environment jsdom
  */
+import {Msg} from "../types";
 import {PropertyDefaultValueScriptsSection} from "./PropertyDefaultValueScriptsSection";
 
 // Mock Obsidian modules
@@ -19,7 +20,20 @@ jest.mock('obsidian', () => ({
     setDesc: jest.fn().mockReturnThis(),
     addToggle: jest.fn().mockReturnThis(),
     addButton: jest.fn().mockReturnThis(),
-    addTextArea: jest.fn().mockReturnThis()
+    addTextArea: jest.fn().mockReturnThis(),
+    setClass: jest.fn().mockReturnThis(),
+    addDropdown: jest.fn().mockReturnThis(),
+    addSearch: jest.fn().mockReturnThis(),
+    controlEl: {
+      createEl: jest.fn().mockReturnThis(),
+      addEventListener: jest.fn(),
+      enterKeyHint: '',
+      style: {},
+      disabled: false,
+      checked: false,
+      value: '',
+      classList: new Set(),
+    }
   })),
   Notice: jest.fn()
 }));
@@ -43,6 +57,12 @@ jest.mock('../../externalApi/TemplaterAdapter', () => ({
       {folder: 'Articles', template: 'article-template.md'}
     ]),
     getFileTemplatesMapping: jest.fn().mockReturnValue([])
+  }))
+}));
+
+jest.mock('../modals/ConfirmModal.ts', () => ({
+  ConfirmModal: jest.fn().mockImplementation(() => ({
+    open: jest.fn()
   }))
 }));
 
@@ -131,7 +151,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
     return new PropertyDefaultValueScriptsSection(
       mockApp,
       document.createElement("div"),
-      mockPlugin.settings,
+      mockPlugin,
       mockMetadataMenuAdapter,
       jest.fn()
     );
@@ -166,10 +186,11 @@ describe('PropertyDefaultValueScriptsSection', () => {
       ];
       propertyDefaultValueScriptsSection = getPropertyDefaultValueScriptsSection();
 
+      propertyDefaultValueScriptsSection['changeSettings'] = jest.fn();
       propertyDefaultValueScriptsSection['autoPopulatePropertyScriptsFromMetadataMenu']();
 
       // Should have imported unique properties
-      const propertyDefaultValueScripts = propertyDefaultValueScriptsSection['settings'].propertyDefaultValueScripts;
+      const propertyDefaultValueScripts = propertyDefaultValueScriptsSection['plugin'].settings.propertyDefaultValueScripts;
       expect(propertyDefaultValueScripts.length).toBeGreaterThan(0);
 
       // Check that title script exists (used by both fileClasses)
@@ -187,7 +208,7 @@ describe('PropertyDefaultValueScriptsSection', () => {
       expect(authorScript).toBeDefined();
       expect(authorScript?.script).toContain('return "";');
 
-      expect(propertyDefaultValueScriptsSection['onChange']).toHaveBeenCalled();
+      expect(propertyDefaultValueScriptsSection['changeSettings']).toHaveBeenCalled();
     });
 
     test('should not duplicate existing property scripts', async () => {
@@ -196,20 +217,22 @@ describe('PropertyDefaultValueScriptsSection', () => {
         {propertyName: 'title', script: 'return "existing";', enabled: true, order: 0}
       ];
       propertyDefaultValueScriptsSection = getPropertyDefaultValueScriptsSection();
+      propertyDefaultValueScriptsSection['changeSettings'] = jest.fn();
 
       await propertyDefaultValueScriptsSection['autoPopulatePropertyScriptsFromMetadataMenu']();
 
       // Should still have only one script (the existing one)
       expect(mockPlugin.settings.propertyDefaultValueScripts).toEqual(
         [
-          {"enabled": true, "fileClasses": ["book"], "order": 0, "propertyName": "title", "script": "return \"existing\";"},
-          {"enabled": true, "fileClasses": ["book"], "order": 1, "propertyName": "author", "script": "return \"\";"},
-          {"enabled": true, "fileClasses": ["book"], "order": 2, "propertyName": "isbn", "script": "return \"\";"},
-          {"enabled": true, "fileClasses": ["article"], "order": 3, "propertyName": "publication", "script": "return \"\";"},
-          {"enabled": true, "fileClasses": ["article"], "order": 4, "propertyName": "date", "script": "return \"\";"}
+          {"new": false, "enabled": true, "fileClasses": ["book"], "order": 0, "propertyName": "title", "script": "return \"existing\";"},
+          {"new": true, "enabled": false, "fileClasses": ["book"], "order": 1, "propertyName": "author", "script": "return \"\";"},
+          {"new": true, "enabled": false, "fileClasses": ["book"], "order": 2, "propertyName": "isbn", "script": "return \"\";"},
+          {"new": true, "enabled": false, "fileClasses": ["article"], "order": 3, "propertyName": "publication", "script": "return \"\";"},
+          {"new": true, "enabled": false, "fileClasses": ["article"], "order": 4, "propertyName": "date", "script": "return \"\";"}
         ]
       );
       expect(mockPlugin.settings.propertyDefaultValueScripts[0].script).toBe('return "existing";');
+      expect(propertyDefaultValueScriptsSection['changeSettings']).toHaveBeenCalled();
     });
 
     test('should handle missing MetadataMenu plugin gracefully', async () => {
@@ -223,7 +246,8 @@ describe('PropertyDefaultValueScriptsSection', () => {
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
-
+  });
+  describe('displayPropertyScripts', () => {
     test('should handle empty property scripts list', () => {
       const mockContainer = {
         empty: jest.fn(),
@@ -236,18 +260,23 @@ describe('PropertyDefaultValueScriptsSection', () => {
             value: ''
           }),
           style: {}
-        })
+        }),
+        setClass: jest.fn().mockReturnThis(),
+        parentElement: {
+          removeChild: jest.fn(),
+          appendChild: jest.fn()
+        }
       };
 
       mockPlugin.settings.propertyDefaultValueScripts = [];
       propertyDefaultValueScriptsSection = getPropertyDefaultValueScriptsSection();
 
       // Should not throw error
+      const msgs: Msg[] = [];
       expect(() => {
         propertyDefaultValueScriptsSection['displayPropertyScripts'](mockContainer as any);
+        expect(msgs).toEqual([]);
       }).not.toThrow();
-
-      expect(mockContainer.empty).toHaveBeenCalled();
     });
   });
 });

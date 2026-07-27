@@ -1,7 +1,7 @@
 import {RenameFileBasedOnRulesCommand} from './RenameFileBasedOnRulesCommand';
-import {MetaFlowException} from '../MetaFlowException';
+import {MetaFlowException} from '@metaflow/MetaFlowException';
 import {Container} from 'inversify';
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 
 // Mock Obsidian classes
 jest.mock('obsidian', () => ({
@@ -20,7 +20,7 @@ describe('RenameFileBasedOnRulesCommand', () => {
   let mockFileClassDeductionService: any;
   let mockEditor: any;
   let mockView: any;
-  let mockLogManager: any;
+  let mockLogNoticeManager: any;
 
   beforeEach(() => {
     container = new Container();
@@ -54,7 +54,7 @@ describe('RenameFileBasedOnRulesCommand', () => {
       }
     };
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addError: jest.fn(),
       addWarning: jest.fn(),
       addInfo: jest.fn(),
@@ -69,6 +69,7 @@ describe('RenameFileBasedOnRulesCommand', () => {
     container.bind(TYPES.FileValidationService).toConstantValue(mockFileValidationService);
     container.bind(TYPES.FileClassDeductionService).toConstantValue(mockFileClassDeductionService);
     container.bind(TYPES.RenameFileBasedOnRulesCommand).to(RenameFileBasedOnRulesCommand);
+    container.bind(TYPES.LogNoticeManagerInterface).toConstantValue(mockLogNoticeManager);
 
     // Get the command instance
     command = container.get<RenameFileBasedOnRulesCommand>(TYPES.RenameFileBasedOnRulesCommand);
@@ -81,9 +82,9 @@ describe('RenameFileBasedOnRulesCommand', () => {
   test('handles missing file gracefully', async () => {
     const viewWithoutFile = {file: null} as any;
 
-    await command.execute(mockEditor, viewWithoutFile, mockLogManager);
+    await command.execute(mockEditor, viewWithoutFile);
 
-    expect(mockLogManager.addError).toHaveBeenCalledWith('No active file found');
+    expect(mockLogNoticeManager.addError).toHaveBeenCalledWith('No active file found');
   });
 
   test('should rename file when file class exists', async () => {
@@ -97,11 +98,11 @@ describe('RenameFileBasedOnRulesCommand', () => {
     mockFileClassDeductionService.getFileClassFromMetadata.mockReturnValue(fileClass);
     mockFileOperationsService.renameNote.mockResolvedValue(undefined);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
     expect(mockFileValidationService.checkIfValidFile).toHaveBeenCalledWith(mockView.file);
     expect(mockFileClassDeductionService.getFileClassFromMetadata).toHaveBeenCalledWith(metadata);
-    expect(mockFileOperationsService.renameNote).toHaveBeenCalledWith(mockView.file, fileClass, metadata, mockLogManager);
+    expect(mockFileOperationsService.renameNote).toHaveBeenCalledWith(mockView.file, fileClass, metadata);
   });
 
   test('should warn when no file class is found', async () => {
@@ -113,9 +114,9 @@ describe('RenameFileBasedOnRulesCommand', () => {
     mockFileValidationService.checkIfValidFile.mockReturnValue(undefined);
     mockFileClassDeductionService.getFileClassFromMetadata.mockReturnValue(null);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No file class found for test.md');
+    expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith('No file class found for test.md');
     expect(mockFileOperationsService.renameNote).not.toHaveBeenCalled();
   });
 
@@ -125,9 +126,9 @@ describe('RenameFileBasedOnRulesCommand', () => {
       throw error;
     });
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addError).toHaveBeenCalledWith('Error renaming note: Rename error');
+    expect(mockLogNoticeManager.addError).toHaveBeenCalledWith('Error renaming note: Rename error');
   });
 
   test('should handle generic error', async () => {
@@ -136,8 +137,8 @@ describe('RenameFileBasedOnRulesCommand', () => {
       throw error;
     });
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addError).toHaveBeenCalledWith('Error renaming note: Generic rename error');
+    expect(mockLogNoticeManager.addError).toHaveBeenCalledWith('Error renaming note: Generic rename error');
   });
 });

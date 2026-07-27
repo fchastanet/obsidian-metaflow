@@ -1,6 +1,6 @@
 import {TemplaterAdapter} from './TemplaterAdapter';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import {expectNoLogs} from '../__mocks__/logManager';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
+import {expectNoLogs} from '@metaflow/__helpers__/logNoticeManager';
 import {ObsidianAdapter} from './ObsidianAdapter';
 
 describe('TemplaterAdapter', () => {
@@ -179,10 +179,6 @@ describe('TemplaterAdapter', () => {
     });
 
     describe('getParentFile', () => {
-      let obsidianAdapter: ObsidianAdapter;
-      beforeEach(() => {
-        obsidianAdapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS);
-      });
       afterEach(() => {
         jest.restoreAllMocks();
         jest.clearAllMocks();
@@ -194,7 +190,7 @@ describe('TemplaterAdapter', () => {
         const parentFileObj = ObsidianAdapter.createMockTFile('parent.md');
         mockApp.workspace = {
           getActiveFile: () => activeFile,
-          recentFileTracker: {lastOpenFiles: ['file.md', 'parent.md']}
+          recentFileTracker: {lastOpenFiles: ['parent.md']}
         };
         mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(parentFileObj);
         const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));

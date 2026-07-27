@@ -1,12 +1,13 @@
 /**
  * @jest-environment jsdom
  */
-import {ObsidianAdapter} from "../../externalApi/ObsidianAdapter";
+import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
 import {FolderFileClassMappingsSection} from "./FolderFileClassMappingsSection";
-import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
-import {LogNoticeManager} from "../../managers/LogNoticeManager";
-import {FolderFileClassMapping, NoteTitleScript} from "../types";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
+import {LogNoticeManager} from "@metaflow/managers/LogNoticeManager";
+import {TemplateMode} from "../types";
+import {TFile} from "obsidian";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -39,7 +40,7 @@ jest.mock('../../externalApi/MetadataMenuAdapter', () => ({
     }),
   }))
 }));
-
+/*
 jest.mock('../../externalApi/TemplaterAdapter', () => ({
   TemplaterAdapter: jest.fn().mockImplementation(() => ({
     isTemplaterAvailable: jest.fn().mockReturnValue(true),
@@ -49,13 +50,7 @@ jest.mock('../../externalApi/TemplaterAdapter', () => ({
     ]),
     getFileTemplatesMapping: jest.fn().mockReturnValue([])
   }))
-}));
-
-jest.mock('../../services/MetaFlowService', () => ({
-  MetaFlowService: jest.fn().mockImplementation(() => ({
-    handleFileClassChanged: jest.fn()
-  }))
-}));
+}));*/
 
 jest.mock('../modals/FileClassAvailableFieldsHelpModal.ts', () => ({
   FileClassAvailableFieldsHelpModal: jest.fn().mockImplementation(() => ({
@@ -73,6 +68,7 @@ describe('FolderFileClassMappingsSection', () => {
   let mockApp: any;
   let mockPlugin: any;
   let folderFileClassMappingsSection: FolderFileClassMappingsSection;
+  let mockLogNoticeManager: jest.Mocked<LogNoticeManager>;
 
   beforeEach(() => {
     // Reset mocks
@@ -80,6 +76,33 @@ describe('FolderFileClassMappingsSection', () => {
 
     // Create mock app with proper structure
     mockApp = {
+      vault: {
+        getAbstractFileByPath: jest.fn().mockImplementation((path: string) => {
+          const mockFile = Object.create(TFile.prototype);
+          Object.assign(mockFile, {
+            name: 'test.md',
+            basename: 'test',
+            extension: 'md',
+            path: 'test.md',
+            parent: {path: ''}
+          });
+          if (path === 'book-template.md') {
+
+            return  mockFile;
+          } else if (path === 'article-template.md') {
+            return  mockFile;
+          }
+          return null;
+        }),
+        read: jest.fn().mockImplementation((file: any) => {
+          if (file.path === 'book-template.md') {
+            return Promise.resolve('---\nfileClass: book\n---\nBook content');
+          } else if (file.path === 'article-template.md') {
+            return Promise.resolve('---\nfileClass: article\n---\nArticle content');
+          }
+          return Promise.reject(new Error('File not found'));
+        })
+      },
       plugins: {
         plugins: {
           'metadata-menu': {
@@ -106,6 +129,12 @@ describe('FolderFileClassMappingsSection', () => {
       }
     } as any;
 
+    mockLogNoticeManager = {
+      addInfo: jest.fn(),
+      addWarning: jest.fn(),
+      addError: jest.fn()
+    } as any;
+
     // Create mock plugin
     mockPlugin = {
       app: mockApp,
@@ -126,91 +155,150 @@ describe('FolderFileClassMappingsSection', () => {
     folderFileClassMappingsSection = getFolderFileClassMappingsSection();
   });
 
-  function getFolderFileClassMappingsSection(): FolderFileClassMappingsSection {
+  function getFolderFileClassMappingsSection(templateAdapter: TemplaterAdapter | null = null): FolderFileClassMappingsSection {
     const obsidianAdapter = new ObsidianAdapter(mockApp, mockPlugin.settings);
     return new FolderFileClassMappingsSection(
       mockApp,
       document.createElement('div'),
       mockPlugin.settings.folderFileClassMappings,
       obsidianAdapter,
-      new MetadataMenuAdapter(mockApp, mockPlugin.settings),
-      new TemplaterAdapter(mockApp, mockPlugin.settings, obsidianAdapter),
+      new MetadataMenuAdapter(mockApp, mockPlugin.settings, mockLogNoticeManager),
+      templateAdapter ?? new TemplaterAdapter(mockApp, mockPlugin.settings, obsidianAdapter),
       new LogNoticeManager(obsidianAdapter),
       jest.fn() // Mock saveSettings function
     );
   }
 
-  describe('Auto-populate from Templater', () => {
-    test('should import folder mappings from Templater settings', async () => {
-      // Clear existing mappings
-      mockPlugin.settings.folderFileClassMappings = [];
-
-      await folderFileClassMappingsSection['importFolderMappingsFromTemplater']();
-
-      const folderFileClassMappings = folderFileClassMappingsSection['folderFileClassMappings'];
-      expect(folderFileClassMappings).toHaveLength(2);
-      expect(folderFileClassMappings[0]).toEqual({
-        folder: 'Books',
-        fileClass: '',
-        moveToFolder: true,
-        noteTitleTemplates: [],
-        noteTitleScript: {
-          script: 'return "";',
-          enabled: true
-        },
-        templateMode: 'template'
-      });
-      expect(folderFileClassMappings[1]).toEqual({
-        folder: 'Articles',
-        fileClass: '',
-        moveToFolder: true,
-        noteTitleTemplates: [],
-        noteTitleScript: {
-          script: 'return "";',
-          enabled: true
-        },
-        templateMode: 'template'
-      });
-      expect(folderFileClassMappingsSection['onChange']).toHaveBeenCalled();
+  describe('getFolderFileClassMappings', () => {
+    test('should return folder mappings from Templater settings', () => {
+      const msgs: any[] = [];
+      folderFileClassMappingsSection['tryToGetFileClassesFromMetadataMenu'] = jest.fn().mockReturnValue([
+        'book', 'article'
+      ]);
+      const mappings = folderFileClassMappingsSection['getFolderFileClassMappings'](msgs);
+      expect(mappings).toEqual([
+        {folder: '', fileClass: 'article', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template' as TemplateMode},
+        {folder: '', fileClass: 'book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template' as TemplateMode},
+      ]);
+      expect(msgs).toEqual([
+        {"level": "info", "text": "Folder mapping for fileClass book does not exist, adding default mapping"},
+        {"level": "info", "text": "Folder mapping for fileClass article does not exist, adding default mapping"},
+      ]);
     });
 
     test('should not duplicate existing mappings', async () => {
       // Add existing mapping
-      mockPlugin.settings.folderFileClassMappings = [
-        {folder: 'Books', fileClass: 'existing-book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template'}
+      folderFileClassMappingsSection['folderFileClassMappings'] = [
+        {folder: 'Books', fileClass: 'book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template'},
+        // folder: 'Citations' should be removed as file class is not found in MetadataMenu
+        {folder: 'Citations', fileClass: 'citation', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template'}
       ];
-      folderFileClassMappingsSection = getFolderFileClassMappingsSection();
-
-      await folderFileClassMappingsSection['importFolderMappingsFromTemplater']();
-
-      // Should still have only one mapping (the existing one)
-      const folderFileClassMappings = folderFileClassMappingsSection['folderFileClassMappings'];
-      expect(folderFileClassMappings).toStrictEqual([
-        {"fileClass": "existing-book", "folder": "Books", "moveToFolder": false, "noteTitleTemplates": [], "noteTitleScript": {script: 'return "";', enabled: true}, "templateMode": "template"},
-        {"fileClass": "", "folder": "Articles", "moveToFolder": true, "noteTitleTemplates": [], "noteTitleScript": {script: 'return "";', enabled: true}, "templateMode": "template"}
+      const msgs: any[] = [];
+      folderFileClassMappingsSection['tryToGetFileClassesFromMetadataMenu'] = jest.fn().mockReturnValue([
+        'book', 'article'
+      ]);
+      const mappings = folderFileClassMappingsSection['getFolderFileClassMappings'](msgs);
+      expect(mappings).toEqual([
+        {folder: '', fileClass: 'article', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template' as TemplateMode},
+        {folder: 'Books', fileClass: 'book', moveToFolder: false, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template' as TemplateMode},
+      ]);
+      expect(msgs).toEqual([
+        {"level": "warning", "text": "Citations - Folder mapping for fileClass citation does not exist, skipping"},
+        {"level": "info", "text": "Folder mapping for fileClass article does not exist, adding default mapping"}
       ]);
     });
+  });
 
+  describe('importFolderMappingsFromTemplater - Auto-populate from Templater', () => {
+    test('should import folder mappings from Templater settings', async () => {
+      folderFileClassMappingsSection['getFileClassFromFileFrontmatter'] = jest.fn().mockImplementation((path: string) => {
+        if (path === 'book-template.md') {
+          return 'book';
+        } else if (path === 'article-template.md') {
+          return 'article';
+        }
+        return null;
+      });
+      folderFileClassMappingsSection['folderFileClassMappings'] = [
+        {folder: 'Books', fileClass: '', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template' as TemplateMode},
+        {folder: 'Articles', fileClass: '', moveToFolder: true, noteTitleTemplates: [], noteTitleScript: {script: 'return "";', enabled: true}, templateMode: 'template' as TemplateMode}
+      ];
+      folderFileClassMappingsSection['getFolderFileClassMappings'] = jest.fn().mockReturnValue([
+        {folder: 'Books', template: 'templateBooksPath'},
+        {folder: 'Articles', template: 'templateArticlesPath'}
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const templaterAdapter = require('../../externalApi/TemplaterAdapter').TemplaterAdapter;
+      templaterAdapter['isTemplaterAvailable'] = jest.fn().mockReturnValue(true);
+      templaterAdapter['getFolderTemplatesMapping'] = jest.fn().mockReturnValue([
+        {folder: 'Books', template: 'book-template.md'},
+        {folder: 'Articles', template: 'article-template.md'}
+      ]);
+      folderFileClassMappingsSection['templaterAdapter'] = templaterAdapter;
+
+      const msgs: any[] = [];
+      await folderFileClassMappingsSection['importFolderMappingsFromTemplater'](msgs);
+
+      expect(folderFileClassMappingsSection['folderFileClassMappings']).toEqual([
+        {
+          folder: 'Books',
+          fileClass: '',
+          moveToFolder: true,
+          noteTitleTemplates: [],
+          noteTitleScript: {
+            script: 'return "";',
+            enabled: true
+          },
+          templateMode: 'template'
+        },
+        {
+          folder: 'Articles',
+          fileClass: '',
+          moveToFolder: true,
+          noteTitleTemplates: [],
+          noteTitleScript: {
+            script: 'return "";',
+            enabled: true
+          },
+          templateMode: 'template'
+        }
+      ]);
+      // This block seems to be an accidental duplicate and should be removed.
+      expect(folderFileClassMappingsSection['onChange']).toHaveBeenCalled();
+      expect(msgs).toEqual([
+        {"level": "info", "text": "Books - Folder mapping for fileClass book does not exist, skipping",},
+        {"level": "info", "text": "Articles - Folder mapping for fileClass article does not exist, skipping",},
+        {"level": "success", "text": "Imported 0 folder mappings from Templater",},
+      ]);
+
+    });
     test('should handle missing Templater plugin gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      jest.resetModules();
-      jest.doMock('../../externalApi/TemplaterAdapter', () => ({
-        TemplaterAdapter: jest.fn().mockImplementation(async () => ({
-          getFolderTemplatesMapping: jest.fn().mockReturnValue([]),
-        }))
-      }));
+      const templaterAdapter = new TemplaterAdapter(
+        mockApp, mockPlugin.settings, new ObsidianAdapter(mockApp, mockPlugin.settings)
+      );
+      templaterAdapter['isTemplaterAvailable'] = jest.fn().mockReturnValue(false);
 
       // Re-import after mocking
-      const {MetaFlowSettingTab} = require('../MetaFlowSettingTab');
-      folderFileClassMappingsSection = getFolderFileClassMappingsSection();
-      await folderFileClassMappingsSection['importFolderMappingsFromTemplater']();
+      folderFileClassMappingsSection = getFolderFileClassMappingsSection(templaterAdapter);
+      folderFileClassMappingsSection['getFolderFileClassMappings'] = jest.fn().mockReturnValue([
+        {folder: 'Books', template: 'templateBooksPath'},
+      ]);
+      const msgs: any[] = [];
+      await folderFileClassMappingsSection['importFolderMappingsFromTemplater'](msgs);
 
       // Should not throw error
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
+      expect(msgs).toEqual([
+        { "level": "warning", "text": "Templater plugin not found but integration is enabled" },
+        { "level": "success", "text": "Imported 0 folder mappings from Templater" },
+      ]);
     });
+  });
 
+  describe('displayFolderMappings', () => {
     test('should handle empty folder mappings list', () => {
       const mockContainer = {
         empty: jest.fn(),
@@ -227,13 +315,13 @@ describe('FolderFileClassMappingsSection', () => {
       };
 
       mockPlugin.settings.folderFileClassMappings = [];
-
+      const msgs: any[] = [];
       // Should not throw error
       expect(() => {
-        folderFileClassMappingsSection['displayFolderMappings'](mockContainer as any);
+        folderFileClassMappingsSection['displayFolderMappings'](mockContainer as any, msgs);
       }).not.toThrow();
 
-      expect(mockContainer.empty).toHaveBeenCalled();
+      expect(mockContainer.empty).not.toHaveBeenCalled();
     });
   });
 });

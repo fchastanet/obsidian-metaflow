@@ -1,28 +1,30 @@
-import {App, Modal, ProgressBarComponent, Setting} from "obsidian";
-import {LogManagerInterface, LogManagerLogLevel} from "../managers/types";
+import {App, ButtonComponent, Modal, ProgressBarComponent, Setting} from "obsidian";
+import {LogNoticeManagerInterface, LogNoticeManagerLogLevel} from "@metaflow/managers/types";
 
-export class ProgressModal extends Modal implements LogManagerInterface {
-  cancelCallback: Function;
-  actionCallback: Function;
+export class ProgressModal extends Modal implements LogNoticeManagerInterface {
+  cancelCallback: () => void;
+  actionCallback: (progressModal: ProgressModal) => void;
   progressBar: ProgressBarComponent;
   progressText: HTMLElement;
   currentItem: HTMLElement;
   numberErrorsText: HTMLElement;
   results: HTMLElement;
-  cancelButton: HTMLButtonElement;
-  actionButton: HTMLButtonElement;
+  cancelButton?: ButtonComponent;
+  actionButton?: ButtonComponent;
   current: number;
   total: number;
   errorCount: number;
   processFinished: boolean;
+  private logNoticeManager: LogNoticeManagerInterface;
 
   constructor(
     app: App,
     total: number,
     title: string,
     message: string,
+    logNoticeManager: LogNoticeManagerInterface,
     cancelCallback: () => void,
-    actionCallback: () => void,
+    actionCallback: (progressModal: ProgressModal) => void,
   ) {
     super(app);
     this.current = 0;
@@ -30,14 +32,16 @@ export class ProgressModal extends Modal implements LogManagerInterface {
     this.total = total;
     super.setTitle(title);
     this.shouldRestoreSelection = true;
-    this.processFinished = false;
+    this.processFinished = true;
     this.cancelCallback = cancelCallback;
     this.actionCallback = actionCallback;
+    this.logNoticeManager = logNoticeManager;
+    this.containerEl.addClass('metaflow-progress-modal');
 
     this.contentEl.createEl('p', {text: message});
 
     const progressBlock = this.contentEl.createEl('div');
-    progressBlock.classList.add('progress-modal-progress-block');
+    progressBlock.classList.add('metaflow-progress-modal-progress-block');
     this.progressBar = new ProgressBarComponent(progressBlock);
     this.progressBar.setValue(0);
     const progressBar: HTMLElement = progressBlock.getElementsByClassName('setting-progress-bar')[0] as HTMLElement;
@@ -55,32 +59,85 @@ export class ProgressModal extends Modal implements LogManagerInterface {
 
     const modalButtonContainer = this.contentEl.createEl('div', {cls: 'modal-button-container'});
 
-    // Confirm action button
-    this.actionButton = modalButtonContainer.createEl('button', {text: 'Confirm'});
-    this.actionButton.classList.add('mod-cta');
-    this.actionButton.onclick = () => {
-      this.actionButton.disabled = true;
-      this.actionCallback();
-    };
+    new Setting(modalButtonContainer)
+      // Confirm action button
+      .addButton((btn) => {
+        this.actionButton = btn;
+        btn
+          .setButtonText('Proceed')
+          .setCta()
+          .onClick(async () => {
+            this.reset();
+            this.processFinished = false;
+            this.actionButton!.disabled = true;
+            this.actionButton!.buttonEl.classList.add('meta-flow-button-disabled');
+            this.cancelButton!.buttonEl.textContent = "Abort";
+            this.actionCallback(this);
+          });
+      })
+      // Copy results to clipboard button
+      .addButton((btn) => {
+        btn
+          .setButtonText('Copy results to clipboard')
+          .onClick(() => {
+            this.copyResultsToClipboardCallback();
+          });
+      })
+      // Close button
+      .addButton((btn) => {
+        this.cancelButton = btn;
+        btn
+          .setButtonText('Close')
+          .onClick(this.closeCallback.bind(this))
+        ;
+      });
+  }
 
-    // Cancel button
-    this.cancelButton = modalButtonContainer.createEl('button', {text: 'Cancel'});
-    this.cancelButton.onclick = () => {
-      super.close();
-    };
+  private copyResultsToClipboardCallback() {
+    const resultsText = this.results.innerText;
+    if (resultsText) {
+      navigator.clipboard.writeText(resultsText)
+        .then(() => {
+          this.logNoticeManager.addInfo('Results copied to clipboard!');
+        })
+        .catch((err) => {
+          console.error('Failed to copy results to clipboard:', err);
+          this.logNoticeManager.addError('Failed to copy results to clipboard!');
+        });
+    } else {
+      this.logNoticeManager.addWarning('No results to copy!');
+    }
   }
 
   open() {
     super.open();
   }
 
-  onClose(): void {
-    if (!this.processFinished) {
-      this.cancelCallback();
-    }
-    super.onClose();
+  close() {
+    this.closeCallback();
   }
 
+  closeCallback(): void {
+    if (!this.processFinished) {
+      this.abort();
+    } else {
+      super.close();
+    }
+  }
+
+  private reset() {
+    this.current = 0;
+    this.errorCount = 0;
+    this.progressBar.setValue(0);
+    this.progressText.setText('');
+    this.currentItem.setText('');
+    this.numberErrorsText.setText('');
+    this.results.empty();
+    this.actionButton!.disabled = false;
+    this.actionButton!.buttonEl.classList.remove('meta-flow-button-disabled');
+    this.cancelButton!.buttonEl.textContent = "Close";
+    this.processFinished = true;
+  }
 
   setCurrentItem(item: string) {
     this.current++;
@@ -114,10 +171,10 @@ export class ProgressModal extends Modal implements LogManagerInterface {
   }
 
   addWarning(message: string): void {
-    this.addResultItem(`[WARNING] ${message}`, 'progress-modal-warning-item');
+    this.addResultItem(`[WARNING] ${message}`, 'metaflow-progress-modal-warning-item');
   }
 
-  addMessage(message: string, logLevel: LogManagerLogLevel): void {
+  addMessage(message: string, logLevel: LogNoticeManagerLogLevel): void {
     switch (logLevel) {
       case "debug":
         this.addDebug(message);
@@ -136,10 +193,24 @@ export class ProgressModal extends Modal implements LogManagerInterface {
     }
   }
 
+  isAborted(): boolean {
+    return this.processFinished;
+  }
+
+  abort() {
+    this.processFinished = true;
+    this.cancelButton!.buttonEl.textContent = "Cancel";
+    this.actionButton!.disabled = false;
+    this.actionButton!.buttonEl.classList.remove('meta-flow-button-disabled');
+    this.addWarning(`Process aborted by user.`);
+    this.displayCurrentItem("");
+  }
+
   finish() {
     this.processFinished = true;
-    this.cancelButton.textContent = "Close";
-    this.actionButton.disabled = true;
+    this.cancelButton!.buttonEl.textContent = "Cancel";
+    this.actionButton!.disabled = false;
+    this.actionButton!.buttonEl.classList.remove('meta-flow-button-disabled');
     this.displayCurrentItem("");
   }
 

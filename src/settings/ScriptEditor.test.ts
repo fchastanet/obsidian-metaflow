@@ -231,6 +231,10 @@ describe('ScriptEditor', () => {
       // The completions should be properly initialized with metadata
       expect(mockMetadataMenuAdapter.isMetadataMenuAvailable).toHaveBeenCalled();
       expect(mockMetadataMenuAdapter.getAllFields).toHaveBeenCalled();
+      expect(completions).toHaveLength(7); // 3 default + 2 metadata + 2 file
+      expect(completions).toContainEqual(
+        expect.objectContaining({value: 'metadata', meta: 'object'})
+      );
     });
 
     test('should handle MetadataMenu not being available', () => {

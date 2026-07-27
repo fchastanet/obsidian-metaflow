@@ -1,13 +1,12 @@
 import {injectable, inject} from 'inversify';
 import type {Editor, MarkdownView} from 'obsidian';
-import type {LogManagerInterface} from '../managers/types';
-import {MetaFlowException} from '../MetaFlowException';
-import type {FileOperationsService} from '../services/FileOperationsService';
-import type {FileValidationService} from '../services/FileValidationService';
-import type {FileClassDeductionService} from '../services/FileClassDeductionService';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
+import type {FileOperationsService} from '@metaflow/services/FileOperationsService';
+import type {FileValidationService} from '@metaflow/services/FileValidationService';
+import type {FileClassDeductionService} from '@metaflow/services/FileClassDeductionService';
 import type {App} from 'obsidian';
 import {EditorCommand} from './types';
-import {TYPES} from '../di/types';
+import {TYPES} from '@metaflow/di/types';
 
 /**
  * Command to rename file based on configured rules
@@ -18,14 +17,15 @@ export class RenameFileBasedOnRulesCommand implements EditorCommand {
     @inject(TYPES.App) private app: App,
     @inject(TYPES.FileOperationsService) private fileOperationsService: FileOperationsService,
     @inject(TYPES.FileValidationService) private fileValidationService: FileValidationService,
-    @inject(TYPES.FileClassDeductionService) private fileClassDeductionService: FileClassDeductionService
+    @inject(TYPES.FileClassDeductionService) private fileClassDeductionService: FileClassDeductionService,
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface,
   ) { }
 
-  async execute(editor: Editor, view: MarkdownView, logManager: LogManagerInterface): Promise<void> {
+  async execute(editor: Editor, view: MarkdownView): Promise<void> {
     try {
       const file = view.file;
       if (!file) {
-        logManager.addError('No active file found');
+        this.logNoticeManager.addError('No active file found');
         return;
       }
 
@@ -34,13 +34,13 @@ export class RenameFileBasedOnRulesCommand implements EditorCommand {
 
       const fileClass = this.fileClassDeductionService.getFileClassFromMetadata(metadata);
       if (fileClass) {
-        logManager.addInfo(`Renaming ${file.name} based on rules for file class: ${fileClass}`);
-        await this.fileOperationsService.renameNote(file, fileClass, metadata, logManager);
+        this.logNoticeManager.addInfo(`Renaming ${file.name} based on rules for file class: ${fileClass}`);
+        await this.fileOperationsService.renameNote(file, fileClass, metadata);
       } else {
-        logManager.addWarning(`No file class found for ${file.name}`);
+        this.logNoticeManager.addWarning(`No file class found for ${file.name}`);
       }
     } catch (error) {
-      logManager.addError(`Error renaming note: ${error.message || error}`);
+      this.logNoticeManager.addError(`Error renaming note: ${error.message || error}`);
     }
   }
 }

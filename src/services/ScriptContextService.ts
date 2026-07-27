@@ -1,19 +1,17 @@
 import {injectable, inject} from 'inversify';
-import {App, TFile} from 'obsidian';
-import {TemplaterAdapter} from '../externalApi/TemplaterAdapter';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
-import {MetaFlowSettings} from '../settings/types';
-import {LogManagerInterface} from '../managers/types';
-import {TYPES} from '../di/types';
+import {FrontMatterCache, TFile} from 'obsidian';
+import {TemplaterAdapter} from '@metaflow/externalApi/TemplaterAdapter';
+import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
+import {TYPES} from '@metaflow/di/types';
 
 
 export interface ScriptContextInterface {
   fileClass: string;
-  file: any; // TFile
-  metadata: {[key: string]: any};
+  file: TFile;
+  metadata: FrontMatterCache;
   prompt: (message: string, defaultValue?: string) => Promise<string>;
-  formatDate: (date: Date, format?: string) => any; // Templater date function
-  generateMarkdownLink: (file: any) => string;
+  formatDate: (date: Date, format?: string) => string; // Templater date function
+  generateMarkdownLink: (file: TFile) => string;
   detectLanguage: (text: string) => string;
   now: () => string;
   tomorrow: () => string;
@@ -24,16 +22,10 @@ export interface ScriptContextInterface {
 
 @injectable()
 export class ScriptContextService {
-  private templaterAdapter: TemplaterAdapter;
-  private obsidianAdapter: ObsidianAdapter;
-
   constructor(
-    @inject(TYPES.TemplaterAdapter) templaterAdapter: TemplaterAdapter,
-    @inject(TYPES.ObsidianAdapter) obsidianAdapter: ObsidianAdapter
-  ) {
-    this.templaterAdapter = templaterAdapter;
-    this.obsidianAdapter = obsidianAdapter;
-  }
+    @inject(TYPES.TemplaterAdapter) private templaterAdapter: TemplaterAdapter,
+    @inject(TYPES.ObsidianAdapter) private obsidianAdapter: ObsidianAdapter
+  ) { }
 
   /**
    * Basic language detection
@@ -97,7 +89,7 @@ export class ScriptContextService {
     return 'English';
   }
 
-  private getFile(file: any): TFile {
+  private getFile(file: unknown): TFile {
     if (!file) {
       throw new Error('File is required');
     }
@@ -123,8 +115,7 @@ export class ScriptContextService {
   getScriptContext(
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
-    logManager: LogManagerInterface
+    metadata: FrontMatterCache
   ): ScriptContextInterface {
     return {
       file,
@@ -134,9 +125,9 @@ export class ScriptContextService {
       formatDate: this.templaterAdapter.formatDate.bind(this.templaterAdapter),
       tomorrow: this.templaterAdapter.tomorrow.bind(this.templaterAdapter),
       yesterday: this.templaterAdapter.yesterday.bind(this.templaterAdapter),
-      generateMarkdownLink: (targetFile: any) => {
-        targetFile = this.getFile(targetFile);
-        return this.obsidianAdapter.generateMarkdownLink(targetFile, file);
+      generateMarkdownLink: (targetFile: unknown) => {
+        const targetTFile = this.getFile(targetFile);
+        return this.obsidianAdapter.generateMarkdownLink(targetTFile, file);
       },
       detectLanguage: this.detectLanguage.bind(this),
       prompt: this.templaterAdapter.prompt.bind(this.templaterAdapter),

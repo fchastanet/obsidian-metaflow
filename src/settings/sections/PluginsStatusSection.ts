@@ -1,6 +1,6 @@
 import {App} from "obsidian";
-import {MetadataMenuAdapter} from "../../externalApi/MetadataMenuAdapter";
-import {TemplaterAdapter} from "../../externalApi/TemplaterAdapter";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
 
 export class PluginsStatusSection {
   constructor(
@@ -33,7 +33,7 @@ export class PluginsStatusSection {
     // Section header
     pluginSupport.createEl('p', {text: 'Enjoying MetaFlow?', cls: 'metaflow-settings-section-header'});
     // Description
-    pluginSupport.createEl('div', {text: 'If you like this Plugin, consider donating to support continued development:', cls: 'setting-item-description'});
+    pluginSupport.createEl('div', {text: 'If you like this plugin, consider donating to support continued development:', cls: 'setting-item-description'});
     // Buttons row
     const buttonsDiv = pluginSupport.createDiv({cls: 'metaflow-settings-buttons'});
     // Buy me a coffee button

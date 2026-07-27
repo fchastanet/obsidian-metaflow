@@ -1,0 +1,30 @@
+@startuml Error_Handling_Flow
+PARTICIPANT FileEventManager
+PARTICIPANT FileEventProcessor
+PARTICIPANT UserNotifier
+PARTICIPANT MetricsCollector
+PARTICIPANT ProcessingLockManager
+
+FileEventManager -> FileEventProcessor : processFile(filePath, events)
+
+alt processing succeeds
+  FileEventProcessor -> FileEventManager : success
+  FileEventManager -> MetricsCollector : recordSuccess(filePath, timeMs)
+else file system error
+  FileEventProcessor -> FileEventManager : throw FileSystemError
+  FileEventManager -> MetricsCollector : recordError(filePath, error)
+  FileEventManager -> UserNotifier : notifyError(filePath, "File system error")
+else processing error
+  FileEventProcessor -> FileEventManager : throw ProcessingError
+  FileEventManager -> MetricsCollector : recordError(filePath, error)
+  FileEventManager -> UserNotifier : notifyError(filePath, "Processing failed")
+else concurrency error
+  FileEventProcessor -> FileEventManager : throw ConcurrencyError
+  FileEventManager -> MetricsCollector : recordError(filePath, error)
+  FileEventManager -> ProcessingLockManager : releaseLock(filePath)
+end
+
+FileEventManager -> ProcessingLockManager : releaseLock(filePath)
+FileEventManager -> FileEventQueue : clearEvents(filePath)
+
+@enduml

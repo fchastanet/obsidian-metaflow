@@ -1,5 +1,5 @@
 import {App, Setting} from "obsidian";
-import {FolderSuggest} from "../FolderSuggest";
+import {FolderSuggest} from "@metaflow/settings/FolderSuggest";
 
 export class ExcludeFoldersSection {
   constructor(
@@ -11,9 +11,6 @@ export class ExcludeFoldersSection {
 
   render() {
     this.container.empty();
-
-    this.container.createEl('div', {text: 'Exclude folders', cls: 'setting-item-name'});
-    this.container.createEl('div', {text: 'Folders to exclude from metadata update commands. Add one per row.', cls: 'setting-item-description'});
 
     const excludeFoldersList = this.container.createDiv();
 

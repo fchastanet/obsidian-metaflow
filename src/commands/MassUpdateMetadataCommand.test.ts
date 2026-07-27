@@ -1,4 +1,5 @@
 // Mock ProgressModal
+import {MassUpdateMetadataCommand} from './MassUpdateMetadataCommand';
 jest.mock('../ui/ProgressModal', () => ({
   ProgressModal: jest.fn().mockImplementation((app, totalFiles, title, description, onCancel, onExecute) => ({
     open: jest.fn(() => onExecute()),
@@ -16,14 +17,12 @@ jest.mock('../utils/Utils', () => ({
   }
 }));
 
-import {MassUpdateMetadataCommand} from './MassUpdateMetadataCommand';
-import {MetaFlowException} from '../MetaFlowException';
 import {Container} from 'inversify';
-import {TYPES} from '../di/types';
-import {DEFAULT_SETTINGS} from '../settings/defaultSettings';
-import type {MetaFlowService} from '../services/MetaFlowService';
-import type {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
-import type {LogManagerInterface} from '../managers/types';
+import {TYPES} from '@metaflow/di/types';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
+import type {MetaFlowService} from '@metaflow/services/MetaFlowService';
+import type {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
+import type {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Mock Obsidian classes
 jest.mock('obsidian', () => ({
@@ -32,7 +31,6 @@ jest.mock('obsidian', () => ({
   Notice: jest.fn(),
   App: class MockApp { }
 }));
-import {TFile} from 'obsidian';
 
 describe('MassUpdateMetadataCommand', () => {
   let command: MassUpdateMetadataCommand;
@@ -40,7 +38,7 @@ describe('MassUpdateMetadataCommand', () => {
   let mockApp: any;
   let mockMetaFlowService: jest.Mocked<MetaFlowService>;
   let mockObsidianAdapter: jest.Mocked<ObsidianAdapter>;
-  let mockLogManager: jest.Mocked<LogManagerInterface>;
+  let mockLogNoticeManager: jest.Mocked<LogNoticeManagerInterface>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -60,7 +58,7 @@ describe('MassUpdateMetadataCommand', () => {
       createProgressModal: jest.fn()
     } as any;
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addError: jest.fn(),
       addWarning: jest.fn(),
       addInfo: jest.fn(),
@@ -76,7 +74,7 @@ describe('MassUpdateMetadataCommand', () => {
     container.bind(TYPES.MetaFlowService).toConstantValue(mockMetaFlowService);
     container.bind(TYPES.ObsidianAdapter).toConstantValue(mockObsidianAdapter);
     container.bind(TYPES.MassUpdateMetadataCommand).to(MassUpdateMetadataCommand);
-
+    container.bind(TYPES.LogNoticeManagerInterface).toConstantValue(mockLogNoticeManager);
     // Create command instance
     command = container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
   });
@@ -86,12 +84,12 @@ describe('MassUpdateMetadataCommand', () => {
   });
 
   it('should warn when no files to update', async () => {
-    await command.execute(mockLogManager);
-    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No files to update - all files are excluded or no markdown files found.');
+    await command.execute();
+    expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith('No files to update - all files are excluded or no markdown files found.');
   });
 
   it('should call getMarkdownFiles when executed', async () => {
-    await command.execute(mockLogManager);
+    await command.execute();
     expect(mockApp.vault.getMarkdownFiles).toHaveBeenCalled();
   });
 });

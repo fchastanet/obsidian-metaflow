@@ -1,8 +1,8 @@
 import {TFile} from "obsidian";
 import {FileValidationService} from "./FileValidationService";
-import {MetaFlowSettings} from "../settings/types";
-import {MetaFlowException} from "../MetaFlowException";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {MetaFlowException} from "@metaflow/MetaFlowException";
+import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({

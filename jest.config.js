@@ -1,7 +1,11 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'jsdom',
+  testEnvironment: './FixJSDOMEnvironment.ts',
   roots: ['<rootDir>/src'],
+  moduleNameMapper: {
+    '^@metaflow/(.*)$': '<rootDir>/src/$1',
+    '^obsidian$': '<rootDir>/__mocks__/obsidian.ts',
+  },
   testMatch: [
     '**/__tests__/**/*.+(ts|tsx|js)',
     '**/*.(test|spec).+(ts|tsx|js)'
@@ -14,9 +18,13 @@ module.exports = {
     '!src/**/*.d.ts',
     '!*.d.ts',
     '!jest.config.js',
-    '!esbuild.config.mjs'
+    '!esbuild.config.mjs',
+    "!src/settings/**",
+    "!src/ui/**"
   ],
-  "globals": {
-    "window": {}
+  collectCoverage: true,
+  coverageReporters: ["json", "html"],
+  globals: {
+    window: {}
   }
 };

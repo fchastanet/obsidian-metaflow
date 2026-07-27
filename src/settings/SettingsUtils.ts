@@ -1,26 +1,12 @@
+import {Setting} from "obsidian";
+
 export class SettingsUtils {
-  static createSection(containerEl: HTMLElement, title: string): HTMLElement {
-    // General Settings - Collapsible
-    const section = containerEl.createEl('details', {cls: 'setting-details'});
-    section.open = false; // Collapsed by default
-    const summary = section.createEl('summary', {cls: 'setting-summary'});
-    summary.classList.add('metaflow-settings-summary');
+  static createSection(containerEl: HTMLElement, title: string): Setting {
+    const section = new Setting(containerEl)
+      .setName(title)
+      .setHeading();
 
-    summary.createEl('p', {text: title, cls: 'metaflow-settings-section-header'});
-
-    const generalToggleDiv = summary.createEl('div', {cls: 'setting-item-control'});
-    const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta metaflow-settings-toggle-button'});
-
-    // Prevent button click from triggering summary toggle
-    generalToggleButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      section.open = !section.open;
-    });
-
-    const sectionContent = section.createDiv({cls: 'section-content'});
-
-    return sectionContent;
+    return section;
   }
 
   static createCheckboxWithLabel(container: HTMLElement, options: {

@@ -1,7 +1,10 @@
 declare global {
-  interface Notice { }
+  interface Notice {
+    show: () => void;
+    hide: () => void
+  }
   interface Window {
-    moment?: any;
+    moment?: import('moment').Moment;
     Notice: new (message: string, duration?: number) => Notice;
   }
 }

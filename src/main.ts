@@ -1,27 +1,23 @@
 import 'reflect-metadata';
 import {Container} from 'inversify';
-import {EditorView} from '@codemirror/view';
-import {Plugin, Editor, MarkdownView, TFolder, TFile, TAbstractFile, Vault, ProgressBarComponent, Modal, MarkdownFileInfo, CachedMetadata, WorkspaceLeaf} from 'obsidian';
-import {MetaFlowSettings} from './settings/types';
-import {DEFAULT_SETTINGS} from './settings/defaultSettings';
-import {MetaFlowSettingTab} from './settings/MetaFlowSettingTab';
-import {MetaFlowService} from './services/MetaFlowService';
-import {FrontMatterService} from './services/FrontMatterService';
-import {FileClassStateManager} from './managers/FileClassStateManager';
-import {LogNoticeManager} from './managers/LogNoticeManager';
-import {ObsidianAdapter} from './externalApi/ObsidianAdapter';
-import {UIService} from './services/UIService';
-import {FileOperationsService} from './services/FileOperationsService';
-import type {FileClassDeductionService} from './services/FileClassDeductionService';
-import {createContainer, TYPES} from './di';
+import {Plugin, Editor, MarkdownView, TFolder, TFile, TAbstractFile, Vault} from 'obsidian';
+import {MetaFlowSettings} from '@metaflow/settings/types';
+import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
+import {MetaFlowSettingTab} from '@metaflow/settings/MetaFlowSettingTab';
+import {LogNoticeManager} from '@metaflow/managers/LogNoticeManager';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
+import {UIService} from '@metaflow/services/UIService';
+import {createContainer, TYPES} from '@metaflow/di';
 
 // Import command types for direct DI access
-import type {UpdateMetadataCommand} from './commands/UpdateMetadataCommand';
-import type {SortMetadataCommand} from './commands/SortMetadataCommand';
-import type {MassUpdateMetadataCommand} from './commands/MassUpdateMetadataCommand';
-import type {MoveNoteToRightFolderCommand} from './commands/MoveNoteToRightFolderCommand';
-import type {RenameFileBasedOnRulesCommand} from './commands/RenameFileBasedOnRulesCommand';
-import type {TogglePropertiesPanelCommand} from './commands/TogglePropertiesPanelCommand';
+import type {UpdateMetadataCommand} from '@metaflow/commands/UpdateMetadataCommand';
+import type {SortMetadataCommand} from '@metaflow/commands/SortMetadataCommand';
+import type {MassUpdateMetadataCommand} from '@metaflow/commands/MassUpdateMetadataCommand';
+import type {MoveNoteToRightFolderCommand} from '@metaflow/commands/MoveNoteToRightFolderCommand';
+import type {RenameFileBasedOnRulesCommand} from '@metaflow/commands/RenameFileBasedOnRulesCommand';
+import type {TogglePropertiesPanelCommand} from '@metaflow/commands/TogglePropertiesPanelCommand';
+import EventManager from '@metaflow/eventManager/EventManager';
+import EventCron from './eventManager/EventCron';
 
 /**
  * MetaFlow Plugin - Automated metadata workflow management for Obsidian
@@ -34,14 +30,11 @@ import type {TogglePropertiesPanelCommand} from './commands/TogglePropertiesPane
  */
 export default class MetaFlowPlugin extends Plugin {
   settings: MetaFlowSettings;
-  metaFlowService: MetaFlowService;
   container: Container;
-  frontMatterService: FrontMatterService;
-  fileClassStateManager: FileClassStateManager;
-  obsidianAdapter: ObsidianAdapter;
-  logManager: LogNoticeManager;
+  eventManager: EventManager;
+  logNoticeManager: LogNoticeManagerInterface;
+  eventCron: EventCron;
   uiService: UIService;
-  timer: {[key: string]: number} = {};
 
   async onload() {
     this.settings = await this.loadSettings();
@@ -50,27 +43,10 @@ export default class MetaFlowPlugin extends Plugin {
     this.container = createContainer(this.app, this.settings, this.saveSettings.bind(this));
 
     // Get services from container
-    this.metaFlowService = this.container.get<MetaFlowService>(TYPES.MetaFlowService);
-    this.frontMatterService = this.container.get<FrontMatterService>(TYPES.FrontMatterService);
-    this.obsidianAdapter = this.container.get<ObsidianAdapter>(TYPES.ObsidianAdapter);
     this.uiService = this.container.get<UIService>(TYPES.UIService);
-
-    this.logManager = new LogNoticeManager(this.obsidianAdapter);
-
-    // Get FileClassDeductionService from container
-    const fileClassDeductionService = this.container.get<FileClassDeductionService>(TYPES.FileClassDeductionService);
-
-    this.fileClassStateManager = new FileClassStateManager(
-      this.app, this.settings, this.logManager, fileClassDeductionService,
-      async (file: TFile, cache: CachedMetadata | null, oldFileClass: string, newFileClass: string) => {
-        if (this.settings.autoMetadataInsertion) {
-          await this.metaFlowService.handleFileClassChanged(file, cache, oldFileClass, newFileClass, this.logManager);
-        }
-      }
-    );
-
-    // Initialize command factory with container
-    // Commands are now accessed directly from the DI container
+    this.logNoticeManager = this.container.get<LogNoticeManager>(TYPES.LogNoticeManagerInterface);
+    this.eventManager = this.container.get<EventManager>(TYPES.EventManagerInterface);
+    this.eventCron = this.container.get<EventCron>(TYPES.EventCron);
 
     // Apply properties visibility setting on load
     this.uiService.togglePropertiesVisibility(this.settings.hidePropertiesInEditor);
@@ -100,7 +76,7 @@ export default class MetaFlowPlugin extends Plugin {
                   }
                 });
                 const command = this.container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
-                await command.massUpdateMetadataProperties(directory.path, files, this.logManager);
+                await command.massUpdateMetadataProperties(directory.path, files);
               });
           });
         }
@@ -109,93 +85,101 @@ export default class MetaFlowPlugin extends Plugin {
   }
 
   private registerEvents() {
-    // leafChange event allow to initialize fileClass when the file is loading
-    this.registerEvent(this.app.workspace.on(
-      "active-leaf-change",
-      this.fileClassStateManager.handleActiveLeafChange.bind(this.fileClassStateManager)
-    ));
-
-    this.registerEvent(this.app.metadataCache.on(
-      'changed',
-      this.fileClassStateManager.handleMetadataChanged.bind(this.fileClassStateManager)
-    ));
-
-    // CodeMirror extension to detect manual edits (typing, paste, cut, drop, undo, redo, autocomplete)
-    this.registerEditorExtension(EditorView.updateListener.of(
-      this.fileClassStateManager.handleTypingEvent.bind(this.fileClassStateManager)
-    ));
-
-    this.app.workspace.onLayoutReady(() => {
-      this.registerEvent(this.app.vault.on('create', this.fileClassStateManager.handleCreateFileEvent.bind(this.fileClassStateManager)));
-      this.registerEvent(this.app.vault.on('modify', this.fileClassStateManager.handleModifyFileEvent.bind(this.fileClassStateManager)));
-      this.registerEvent(this.app.vault.on('delete', this.fileClassStateManager.handleDeleteFileEvent.bind(this.fileClassStateManager)));
-      this.registerEvent(this.app.vault.on('rename', this.fileClassStateManager.handleRenameFileEvent.bind(this.fileClassStateManager)));
+    this.app.workspace.onLayoutReady(async () => {
+      await this.eventManager.init();
+      this.eventCron.start();
+      // leafChange event allow to initialize fileClass when the file is loading
+      this.registerEvent(this.app.workspace.on(
+        "active-leaf-change",
+        this.eventManager.handleActiveLeafChange.bind(this.eventManager),
+      ));
+      this.registerEvent(this.app.metadataCache.on(
+        'changed',
+        this.eventManager.handleMetadataChanged.bind(this.eventManager),
+      ));
+      this.registerEvent(this.app.vault.on(
+        'create',
+        this.eventManager.handleCreateFileEvent.bind(this.eventManager)
+      ));
+      this.registerEvent(this.app.vault.on(
+        'modify',
+        this.eventManager.handleModifyFileEvent.bind(this.eventManager),
+      ));
+      this.registerEvent(this.app.vault.on(
+        'delete',
+        this.eventManager.handleDeleteFileEvent.bind(this.eventManager)
+      ));
+      this.registerEvent(this.app.vault.on(
+        'rename',
+        this.eventManager.handleRenameFileEvent.bind(this.eventManager)
+      ));
     });
   }
 
   private registerCommands() {
     // Register the main command for single file processing
     this.addCommand({
-      id: 'metaflow-update-metadata',
+      id: 'update-metadata',
       name: 'Update metadata properties',
       editorCallback: (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<UpdateMetadataCommand>(TYPES.UpdateMetadataCommand);
-        command.execute(editor, view, this.logManager);
+        command.execute(editor, view);
       }
     });
 
     // Register the command for single file processing to sort metadata
     this.addCommand({
-      id: 'metaflow-sort-metadata',
+      id: 'sort-metadata',
       name: 'Sort metadata properties',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<SortMetadataCommand>(TYPES.SortMetadataCommand);
-        await command.execute(editor, view, this.logManager);
+        await command.execute(editor, view);
       }
     });
 
     // Register the command to move the note to the right folder
     this.addCommand({
-      id: 'metaflow-move-note-to-right-folder',
+      id: 'move-note-to-right-folder',
       name: 'Move the note to the right folder',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<MoveNoteToRightFolderCommand>(TYPES.MoveNoteToRightFolderCommand);
-        await command.execute(editor, view, this.logManager);
+        await command.execute(editor, view);
       }
     });
 
     // Register the command to rename the file based on rules
     this.addCommand({
-      id: 'metaflow-rename-file-based-on-rules',
+      id: 'rename-file-based-on-rules',
       name: 'Rename the file based on rules',
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         const command = this.container.get<RenameFileBasedOnRulesCommand>(TYPES.RenameFileBasedOnRulesCommand);
-        await command.execute(editor, view, this.logManager);
+        await command.execute(editor, view);
       }
     });
 
     // Register the mass update command for vault-wide processing
     this.addCommand({
-      id: 'metaflow-mass-update-metadata',
+      id: 'mass-update-metadata',
       name: 'Mass-update metadata properties',
       callback: async () => {
         const command = this.container.get<MassUpdateMetadataCommand>(TYPES.MassUpdateMetadataCommand);
-        await command.execute(this.logManager);
+        await command.execute();
       }
     });
 
     // Register toggle properties panel command
     this.addCommand({
-      id: 'metaflow-toggle-properties-panel',
+      id: 'toggle-properties-panel',
       name: 'Toggle properties panel visibility',
       callback: () => {
         const command = this.container.get<TogglePropertiesPanelCommand>(TYPES.TogglePropertiesPanelCommand);
-        command.execute(this.logManager);
+        command.execute();
       }
     });
   }
 
   onunload() {
+    this.eventCron.stop();
     // Remove CSS when plugin is disabled
     this.uiService.togglePropertiesVisibility(false);
   }

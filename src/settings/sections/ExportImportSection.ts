@@ -1,6 +1,6 @@
 import {App, Setting, Notice} from "obsidian";
-import {MetaFlowSettings} from "../types";
-import {MetaFlowService} from "../../services/MetaFlowService";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {MetaFlowService} from "@metaflow/services/MetaFlowService";
 
 export class ExportImportSection {
   constructor(
@@ -12,11 +12,9 @@ export class ExportImportSection {
   ) { }
 
   render() {
-    this.container.createEl('p', {text: 'Export your MetaFlow settings as a JSON file or import settings from a JSON file.'});
-
     // Export button
     new Setting(this.container)
-      .setName('Export Settings')
+      .setName('Export settings')
       .setDesc('Download current settings as a JSON file')
       .addButton(btn => btn
         .setButtonText('⬇️ Export')
@@ -37,7 +35,7 @@ export class ExportImportSection {
 
     // Import button and file input
     new Setting(this.container)
-      .setName('Import Settings')
+      .setName('Import settings')
       .setDesc('Import settings from a JSON file (overwrites current settings)')
       .addButton(btn => {
         btn.setButtonText('⬆️ Import')
@@ -46,17 +44,22 @@ export class ExportImportSection {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'application/json';
-            input.onchange = async (event: any) => {
-              const file = event.target.files[0];
+            input.onchange = async (event: Event) => {
+              if (event.target === null) return;
+              const files = (event.target as HTMLInputElement).files;
+              if (!files || files.length === 0) return;
+              const file = files[0];
               if (!file) return;
 
               const reader = new FileReader();
-              reader.onload = async (e: any) => {
+              reader.onload = async (e: ProgressEvent<FileReader>) => {
+                if (!e.target || typeof e.target.result !== "string") return;
                 try {
                   this.metaflowService.importSettings(e.target.result);
                   new Notice('Settings imported successfully!');
                   this.onChange();
                 } catch (err) {
+                  console.error(err);
                   new Notice('Failed to import settings: Invalid JSON', 5000);
                 }
               };

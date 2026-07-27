@@ -1,33 +1,43 @@
 import {Container} from 'inversify';
 import {App} from 'obsidian';
 import {TYPES} from './types';
-import {MetaFlowSettings} from '../settings/types';
+import {MetaFlowSettings} from '@metaflow/settings/types';
 
 // Core services
-import {FrontMatterService} from '../services/FrontMatterService';
-import {MetadataMenuAdapter} from '../externalApi/MetadataMenuAdapter';
-import {TemplaterAdapter} from '../externalApi/TemplaterAdapter';
-import {ObsidianAdapter} from '../externalApi/ObsidianAdapter';
-import {ScriptContextService} from '../services/ScriptContextService';
-import {UIService} from '../services/UIService';
+import {FrontMatterService} from '@metaflow/services/FrontMatterService';
+import {MetadataMenuAdapter} from '@metaflow/externalApi/MetadataMenuAdapter';
+import {TemplaterAdapter} from '@metaflow/externalApi/TemplaterAdapter';
+import {ObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
+import {ScriptContextService} from '@metaflow/services/ScriptContextService';
+import {UIService} from '@metaflow/services/UIService';
 
 // Domain services
-import {FileValidationService} from '../services/FileValidationService';
-import {FileClassDeductionService} from '../services/FileClassDeductionService';
-import {PropertyManagementService} from '../services/PropertyManagementService';
-import {FileOperationsService} from '../services/FileOperationsService';
-import {NoteTitleService} from '../services/NoteTitleService';
+import {FileValidationService} from '@metaflow/services/FileValidationService';
+import {FileClassDeductionService} from '@metaflow/services/FileClassDeductionService';
+import {PropertyManagementService} from '@metaflow/services/PropertyManagementService';
+import {FileOperationsService} from '@metaflow/services/FileOperationsService';
+import {NoteTitleService} from '@metaflow/services/NoteTitleService';
+
+// Managers
+import {LogNoticeManager} from '@metaflow/managers/LogNoticeManager';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Legacy services
-import {MetaFlowService} from '../services/MetaFlowService';
+import {MetaFlowService} from '@metaflow/services/MetaFlowService';
 
 // Commands
-import {UpdateMetadataCommand} from '../commands/UpdateMetadataCommand';
-import {SortMetadataCommand} from '../commands/SortMetadataCommand';
-import {MoveNoteToRightFolderCommand} from '../commands/MoveNoteToRightFolderCommand';
-import {RenameFileBasedOnRulesCommand} from '../commands/RenameFileBasedOnRulesCommand';
-import {TogglePropertiesPanelCommand} from '../commands/TogglePropertiesPanelCommand';
-import {MassUpdateMetadataCommand} from '../commands/MassUpdateMetadataCommand';
+import {UpdateMetadataCommand} from '@metaflow/commands/UpdateMetadataCommand';
+import {SortMetadataCommand} from '@metaflow/commands/SortMetadataCommand';
+import {MoveNoteToRightFolderCommand} from '@metaflow/commands/MoveNoteToRightFolderCommand';
+import {RenameFileBasedOnRulesCommand} from '@metaflow/commands/RenameFileBasedOnRulesCommand';
+import {TogglePropertiesPanelCommand} from '@metaflow/commands/TogglePropertiesPanelCommand';
+import {MassUpdateMetadataCommand} from '@metaflow/commands/MassUpdateMetadataCommand';
+import EventManager, {EventManagerInterface} from '@metaflow/eventManager/EventManager';
+import {FileFilter} from '@metaflow/eventManager/FileFilter';
+import {FileStateCache} from '@metaflow/eventManager/cache/FileStateCache';
+import FileCachePersistence from '@metaflow/eventManager/cache/FileCachePersistence';
+import {InternalFileState} from '@metaflow/eventManager/cache/types';
+import EventCron from '@metaflow/eventManager/EventCron';
 
 /**
  * Creates and configures the dependency injection container
@@ -48,6 +58,9 @@ export function createContainer(app: App, settings: MetaFlowSettings, saveSettin
   container.bind<ScriptContextService>(TYPES.ScriptContextService).to(ScriptContextService).inSingletonScope();
   container.bind<UIService>(TYPES.UIService).to(UIService).inSingletonScope();
 
+  // Bind managers
+  container.bind<LogNoticeManagerInterface>(TYPES.LogNoticeManagerInterface).to(LogNoticeManager).inSingletonScope();
+
   // Bind domain services
   container.bind<FileValidationService>(TYPES.FileValidationService).to(FileValidationService).inSingletonScope();
   container.bind<FileClassDeductionService>(TYPES.FileClassDeductionService).to(FileClassDeductionService).inSingletonScope();
@@ -57,6 +70,13 @@ export function createContainer(app: App, settings: MetaFlowSettings, saveSettin
 
   // Bind MetaFlowService
   container.bind<MetaFlowService>(TYPES.MetaFlowService).to(MetaFlowService).inSingletonScope();
+
+  // Bind event manager
+  container.bind<EventManagerInterface>(TYPES.EventManagerInterface).to(EventManager).inSingletonScope();
+  container.bind<FileFilter>(TYPES.FileFilter).to(FileFilter).inSingletonScope();
+  container.bind<FileStateCache>(TYPES.FileStateCache).to(FileStateCache).inSingletonScope();
+  container.bind<FileCachePersistence<InternalFileState>>(TYPES.FileCachePersistence).to(FileCachePersistence).inSingletonScope();
+  container.bind<EventCron>(TYPES.EventCron).to(EventCron).inSingletonScope();
 
   // Bind commands
   container.bind<UpdateMetadataCommand>(TYPES.UpdateMetadataCommand).to(UpdateMetadataCommand);
