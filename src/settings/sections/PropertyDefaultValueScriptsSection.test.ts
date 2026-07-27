@@ -262,6 +262,10 @@ describe('PropertyDefaultValueScriptsSection', () => {
           style: {}
         }),
         setClass: jest.fn().mockReturnThis(),
+        parentElement: {
+          removeChild: jest.fn(),
+          appendChild: jest.fn()
+        }
       };
 
       mockPlugin.settings.propertyDefaultValueScripts = [];

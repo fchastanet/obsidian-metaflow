@@ -130,6 +130,11 @@ export class PropertyDefaultValueScriptsSection {
     container: HTMLElement,
     options: Options = defaultOptions
   ): void {
+    const parent = container.parentElement;
+    if (!parent) {
+      throw new Error('Container has no parent element'); // should never happen
+    }
+    parent.removeChild(container);
     container.empty();
 
     const fileClasses: string[] = this.getUniqueFileClasses();
@@ -491,6 +496,7 @@ export class PropertyDefaultValueScriptsSection {
         }
       });
     });
+    parent.appendChild(container);
     if (scriptDivToScrollIntoView) {
       (scriptDivToScrollIntoView as HTMLElement).scrollIntoView({behavior: 'smooth', block: 'center'});
     }

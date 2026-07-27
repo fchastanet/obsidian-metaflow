@@ -32,6 +32,11 @@ export class FolderFileClassMappingsSection {
   }
 
   render() {
+    const parent = this.container.parentElement;
+    if (!parent) {
+      throw new Error('Container has no parent element'); // should never happen
+    }
+    parent.removeChild(this.container);
     this.container.empty();
 
     // Auto-populate from Templater button
@@ -61,6 +66,7 @@ export class FolderFileClassMappingsSection {
     const msgs: Msg[] = [];
     this.displayFolderMappings(mappingsContainer, msgs);
     this.displayMsgs(importFromTemplaterMsgsContainer, msgs);
+    parent.appendChild(this.container);
   }
 
   private displayMsgs(container: HTMLElement, msgs: Msg[]): void {
