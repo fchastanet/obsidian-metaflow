@@ -17,6 +17,10 @@ export class Utils {
     return createHash("sha256").update(input, "utf8").digest("hex");
   }
 
+  static md5(input: string): string {
+    return createHash("md5").update(input, "utf8").digest("hex");
+  }
+
   static stackTrace() {
     const err = new Error();
     return {stack: err.stack};

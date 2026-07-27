@@ -107,7 +107,7 @@ describe('ObsidianAdapter', () => {
 
   test('notice should call Notice with the correct message', () => {
     const message = 'Test message';
-    const result = adapter.notice(message);
+    const result = adapter.notice(message, 1000);
     expect(result).toBeDefined();
   });
 

@@ -91,8 +91,15 @@ export class ObsidianAdapter {
     return folderPath + '/';
   }
 
-  notice(message: string): Notice {
-    return new Notice(message);
+  /**
+   * Create a notice in Obsidian
+   * @param message {string} The message to display in the notice
+   * @param duration {number} Time in milliseconds to show the notice for.
+   * If this is 0, the notice will stay visible until the user manually dismisses it.
+   * @returns {Notice} The created notice instance
+   */
+  notice(message: string, duration: number): Notice {
+    return new Notice(message, duration);
   }
 
   static createMockTFile(path: string): TFile {

@@ -65,5 +65,6 @@
   "github.copilot.chat.languageContext.fix.typescript.enabled": true,
   "github.copilot.chat.languageContext.inline.typescript.enabled": true,
   "github.copilot.chat.languageContext.typescript.enabled": false,
-  "jest.runMode": "on-demand"
+  "jest.runMode": "on-demand",
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

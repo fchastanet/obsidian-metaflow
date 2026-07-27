@@ -145,6 +145,9 @@ export class FileOperationsService {
     try {
       // Step 1: Determine or validate fileClass if not available
       const fileClass = this.computeFileClass(file, frontmatter);
+      if (state.fileClass && state.fileClass !== fileClass) {
+        this.logNoticeManager.addWarning(`FileClass changed for file "${file.name}" from "${state.fileClass}" to "${fileClass}"`);
+      }
 
       // Step 2: Validate fileClass exists in MetadataMenu, throw error if not found
       this.metadataMenuAdapter.getFileClassByName(fileClass);
