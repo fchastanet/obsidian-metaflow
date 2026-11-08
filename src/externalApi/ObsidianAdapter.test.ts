@@ -2,10 +2,11 @@ import {ObsidianAdapter} from './ObsidianAdapter';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import {MetaFlowSettings} from '@metaflow/settings/types';
 import * as obsidian from 'obsidian';
+import {testPluginManifest} from '@metaflow/__helpers__/obsidianAdapter';
 
 // Mock obsidian module at top level
-jest.mock('obsidian', () => ({
-  TFile: class MockTFile {
+jest.mock('obsidian', () => {
+  class MockTFile {
     path: string;
     name: string;
     basename: string;
@@ -22,6 +23,13 @@ jest.mock('obsidian', () => ({
       this.stat = {};
       this.vault = {};
     }
+  }
+  return {
+  TFile: MockTFile,
+  TExternalFile: class MockTExternalFile extends MockTFile {
+    getRealPath(): string {
+      return `/external/${this.path}`;
+    }
   },
   TFolder: class MockTFolder {
     path: string;
@@ -37,7 +45,8 @@ jest.mock('obsidian', () => ({
   getFrontMatterInfo: jest.fn(),
   parseYaml: jest.fn(),
   Notice: jest.fn()
-}));
+};
+});
 
 
 describe('ObsidianAdapter', () => {
@@ -57,7 +66,7 @@ describe('ObsidianAdapter', () => {
         getAbstractFileByPath: jest.fn((path) => ObsidianAdapter.createMockTFile(path))
       }
     };
-    adapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS && {debugMode: true} as unknown as jest.Mocked<MetaFlowSettings>);
+    adapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS && {debugMode: true} as unknown as jest.Mocked<MetaFlowSettings>, testPluginManifest);
   });
 
   test('generateMarkdownLink should call app.fileManager.generateMarkdownLink with correct args', () => {
@@ -173,6 +182,34 @@ describe('ObsidianAdapter', () => {
       await expect(adapter.renameNote(file, newName))
         .rejects.toThrow('Rename failed');
       expect(consoleSpy).toHaveBeenCalledWith(`Renaming note folder/old-name.md to folder/new-name.md`);
+    });
+  });
+
+  describe('isVaultFile / isVaultMarkdownFile', () => {
+    test('should accept a markdown file stored in the vault', () => {
+      const file = ObsidianAdapter.createMockTFile('notes/test.md');
+      expect(adapter.isVaultFile(file)).toBe(true);
+      expect(adapter.isVaultMarkdownFile(file)).toBe(true);
+    });
+
+    test('should reject a non markdown vault file for markdown check only', () => {
+      const file = ObsidianAdapter.createMockTFile('notes/image.png');
+      file.extension = 'png';
+      expect(adapter.isVaultFile(file)).toBe(true);
+      expect(adapter.isVaultMarkdownFile(file)).toBe(false);
+    });
+
+    test('should reject files opened from outside the vault (TExternalFile)', () => {
+      const file = new (obsidian.TExternalFile as unknown as new () => obsidian.TFile)();
+      file.path = 'external.md';
+      expect(file).toBeInstanceOf(obsidian.TFile);
+      expect(adapter.isVaultFile(file)).toBe(false);
+      expect(adapter.isVaultMarkdownFile(file)).toBe(false);
+    });
+
+    test('should reject null, folders and plain objects', () => {
+      expect(adapter.isVaultFile(null)).toBe(false);
+      expect(adapter.isVaultFile({path: 'folder'})).toBe(false);
     });
   });
 
@@ -395,11 +432,23 @@ describe('ObsidianAdapter', () => {
     });
   });
 
+  describe('getPluginDirectory', () => {
+    test('should use manifest dir when provided by Obsidian', () => {
+      const adapterWithDir = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS, {...testPluginManifest, dir: '.obsidian/plugins/custom-folder'});
+      expect(adapterWithDir.getPluginDirectory()).toBe('.obsidian/plugins/custom-folder');
+    });
+
+    test('should fall back to config dir and manifest id', () => {
+      mockApp.vault.configDir = 'config-dir';
+      expect(adapter.getPluginDirectory()).toBe('config-dir/plugins/metaflow-fchastanet');
+    });
+  });
+
   describe('saveToPluginDirectory', () => {
     test('should save data to plugin directory', async () => {
       const fileName = 'test.json';
       const data = {key: 'value'};
-      const expectedPath = 'config-dir/plugins/metaflow/test.json';
+      const expectedPath = 'config-dir/plugins/metaflow-fchastanet/test.json';
       const expectedData = JSON.stringify(data, null, 2);
 
       mockApp.vault.configDir = 'config-dir';
@@ -412,7 +461,7 @@ describe('ObsidianAdapter', () => {
 
       await adapter.saveToPluginDirectory(fileName, data);
 
-      expect(mockApp.vault.adapter.mkdir).toHaveBeenCalledWith('config-dir/plugins/metaflow');
+      expect(mockApp.vault.adapter.mkdir).toHaveBeenCalledWith('config-dir/plugins/metaflow-fchastanet');
       expect(mockApp.vault.adapter.write).toHaveBeenCalledWith(expectedPath, expectedData);
     });
 
@@ -441,7 +490,7 @@ describe('ObsidianAdapter', () => {
       const fileName = 'test.json';
       const data = {key: 'value'};
       const jsonData = JSON.stringify(data);
-      const expectedPath = 'config-dir/plugins/metaflow/test.json';
+      const expectedPath = 'config-dir/plugins/metaflow-fchastanet/test.json';
 
       mockApp.vault.configDir = 'config-dir';
       mockApp.vault.adapter = {

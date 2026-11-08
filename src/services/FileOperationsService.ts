@@ -109,7 +109,7 @@ export class FileOperationsService {
       if (this.settings.debugMode) console.warn(`FileOperationsService: File not found for path ${filePath}`);
       throw new SkipException(`File not found for path ${filePath}`);
     }
-    if (!(file instanceof TFile)) {
+    if (!this.obsidianAdapter.isVaultFile(file)) {
       if (this.settings.debugMode) console.warn(`FileOperationsService: Path is not a file ${filePath}`);
       throw new SkipException(`Path is not a file ${filePath}`);
     }
@@ -353,7 +353,7 @@ export class FileOperationsService {
 
       // Get the updated file reference
       const updatedFile = this.obsidianAdapter.getAbstractFileByPath(targetPath);
-      if (!(updatedFile instanceof TFile)) {
+      if (!this.obsidianAdapter.isVaultFile(updatedFile)) {
         throw new Error(`Failed to get updated file reference at ${targetPath}`);
       }
 

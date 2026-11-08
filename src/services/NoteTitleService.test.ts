@@ -3,6 +3,7 @@ import {NoteTitleService} from "./NoteTitleService";
 import {MetaFlowSettings} from "@metaflow/settings/types";
 import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 import {ObsidianAdapter} from "@metaflow/externalApi/ObsidianAdapter";
+import {testPluginManifest} from '@metaflow/__helpers__/obsidianAdapter';
 
 describe('NoteTitleService', () => {
   let noteTitleService: NoteTitleService;
@@ -67,7 +68,7 @@ describe('NoteTitleService', () => {
       mockMetaFlowSettings,
       mockScriptContextService,
       mockLogNoticeManager,
-      new ObsidianAdapter({} as App, mockMetaFlowSettings),
+      new ObsidianAdapter({} as App, mockMetaFlowSettings, testPluginManifest),
     );
   });
 

@@ -1,6 +1,6 @@
 import {injectable, inject} from 'inversify';
-import type {App, CachedMetadata, FrontMatterCache} from 'obsidian';
-import {FileStats, getFrontMatterInfo, normalizePath, Notice, parseYaml, TAbstractFile, TFile, TFolder, Vault} from 'obsidian';
+import type {App, CachedMetadata, FrontMatterCache, PluginManifest} from 'obsidian';
+import {FileStats, getFrontMatterInfo, normalizePath, Notice, parseYaml, TAbstractFile, TExternalFile, TFile, TFolder, Vault} from 'obsidian';
 import type {MetaFlowSettings} from '@metaflow/settings/types';
 import {TYPES} from '@metaflow/di/types';
 
@@ -8,13 +8,39 @@ import {TYPES} from '@metaflow/di/types';
 export class ObsidianAdapter {
   private app: App;
   private settings: MetaFlowSettings;
+  private manifest: PluginManifest;
 
   constructor(
     @inject(TYPES.App) app: App,
-    @inject(TYPES.MetaFlowSettings) settings: MetaFlowSettings
+    @inject(TYPES.MetaFlowSettings) settings: MetaFlowSettings,
+    @inject(TYPES.PluginManifest) manifest: PluginManifest
   ) {
     this.app = app;
     this.settings = settings;
+    this.manifest = manifest;
+  }
+
+  /**
+   * Directory of this plugin, derived from its manifest (never hardcode the plugin id)
+   */
+  getPluginDirectory(): string {
+    return this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+  }
+
+  /**
+   * Check that the given object is a file stored inside the vault.
+   * Since Obsidian 1.14.4, files opened from outside the vault are exposed as
+   * `TExternalFile`, a subclass of `TFile`, so `instanceof TFile` alone is not enough.
+   */
+  isVaultFile(file: unknown): file is TFile {
+    return file instanceof TFile && !(file instanceof TExternalFile);
+  }
+
+  /**
+   * Check that the given object is a markdown file stored inside the vault.
+   */
+  isVaultMarkdownFile(file: unknown): file is TFile {
+    return this.isVaultFile(file) && file.extension === 'md';
   }
 
   /**
@@ -43,7 +69,7 @@ export class ObsidianAdapter {
     await this.app.fileManager.renameFile(file, newPath);
     // Return the renamed file
     const renamedFile = this.app.vault.getAbstractFileByPath(newPath);
-    if (renamedFile instanceof TFile) {
+    if (this.isVaultFile(renamedFile)) {
       return renamedFile;
     }
     throw new Error(`Failed to get renamed file at ${newPath}`);
@@ -51,7 +77,7 @@ export class ObsidianAdapter {
 
   isFileExists(filePath: string): boolean {
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    return !!file && file instanceof TFile;
+    return this.isVaultFile(file);
   }
 
   isFolderExists(filePath: string): boolean {
@@ -127,7 +153,7 @@ export class ObsidianAdapter {
    */
   async saveToPluginDirectory(fileName: string, data: unknown): Promise<void> {
     try {
-      const pluginDir = `${this.app.vault.configDir}/plugins/metaflow`;
+      const pluginDir = this.getPluginDirectory();
       const filePath = normalizePath(`${pluginDir}/${fileName}`);
       const jsonData = JSON.stringify(data, null, 2);
 
@@ -149,8 +175,7 @@ export class ObsidianAdapter {
    */
   async loadFromPluginDirectory(fileName: string): Promise<unknown | null> {
     try {
-      const pluginDir = `${this.app.vault.configDir}/plugins/metaflow`;
-      const filePath = normalizePath(`${pluginDir}/${fileName}`);
+      const filePath = normalizePath(`${this.getPluginDirectory()}/${fileName}`);
 
       const jsonData = await this.app.vault.adapter.read(filePath);
       return JSON.parse(jsonData);

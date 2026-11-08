@@ -6,6 +6,7 @@ export const TYPES = {
   App: Symbol.for('App'),
   MetaFlowSettings: Symbol.for('MetaFlowSettings'),
   SaveSettings: Symbol.for('SaveSettings'),
+  PluginManifest: Symbol.for('PluginManifest'),
 
   // Core services
   ScriptContextService: Symbol.for('ScriptContextService'),

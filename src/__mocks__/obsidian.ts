@@ -20,6 +20,12 @@ export class TFile {
   }
 }
 
+export class TExternalFile extends TFile {
+  getRealPath(): string {
+    return `/external/${this.path}`;
+  }
+}
+
 export class TAbstractFile {
   name: string;
   path: string;
@@ -43,12 +49,42 @@ export class AbstractInputSuggest {
 }
 
 export class PluginSettingTab {
+  icon = '';
+  containerEl: HTMLElement = document.createElement('div');
+
   constructor(
-    private app: App,
-    private plugin: any
+    public app: App,
+    public plugin: any
   ) { }
 
-  display(): void { }
+  getSettingDefinitions(): unknown[] {
+    return [];
+  }
+
+  getControlValue(key: string): unknown {
+    return this.plugin?.settings?.[key];
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    this.plugin.settings[key] = value;
+  }
+
+  update(): void { }
+
+  refreshDomState(): void { }
+
+  hide(): void { }
+}
+
+export abstract class SettingPage {
+  rootEl: HTMLElement = document.createElement('div');
+  titlebarEl: HTMLElement = document.createElement('div');
+  containerEl: HTMLElement = document.createElement('div');
+  title = '';
+
+  abstract display(): void;
+
+  hide(): void { }
 }
 
 export class Plugin {

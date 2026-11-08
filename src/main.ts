@@ -40,7 +40,7 @@ export default class MetaFlowPlugin extends Plugin {
     this.settings = await this.loadSettings();
 
     // Create dependency injection container
-    this.container = createContainer(this.app, this.settings, this.saveSettings.bind(this));
+    this.container = createContainer(this.app, this.manifest, this.settings, this.saveSettings.bind(this));
 
     // Get services from container
     this.uiService = this.container.get<UIService>(TYPES.UIService);

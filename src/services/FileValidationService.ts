@@ -70,7 +70,7 @@ export class FileValidationService {
   }
 
   checkIfValidFile(file: TFile): void {
-    if (!file || !(file instanceof TFile)) {
+    if (!this.obsidianAdapter.isVaultFile(file)) {
       throw new MetaFlowException('Invalid file provided for class change', 'ignore');
     }
     if (file.extension !== 'md') {

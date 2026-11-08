@@ -1,5 +1,5 @@
 import {Container} from 'inversify';
-import {App} from 'obsidian';
+import {App, PluginManifest} from 'obsidian';
 import {TYPES} from './types';
 import {MetaFlowSettings} from '@metaflow/settings/types';
 
@@ -42,11 +42,14 @@ import EventCron from '@metaflow/eventManager/EventCron';
 /**
  * Creates and configures the dependency injection container
  */
-export function createContainer(app: App, settings: MetaFlowSettings, saveSettings: () => Promise<void>): Container {
+export function createContainer(
+  app: App, manifest: PluginManifest, settings: MetaFlowSettings, saveSettings: () => Promise<void>
+): Container {
   const container = new Container();
 
   // Bind Obsidian instances
   container.bind<App>(TYPES.App).toConstantValue(app);
+  container.bind<PluginManifest>(TYPES.PluginManifest).toConstantValue(manifest);
   container.bind<MetaFlowSettings>(TYPES.MetaFlowSettings).toConstantValue(settings);
   container.bind<() => Promise<void>>(TYPES.SaveSettings).toConstantValue(saveSettings);
 

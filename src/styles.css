@@ -188,35 +188,6 @@ input.metaflow-settings-search-input {
   width: 200px;
 }
 
-/* Tabs styles */
-.metaflow-settings-tabs {
-  display: flex;
-  border-bottom: 2px solid var(--background-modifier-border);
-  margin-bottom: 24px;
-  padding: 0 8px;
-}
-
-.metaflow-settings-tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  color: var(--text-muted);
-}
-
-.metaflow-settings-tab:hover {
-  color: var(--text-normal);
-  background-color: var(--background-modifier-hover);
-}
-
-.metaflow-settings-tab.active {
-  color: var(--text-accent);
-  border-bottom-color: var(--text-accent);
-}
-
 /* message styles */
 .metaflow-settings-import-result-message {
   margin-top: 5px;
@@ -237,33 +208,13 @@ input.metaflow-settings-search-input {
 }
 
 /* Settings content styles */
-.metaflow-settings-icon {
+.metaflow-settings-intro .metaflow-settings-icon {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  margin-right: 12px;
   background-image: url("./assets/icon.png");
-  float: left;
-  width: 100px;
-  height: 100px;
-  background-size: 100px 100px;
-}
-
-.metaflow-settings-description {
-  font-size: 14px;
-  margin-left: 100px;
-}
-
-.metaflow-settings-divider {
-  clear: both;
-}
-
-.metaflow-settings-section-header {
-  --font-weight: var(--h4-weight);
-  font-variant: var(--h4-variant);
-  letter-spacing: 0.015em;
-  line-height: var(--h4-line-height);
-  font-size: var(--h4-size);
-  color: var(--h4-color);
-  font-weight: var(--font-weight);
-  font-style: var(--h4-style);
-  font-family: var(--h4-font);
+  background-size: 64px 64px;
 }
 
 /* Buttons and summary */

@@ -1,4 +1,4 @@
-import {App, Setting, TFile} from "obsidian";
+import {App, Setting} from "obsidian";
 import {FolderFileClassMapping, Msg, MsgLevel, NoteTitleTemplate} from "@metaflow/settings/types";
 import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
 import {FolderSuggest} from "@metaflow/settings/FolderSuggest";
@@ -168,7 +168,7 @@ export class FolderFileClassMappingsSection {
    */
   private async getFileClassFromFileFrontmatter(path: string, msgs: Msg[]): Promise<string | null> {
     const file = this.app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof TFile)) {
+    if (!this.obsidianAdapter.isVaultFile(file)) {
       msgs.push({level: MsgLevel.Warning, text: `Template file ${path} does not exist or is not a TFile`});
       return null;
     }

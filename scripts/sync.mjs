@@ -1,16 +1,19 @@
 import fs from 'fs';
 import path from 'path';
 
+const DEFAULT_CONFIG_FILE = 'sync.config.json';
+
 /**
- * Reads the sync configuration from sync.config.json
+ * Reads the sync configuration (default: sync.config.json)
+ * @param {string} configFile config file path relative to project root
  */
-function readSyncConfig() {
+function readSyncConfig(configFile = DEFAULT_CONFIG_FILE) {
   try {
-    const configPath = path.join(process.cwd(), 'sync.config.json');
+    const configPath = path.join(process.cwd(), configFile);
     const configData = fs.readFileSync(configPath, 'utf8');
     return JSON.parse(configData);
   } catch (error) {
-    console.log('No sync.config.json found or invalid JSON. Skipping sync.');
+    console.log(`No ${configFile} found or invalid JSON. Skipping sync.`);
     return null;
   }
 }
@@ -41,9 +44,10 @@ function copyFile(source, destination) {
 
 /**
  * Syncs files to the configured folder
+ * @param {string} configFile config file path relative to project root
  */
-export function syncFiles() {
-  const config = readSyncConfig();
+export function syncFiles(configFile = DEFAULT_CONFIG_FILE) {
+  const config = readSyncConfig(configFile);
 
   if (!config || !config.syncEnabled) {
     console.log('Sync disabled or no config found. Skipping sync.');
@@ -51,7 +55,7 @@ export function syncFiles() {
   }
 
   if (!config.syncPath) {
-    console.error('Sync path not configured. Please set syncPath in sync.config.json');
+    console.error(`Sync path not configured. Please set syncPath in ${configFile}`);
     return;
   }
 

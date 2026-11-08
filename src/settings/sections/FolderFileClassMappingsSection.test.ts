@@ -8,6 +8,7 @@ import {TemplaterAdapter} from "@metaflow/externalApi/TemplaterAdapter";
 import {LogNoticeManager} from "@metaflow/managers/LogNoticeManager";
 import {TemplateMode} from "../types";
 import {TFile} from "obsidian";
+import {testPluginManifest} from '@metaflow/__helpers__/obsidianAdapter';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -156,7 +157,7 @@ describe('FolderFileClassMappingsSection', () => {
   });
 
   function getFolderFileClassMappingsSection(templateAdapter: TemplaterAdapter | null = null): FolderFileClassMappingsSection {
-    const obsidianAdapter = new ObsidianAdapter(mockApp, mockPlugin.settings);
+    const obsidianAdapter = new ObsidianAdapter(mockApp, mockPlugin.settings, testPluginManifest);
     return new FolderFileClassMappingsSection(
       mockApp,
       document.createElement('div'),
@@ -276,7 +277,7 @@ describe('FolderFileClassMappingsSection', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const templaterAdapter = new TemplaterAdapter(
-        mockApp, mockPlugin.settings, new ObsidianAdapter(mockApp, mockPlugin.settings)
+        mockApp, mockPlugin.settings, new ObsidianAdapter(mockApp, mockPlugin.settings, testPluginManifest)
       );
       templaterAdapter['isTemplaterAvailable'] = jest.fn().mockReturnValue(false);
 

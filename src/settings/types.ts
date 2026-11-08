@@ -40,6 +40,13 @@ export interface PropertyDefaultValueScript {
   fileClasses?: string[]; // Optional array of file classes this script applies to
 }
 
+/**
+ * Keys of MetaFlowSettings holding a boolean value
+ */
+export type BooleanSettingKey = {
+  [K in keyof MetaFlowSettings]-?: MetaFlowSettings[K] extends boolean ? K : never
+}[keyof MetaFlowSettings];
+
 export interface MetaFlowSettings {
   hidePropertiesInEditor: boolean;
   autoSort: boolean;

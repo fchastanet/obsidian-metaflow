@@ -3,6 +3,7 @@ import {expectNoLogs} from '@metaflow/__helpers__/logNoticeManager';
 import {TFile} from 'obsidian';
 import {ObsidianAdapter as OriginalObsidianAdapter} from '@metaflow/externalApi/ObsidianAdapter';
 import {TemplaterAdapter} from '@metaflow/externalApi/TemplaterAdapter';
+import {vaultFileGuards} from '@metaflow/__helpers__/obsidianAdapter';
 
 // Mock the adapters
 jest.mock('../externalApi/TemplaterAdapter', () => ({
@@ -41,6 +42,7 @@ describe('ScriptContextService', () => {
 
     // Create mock ObsidianAdapter
     mockObsidianAdapter = {
+      ...vaultFileGuards,
       generateMarkdownLink: jest.fn((file: any) => `[[${file.name}]]`),
       getAbstractFileByPath: jest.fn((path: string) => {
         return OriginalObsidianAdapter.createMockTFile(path);

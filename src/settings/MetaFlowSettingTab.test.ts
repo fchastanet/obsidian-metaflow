@@ -1,211 +1,274 @@
-/**
- * @jest-environment jsdom
- */
+import type {SettingDefinitionControl, SettingDefinitionGroup, SettingDefinitionItem, SettingDefinitionList, SettingDefinitionPage} from "obsidian";
+import {Notice} from "obsidian";
 import {MetaFlowSettingTab} from "./MetaFlowSettingTab";
-
-// Mock Obsidian modules
-jest.mock('obsidian', () => ({
-  AbstractInputSuggest: class { },
-  PluginSettingTab: class MockPluginSettingTab {
-    app: any;
-    plugin: any;
-    constructor(app: any, plugin: any) {
-      this.app = app;
-      this.plugin = plugin;
-    }
-  },
-  Setting: jest.fn().mockImplementation(() => ({
-    setName: jest.fn().mockReturnThis(),
-    setDesc: jest.fn().mockReturnThis(),
-    addToggle: jest.fn().mockReturnThis(),
-    addButton: jest.fn().mockReturnThis(),
-    addTextArea: jest.fn().mockReturnThis()
-  })),
-  Notice: jest.fn()
-}));
-
-// Mock the external adapters
-jest.mock('../externalApi/MetadataMenuAdapter', () => ({
-  MetadataMenuAdapter: jest.fn().mockImplementation(() => ({
-    isMetadataMenuAvailable: jest.fn().mockReturnValue(true),
-    getAllFieldsFileClassesAssociation: jest.fn().mockReturnValue({
-      'title': {fileClasses: ['book']},
-      'author': {fileClasses: ['book']}
-    }),
-  }))
-}));
-
-jest.mock('../externalApi/TemplaterAdapter', () => ({
-  TemplaterAdapter: jest.fn().mockImplementation(() => ({
-    isTemplaterAvailable: jest.fn().mockReturnValue(true),
-    getFolderTemplatesMapping: jest.fn().mockReturnValue([
-      {folder: 'Books', template: 'book-template.md'},
-      {folder: 'Articles', template: 'article-template.md'}
-    ]),
-    getFileTemplatesMapping: jest.fn().mockReturnValue([])
-  }))
-}));
+import {SectionSettingPage} from "./SectionSettingPage";
+import {DEFAULT_SETTINGS} from "./defaultSettings";
+import {MetaFlowSettings} from "./types";
+import {TYPES} from "@metaflow/di/types";
 
 jest.mock('./modals/CompletionsHelpModal.ts', () => ({
-  CompletionsHelpModal: jest.fn().mockImplementation(() => ({
-    open: jest.fn()
-  }))
+  CompletionsHelpModal: jest.fn().mockImplementation(() => ({open: jest.fn()}))
 }));
 
 jest.mock('./modals/FileClassAvailableFieldsHelpModal.ts', () => ({
-  FileClassAvailableFieldsHelpModal: jest.fn().mockImplementation(() => ({
-    open: jest.fn()
-  }))
+  FileClassAvailableFieldsHelpModal: jest.fn().mockImplementation(() => ({open: jest.fn()}))
 }));
 
 jest.mock('./modals/ConfirmModal.ts', () => ({
-  ConfirmModal: jest.fn().mockImplementation(() => ({
-    open: jest.fn()
-  }))
+  ConfirmModal: jest.fn().mockImplementation(() => ({open: jest.fn()}))
 }));
 
+type Group = SettingDefinitionGroup & {heading?: string};
+
+const isGroup = (item: SettingDefinitionItem): item is Group =>
+  'type' in item && (item.type === 'group' || item.type === 'list');
+
 describe('MetaFlowSettingTab', () => {
-  let mockApp: any;
+  let settings: MetaFlowSettings;
   let mockPlugin: any;
-  let mockObsidianAdapter: any;
+  let metadataMenuAdapter: {isMetadataMenuAvailable: jest.Mock};
+  let templaterAdapter: {isTemplaterAvailable: jest.Mock};
+  let metaflowService: {importSettings: jest.Mock};
+  let uiService: {togglePropertiesVisibility: jest.Mock};
+  let tab: MetaFlowSettingTab;
+  let updateSpy: jest.SpyInstance;
+
+  const definitions = () => tab.getSettingDefinitions();
+  const groupByHeading = (heading: string): Group => {
+    const group = definitions().filter(isGroup).find(item => item.heading === heading);
+    if (!group) throw new Error(`group ${heading} not found`);
+    return group;
+  };
+  const pageByName = (name: string): SettingDefinitionPage => {
+    const page = (groupByHeading('Mappings').items ?? [])
+      .find(item => 'type' in item && item.type === 'page' && item.name === name);
+    if (!page) throw new Error(`page ${name} not found`);
+    return page as SettingDefinitionPage;
+  };
+  const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
 
   beforeEach(() => {
-    // Reset mocks
     jest.clearAllMocks();
+    (global as any).createFragment = jest.fn(() => document.createDocumentFragment());
 
-    // Create mock ObsidianAdapter
-    mockObsidianAdapter = {
-      isMetadataMenuAvailable: jest.fn().mockReturnValue(true)
+    settings = {
+      ...structuredClone(DEFAULT_SETTINGS),
+      excludeFolders: ['Archive', 'Templates'],
+    };
+    metadataMenuAdapter = {isMetadataMenuAvailable: jest.fn().mockReturnValue(true)};
+    templaterAdapter = {isTemplaterAvailable: jest.fn().mockReturnValue(true)};
+    metaflowService = {importSettings: jest.fn()};
+    uiService = {togglePropertiesVisibility: jest.fn()};
+
+    const services = new Map<symbol, unknown>([
+      [TYPES.MetadataMenuAdapter, metadataMenuAdapter],
+      [TYPES.TemplaterAdapter, templaterAdapter],
+      [TYPES.ObsidianAdapter, {}],
+      [TYPES.MetaFlowService, metaflowService],
+      [TYPES.UIService, uiService],
+    ]);
+    mockPlugin = {
+      settings,
+      saveSettings: jest.fn().mockResolvedValue(undefined),
+      container: {get: jest.fn((type: symbol) => services.get(type))},
     };
 
-    // Create mock app with proper structure
-    mockApp = {
-      plugins: {
-        plugins: {
-          'metadata-menu': {
-            api: {}, // This is required for isMetadataMenuAvailable to return true
-            settings: {
-              fileClassAlias: {
-                'book-template': {
-                  attributes: {
-                    title: {input: 'text', isCycle: false, values: '', valuesListNotePath: '', command: false},
-                    author: {input: 'text', isCycle: false, values: '', valuesListNotePath: '', command: false},
-                    rating: {input: 'number', isCycle: false, values: '', valuesListNotePath: '', command: false}
-                  }
-                },
-                'project-template': {
-                  attributes: {
-                    title: {input: 'text', isCycle: false, values: '', valuesListNotePath: '', command: false},
-                    status: {input: 'select', isCycle: false, values: 'Not Started,In Progress,Completed', valuesListNotePath: '', command: false}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    } as any;
-
-    // Create mock plugin
-    mockPlugin = {
-      app: mockApp,
-      settings: {
-        folderFileClassMappings: [],
-        propertyDefaultValueScripts: [],
-        propertiesOrder: [],
-        metadataMenuIntegration: true, // This is required for isMetadataMenuAvailable to return true
-        autoMoveNoteToRightFolder: false
-      },
-      saveSettings: jest.fn(),
-      container: {
-        get: jest.fn((type) => {
-          // Return mock services based on type
-          if (type.toString().includes('MetadataMenuAdapter')) {
-            return {isMetadataMenuAvailable: () => true};
-          }
-          if (type.toString().includes('ObsidianAdapter')) {
-            return mockObsidianAdapter;
-          }
-          if (type.toString().includes('MetaFlowService')) {
-            return {};
-          }
-          return {};
-        })
-      },
-      autoInserter: {
-        isMetadataMenuAvailable: jest.fn().mockReturnValue(true)
-      }
-    } as any;
-
-    // Create settings tab instance
-    new MetaFlowSettingTab(mockApp, mockPlugin);
+    tab = new MetaFlowSettingTab({} as any, mockPlugin);
+    updateSpy = jest.spyOn(tab, 'update');
   });
 
-  describe('Display Methods', () => {
-    test('should toggle autoMoveNoteToRightFolder setting', async () => {
-      // Simulate the toggle change
-      expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(false);
-      // Simulate user toggling the checkbox
-      mockPlugin.settings.autoMoveNoteToRightFolder = true;
-      await mockPlugin.saveSettings();
-      expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(true);
+  test('should set the settings tab icon', () => {
+    expect(tab.icon).toBe('workflow');
+  });
+
+  test('should declare all settings groups', () => {
+    const headings = definitions().filter(isGroup).map(group => group.heading);
+    expect(headings).toEqual([
+      undefined,
+      'Metadata insertion behavior',
+      'Mappings',
+      'Exclude folders',
+      'Export and import',
+      'Plugin integrations',
+      'Usage',
+      'Enjoying MetaFlow?',
+    ]);
+  });
+
+  describe('control values', () => {
+    test('should read nested values using dot-notation keys', () => {
+      expect(tab.getControlValue('debugMode')).toBe(false);
+      expect(tab.getControlValue('excludeFolders.1')).toBe('Templates');
+    });
+
+    test('should write nested values and persist settings', async () => {
+      await tab.setControlValue('excludeFolders.0', 'Inbox');
+      expect(settings.excludeFolders).toEqual(['Inbox', 'Templates']);
+      expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(1);
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    test('should apply properties visibility immediately', async () => {
+      await tab.setControlValue('hidePropertiesInEditor', true);
+      expect(settings.hidePropertiesInEditor).toBe(true);
+      expect(uiService.togglePropertiesVisibility).toHaveBeenCalledWith(true);
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });
 
-    describe('Export/Import Settings Section', () => {
-      test('should export settings as JSON file', () => {
-        // Mock document.createElement and click
-        const aMock = {click: jest.fn(), setAttribute: jest.fn(), href: '', download: '', remove: jest.fn()};
-        document.body.appendChild = jest.fn();
-        document.body.removeChild = jest.fn();
-        window.URL.createObjectURL = jest.fn(() => 'blob:url');
-        window.URL.revokeObjectURL = jest.fn();
-        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
-          if (tag === 'a') return aMock as any;
-          return document.createElement(tag);
-        })
-        // Call the export logic directly
-        const dataStr = JSON.stringify(mockPlugin.settings, null, 2);
-        const blob = new Blob([dataStr], {type: 'application/json'});
-        const url = window.URL.createObjectURL(blob);
-        expect(url).toBe('blob:url');
-      });
+    test('should reset dependent settings and refresh when auto-insert is disabled', async () => {
+      settings.autoSort = true;
+      settings.autoMoveNoteToRightFolder = true;
+      settings.autoRenameNote = true;
 
-      test('should import settings from JSON file', async () => {
-        // Mock file input and FileReader
-        const fileContent = JSON.stringify({autoMoveNoteToRightFolder: true});
-        const fileReaderMock = {
-          readAsText: jest.fn(),
-          onload: jest.fn()
-        };
-        // Simulate input element
-        const inputMock = {
-          type: 'file',
-          accept: 'application/json',
-          onchange: jest.fn(),
-          click: jest.fn()
-        };
-        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
-          if (tag === 'input') return inputMock as any;
-          return document.createElement(tag);
-        });
-        // Simulate FileReader onload
-        fileReaderMock.onload = jest.fn((e) => {
-          let error;
-          try {
-            const importedSettings = JSON.parse(fileContent);
-            Object.assign(mockPlugin.settings, importedSettings);
-            mockPlugin.saveSettings();
-            expect(mockPlugin.settings.autoMoveNoteToRightFolder).toBe(true);
-          } catch (e) {
-            error = e;
-          } finally {
-            expect(error).toBe(undefined); // Should not throw
-          }
-        });
-        // Simulate file input change
-        fileReaderMock.onload({target: {result: fileContent}});
+      await tab.setControlValue('autoMetadataInsertion', false);
+
+      expect(settings.autoMetadataInsertion).toBe(false);
+      expect(settings.autoSort).toBe(false);
+      expect(settings.autoMoveNoteToRightFolder).toBe(false);
+      expect(settings.autoRenameNote).toBe(false);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not reset dependent settings when auto-insert is enabled', async () => {
+      settings.autoSort = true;
+      await tab.setControlValue('autoMetadataInsertion', true);
+      expect(settings.autoSort).toBe(true);
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('metadata insertion group', () => {
+    test('should disable dependent toggles when auto-insert is off', () => {
+      const items = groupByHeading('Metadata insertion behavior').items as SettingDefinitionControl[];
+      const autoSort = items.find(item => item.control.key === 'autoSort');
+      const sortUnknown = items.find(item => item.control.key === 'sortUnknownPropertiesLast');
+      const disabled = autoSort?.control.disabled as () => boolean;
+
+      settings.autoMetadataInsertion = true;
+      expect(disabled()).toBe(false);
+      settings.autoMetadataInsertion = false;
+      expect(disabled()).toBe(true);
+      expect(sortUnknown?.control.disabled).toBeUndefined();
+    });
+  });
+
+  describe('exclude folders list', () => {
+    const list = () => groupByHeading('Exclude folders') as SettingDefinitionList;
+
+    test('should declare one folder control per excluded folder', () => {
+      const items = list().items as SettingDefinitionControl[];
+      expect(items.map(item => item.control)).toEqual([
+        {type: 'folder', key: 'excludeFolders.0', placeholder: 'Folder path'},
+        {type: 'folder', key: 'excludeFolders.1', placeholder: 'Folder path'},
+      ]);
+      expect(items.map(item => item.name)).toEqual(['Archive', 'Templates']);
+    });
+
+    test('should initialize missing excludeFolders setting', () => {
+      delete settings.excludeFolders;
+      expect(list().items).toEqual([]);
+      expect(settings.excludeFolders).toEqual([]);
+    });
+
+    test('should add a new empty folder', async () => {
+      list().addItem?.action({} as HTMLElement);
+      await flushPromises();
+      expect(settings.excludeFolders).toEqual(['Archive', 'Templates', '']);
+      expect(mockPlugin.saveSettings).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalled();
+    });
+
+    test('should delete a folder', async () => {
+      list().onDelete?.(0);
+      await flushPromises();
+      expect(settings.excludeFolders).toEqual(['Templates']);
+      expect(mockPlugin.saveSettings).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalled();
+    });
+
+    test('should reorder folders', async () => {
+      list().onReorder?.(0, 1);
+      await flushPromises();
+      expect(settings.excludeFolders).toEqual(['Templates', 'Archive']);
+      expect(updateSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('mapping pages', () => {
+    test('should summarize mappings and scripts count', () => {
+      settings.propertyDefaultValueScripts = [];
+      const mappingsValue = pageByName('Folder/fileClass mappings').displayValue as () => string;
+      const scriptsValue = pageByName('Property default value scripts').displayValue as () => string;
+      expect(mappingsValue()).toBe('1 mapping');
+      expect(scriptsValue()).toBe('0 scripts');
+    });
+
+    test('should flag pages with a warning when MetadataMenu is unavailable', () => {
+      const status = pageByName('Folder/fileClass mappings').status as () => string | null;
+      expect(status()).toBeNull();
+      metadataMenuAdapter.isMetadataMenuAvailable.mockReturnValue(false);
+      expect(status()).toBe('warning');
+    });
+
+    test('should show simulation page only when both plugins are available', () => {
+      const visible = pageByName('🧪 Simulation and testing').visible as () => boolean;
+      expect(visible()).toBe(true);
+      templaterAdapter.isTemplaterAvailable.mockReturnValue(false);
+      expect(visible()).toBe(false);
+    });
+
+    test('should create a section page refreshing the tab when hidden', () => {
+      const page = pageByName('Folder/fileClass mappings').page?.();
+      expect(page).toBeInstanceOf(SectionSettingPage);
+      expect(page?.title).toBe('Folder/fileClass mappings');
+      page?.hide();
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('export and import', () => {
+    const importSection = () => (tab as any).exportImportSection;
+
+    test('should import settings, persist and refresh', async () => {
+      await importSection().importSettings('{"debugMode": true}');
+      expect(metaflowService.importSettings).toHaveBeenCalledWith('{"debugMode": true}');
+      expect(mockPlugin.saveSettings).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalled();
+      expect(Notice).toHaveBeenCalledWith('Settings imported successfully!');
+    });
+
+    test('should notify and not persist on invalid JSON', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      metaflowService.importSettings.mockImplementation(() => {throw new SyntaxError('bad json');});
+      await importSection().importSettings('{bad');
+      expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(Notice).toHaveBeenCalledWith('Failed to import settings: Invalid JSON', 5000);
+      consoleSpy.mockRestore();
+    });
+
+    test('should export settings as a JSON file', () => {
+      const click = jest.fn();
+      const originalCreateElement = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = originalCreateElement(tag);
+        if (tag === 'a') el.click = click;
+        return el;
       });
+      URL.createObjectURL = jest.fn(() => 'blob:url');
+      URL.revokeObjectURL = jest.fn();
+
+      importSection().exportSettings();
+
+      expect(click).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:url');
+    });
+  });
+
+  describe('plugins status', () => {
+    test('should declare MetadataMenu and Templater status rows', () => {
+      const names = (groupByHeading('Plugin integrations').items ?? []).map(item => item.name);
+      expect(names).toEqual(['MetadataMenu', 'Templater']);
     });
   });
 });

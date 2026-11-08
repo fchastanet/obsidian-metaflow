@@ -93,7 +93,7 @@ export class ScriptContextService {
     if (!file) {
       throw new Error('File is required');
     }
-    if (file instanceof TFile) {
+    if (this.obsidianAdapter.isVaultFile(file)) {
       return file;
     }
     if (typeof file !== 'string') {
@@ -103,7 +103,7 @@ export class ScriptContextService {
     if (!file) {
       throw new Error(`Target file not found: ${file}`);
     }
-    if (!(file instanceof TFile)) {
+    if (!this.obsidianAdapter.isVaultFile(file)) {
       throw new Error(`Target file is not a standard file: ${file}`);
     }
     return file;

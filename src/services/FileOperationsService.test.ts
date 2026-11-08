@@ -4,6 +4,7 @@ import {MetaFlowSettings} from "@metaflow/settings/types";
 import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 import {LogNoticeManagerInterface} from "@metaflow/managers/types";
 import {SkipException} from "@metaflow/SkipException";
+import {vaultFileGuards} from '@metaflow/__helpers__/obsidianAdapter';
 
 // Mock Obsidian modules
 jest.mock('obsidian', () => ({
@@ -71,6 +72,7 @@ describe('FileOperationsService', () => {
     };
 
     mockObsidianAdapter = {
+      ...vaultFileGuards,
       normalizePath: jest.fn().mockImplementation((path: string) => path),
       moveNote: jest.fn(),
       renameNote: jest.fn().mockResolvedValue({} as TFile),
@@ -476,6 +478,7 @@ describe('FileOperationsService - processFile', () => {
     };
 
     mockObsidianAdapter = {
+      ...vaultFileGuards,
       getAbstractFileByPath: jest.fn(),
       getFileFrontmatter: jest.fn().mockResolvedValue({key: 'value'}),
       normalizePath: jest.fn().mockImplementation((path: string) => path),

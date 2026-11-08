@@ -1,5 +1,6 @@
 import {FileFilter} from './FileFilter';
 import {TFile} from 'obsidian';
+import {vaultFileGuards} from '@metaflow/__helpers__/obsidianAdapter';
 
 describe('FileFilter', () => {
   let fileValidationService: any;
@@ -16,6 +17,7 @@ describe('FileFilter', () => {
       ifFileExcluded: jest.fn().mockReturnValue(false),
     };
     obsidianAdapter = {
+      ...vaultFileGuards,
       getCachedFile: jest.fn().mockReturnValue({frontmatter: {key: 'value'}}),
     };
     settings = {
@@ -37,7 +39,19 @@ describe('FileFilter', () => {
 
   it('should return false if file is not a TFile', () => {
     expect(filter.isApplicable({} as any)).toBe(false);
-    expect(spyDebug).toHaveBeenCalledWith("FileClassStateManager: isApplicable - file is not a TFile", {});
+    expect(spyDebug).toHaveBeenCalledWith("FileClassStateManager: isApplicable - file is not a vault TFile", {});
+  });
+
+  it('should return false if file is outside the vault (TExternalFile)', () => {
+    const file = Object.create(TFile.prototype);
+    file.basename = 'external';
+    file.path = 'external.md';
+    file.extension = 'md';
+    file.stat = {mtime: 2000};
+    obsidianAdapter.isVaultFile = jest.fn().mockReturnValue(false);
+    expect(filter.isApplicable(file)).toBe(false);
+    expect(obsidianAdapter.isVaultFile).toHaveBeenCalledWith(file);
+    expect(spyDebug).toHaveBeenCalledWith("FileClassStateManager: isApplicable - file is not a vault TFile", file);
   });
 
   it('should return false if file has no basename or path', () => {

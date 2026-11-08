@@ -196,7 +196,7 @@ export class TemplaterAdapter {
   }
 
   private isValidMdFile(file: unknown): file is TFile {
-    return file instanceof TFile && file.extension === 'md';
+    return this.obsidianAdapter.isVaultMarkdownFile(file);
   }
 
   /**
@@ -214,7 +214,7 @@ export class TemplaterAdapter {
       const parentFilePath = this.app.workspace?.recentFileTracker?.lastOpenFiles?.[0];
       if (parentFilePath) {
         parentFile = this.obsidianAdapter.getAbstractFileByPath(parentFilePath);
-        if (!parentFile || !(parentFile instanceof TFile)) {
+        if (!this.obsidianAdapter.isVaultFile(parentFile)) {
           if (this.settings.debugMode) console.debug('Parent file not found in recent files, using active file as parent');
           parentFile = null;
         }

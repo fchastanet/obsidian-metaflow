@@ -17,6 +17,8 @@ data.json
 
 # Sync configuration (personal settings)
 sync.config.json
+sync.config.*.json
+!sync.config.example.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store

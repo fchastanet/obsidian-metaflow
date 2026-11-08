@@ -23,8 +23,8 @@ export class FileFilter {
       if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is null or undefined');
       return false;
     }
-    if (!(file instanceof TFile)) {
-      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a TFile', file);
+    if (!this.obsidianAdapter.isVaultFile(file)) {
+      if (this.settings.debugMode) console.debug('FileClassStateManager: isApplicable - file is not a vault TFile', file);
       return false;
     }
     if (file.stat.mtime < this.launchTime) {

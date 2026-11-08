@@ -2,6 +2,7 @@ import {TemplaterAdapter} from './TemplaterAdapter';
 import {DEFAULT_SETTINGS} from '@metaflow/settings/defaultSettings';
 import {expectNoLogs} from '@metaflow/__helpers__/logNoticeManager';
 import {ObsidianAdapter} from './ObsidianAdapter';
+import {testPluginManifest} from '@metaflow/__helpers__/obsidianAdapter';
 
 describe('TemplaterAdapter', () => {
   let mockApp: any;
@@ -22,7 +23,7 @@ describe('TemplaterAdapter', () => {
       },
     };
 
-    const obsidianAdapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS);
+    const obsidianAdapter = new ObsidianAdapter(mockApp, DEFAULT_SETTINGS, testPluginManifest);
     templaterAdapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS, obsidianAdapter);
   });
 
@@ -37,14 +38,14 @@ describe('TemplaterAdapter', () => {
         settings: {},
         templater: {}
       };
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}, testPluginManifest));
       const result = adapter.isTemplaterAvailable();
       expect(result).toBe(true);
     });
 
     test('should detect Templater unavailability when plugin missing', () => {
       delete mockApp.plugins.plugins['templater-obsidian'];
-      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS, new ObsidianAdapter(mockApp, DEFAULT_SETTINGS));
+      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS, new ObsidianAdapter(mockApp, DEFAULT_SETTINGS, testPluginManifest));
       const result = adapter.isTemplaterAvailable();
       expect(result).toBe(false);
     });
@@ -55,14 +56,14 @@ describe('TemplaterAdapter', () => {
         templater: {}
       };
       mockApp.plugins.plugins['templater-obsidian'] = templater;
-      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS, new ObsidianAdapter(mockApp, DEFAULT_SETTINGS));
+      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS, new ObsidianAdapter(mockApp, DEFAULT_SETTINGS, testPluginManifest));
       const result = adapter.getTemplaterSettings();
       expect(result).toBe(templater.settings);
     });
 
     test('should get undefined instance when plugin missing', () => {
       delete mockApp.plugins.plugins['templater-obsidian'];
-      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS, new ObsidianAdapter(mockApp, DEFAULT_SETTINGS));
+      const adapter = new TemplaterAdapter(mockApp, DEFAULT_SETTINGS, new ObsidianAdapter(mockApp, DEFAULT_SETTINGS, testPluginManifest));
       const result = adapter.getTemplaterSettings();
       expect(result).toEqual({folder_templates: [], file_templates: [], });
     });
@@ -70,7 +71,7 @@ describe('TemplaterAdapter', () => {
 
   describe('checkTemplaterConsistency', () => {
     test('should return warning when Templater enabled but plugin missing', async () => {
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}, testPluginManifest));
       const result = await adapter.checkTemplaterConsistency();
       expect(result.isConsistent).toBe(false);
       expect(result.warnings).toContain('Templater plugin not found but integration is enabled');
@@ -86,7 +87,7 @@ describe('TemplaterAdapter', () => {
         },
         templater: {}
       };
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}, testPluginManifest));
       const result = await adapter.checkTemplaterConsistency();
       expect(result.isConsistent).toBe(true);
       expect(result.warnings).toEqual([]);
@@ -114,7 +115,7 @@ describe('TemplaterAdapter', () => {
           }  // Different pattern
         ]
       };
-      const adapter = new TemplaterAdapter(mockApp, settingsWithMappings, new ObsidianAdapter(mockApp, settingsWithMappings));
+      const adapter = new TemplaterAdapter(mockApp, settingsWithMappings, new ObsidianAdapter(mockApp, settingsWithMappings, testPluginManifest));
       const result = await adapter.checkTemplaterConsistency();
       expect(result.isConsistent).toBe(false);
       expect(result.warnings).toContain('No matching Templater mapping found for folder pattern: Articles/*');
@@ -139,14 +140,14 @@ describe('TemplaterAdapter', () => {
       const mockPrompt = jest.fn().mockResolvedValue('userInput');
       mockApp.plugins.plugins['templater-obsidian'] = {prompt: mockPrompt};
       // Recreate adapter to pick up new plugin
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}, testPluginManifest));
       const result = await adapter.prompt('Enter value', 'defaultVal');
       expect(mockPrompt).toHaveBeenCalledWith('Enter value');
       expect(result).toBe('userInput');
     });
 
     test('date should use Templater date if available', () => {
-      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));
+      const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}, testPluginManifest));
       const result = adapter.formatDate(new Date(), 'YYYY-MM-DD');
       expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
@@ -193,7 +194,7 @@ describe('TemplaterAdapter', () => {
           recentFileTracker: {lastOpenFiles: ['parent.md']}
         };
         mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(parentFileObj);
-        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));
+        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}, testPluginManifest));
         const result = adapter.getParentFile(currentFile);
         expect(result).toBe(parentFileObj.path);
         expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith('parent.md');
@@ -207,7 +208,7 @@ describe('TemplaterAdapter', () => {
           getActiveFile: () => activeFile
         };
         mockApp.plugins.plugins['templater-obsidian'] = {};
-        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}));
+        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS}, testPluginManifest));
         const result = adapter.getParentFile(currentFile);
         expect(result).toBe(activeFile.path);
         expectNoLogs();
@@ -222,7 +223,7 @@ describe('TemplaterAdapter', () => {
         };
         mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
         const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}));
+        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, testPluginManifest));
         const result = adapter.getParentFile(currentFile);
         expect(result).toBeNull();
         expect(spy).toHaveBeenCalledWith('Parent file not found in recent files, using active file as parent');
@@ -238,7 +239,7 @@ describe('TemplaterAdapter', () => {
         };
         mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(currentFile);
         const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}));
+        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, testPluginManifest));
         const result = adapter.getParentFile(currentFile);
         expect(result).toBeNull();
         expect(spy).toHaveBeenCalledWith('Parent file is the same as current file, cannot deduce parent file');
@@ -253,7 +254,7 @@ describe('TemplaterAdapter', () => {
         };
         mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(currentFile);
         const spy = jest.spyOn(console, 'debug').mockImplementation(() => { });
-        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}));
+        const adapter = new TemplaterAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, new ObsidianAdapter(mockApp, {...DEFAULT_SETTINGS, debugMode: true}, testPluginManifest));
         const result = adapter.getParentFile(currentFile);
         expect(result).toBe(lastActiveFile.path);
         expect(spy).not.toHaveBeenCalled();
