@@ -91,6 +91,12 @@ src/
     └── field-utils.ts         # Field validation utilities
 ```
 
+## 🧭 Obsidian compatibility
+
+- Minimum supported Obsidian version: `1.8.0` (see `manifest.json` / `versions.json`).
+- Last version this plugin was developed and tested against: `1.13.x` (API typings pinned to `obsidian@1.13.1`, see
+  `testedWithObsidian` in `package.json`).
+
 ## 🛠️ Development
 
 ```bash

@@ -29,7 +29,7 @@ import EventCron from './eventManager/EventCron';
  * - Seamless Templater integration
  */
 export default class MetaFlowPlugin extends Plugin {
-  settings: MetaFlowSettings;
+  declare settings: MetaFlowSettings;
   container: Container;
   eventManager: EventManager;
   logNoticeManager: LogNoticeManagerInterface;
