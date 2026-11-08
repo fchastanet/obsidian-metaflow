@@ -1,15 +1,18 @@
 import {TFile} from "obsidian";
 import {PropertyManagementService} from "./PropertyManagementService";
-import {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
+import {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
+import {ScriptContextService} from "./ScriptContextService";
+import {LogNoticeManagerInterface} from "@metaflow/managers/types";
 
 describe('PropertyManagementService', () => {
   let propertyManagementService: PropertyManagementService;
   let mockMetaFlowSettings: MetaFlowSettings;
-  let mockMetadataMenuAdapter: any;
-  let mockScriptContextService: any;
+  let mockMetadataMenuAdapter: MetadataMenuAdapter;
+  let mockScriptContextService: ScriptContextService;
   let mockFile: TFile;
-  let mockLogManager: any;
+  let mockLogNoticeManager: LogNoticeManagerInterface;
 
   beforeEach(() => {
     mockMetaFlowSettings = {
@@ -19,32 +22,36 @@ describe('PropertyManagementService', () => {
           propertyName: 'author',
           script: 'return "Default Author";',
           enabled: true,
-          order: 1
+          order: 1,
+          new: false
         },
         {
           propertyName: 'tags',
           script: 'return ["default-tag"];',
           enabled: true,
-          order: 2
+          order: 2,
+          new: false
         }
       ]
     };
 
+    // @ts-expect-error: intentionally using a partial mock for testing
     mockMetadataMenuAdapter = {
       getFileClassAlias: jest.fn().mockReturnValue('fileClass'),
       getFileClassAndAncestorsFields: jest.fn().mockReturnValue([
         {name: 'author', type: 'text'},
         {name: 'tags', type: 'multi'},
         {name: 'title', type: 'text'}
-      ])
+      ]),
     };
 
+    // @ts-expect-error: intentionally using a partial mock for testing
     mockScriptContextService = {
       getScriptContext: jest.fn().mockReturnValue({
         metadata: {},
         fileClass: 'book',
         file: {},
-        logManager: {}
+        logNoticeManager: {}
       })
     };
 
@@ -56,16 +63,19 @@ describe('PropertyManagementService', () => {
       path: 'test.md'
     });
 
-    mockLogManager = {
+    mockLogNoticeManager = {
       addInfo: jest.fn(),
       addWarning: jest.fn(),
-      addError: jest.fn()
+      addError: jest.fn(),
+      addDebug: jest.fn(),
+      addMessage: jest.fn(),
     };
 
     propertyManagementService = new PropertyManagementService(
       mockMetaFlowSettings,
       mockMetadataMenuAdapter,
-      mockScriptContextService
+      mockScriptContextService,
+      mockLogNoticeManager
     );
   });
 
@@ -121,12 +131,12 @@ describe('PropertyManagementService', () => {
         frontmatter,
         mockFile,
         'book',
-        mockLogManager
+        ['title', 'tags'] // Simulate that 'title' and 'tags' were just added by syncFields
       );
 
       expect(result.fileClass).toBe('book');
       expect(result.title).toBe('My Book');
-      expect(result.author).toBe('Default Author');
+      expect(result.author).toBeUndefined(); // not just added
       expect(result.tags).toEqual(['default-tag']);
     });
 
@@ -140,7 +150,7 @@ describe('PropertyManagementService', () => {
         frontmatter,
         mockFile,
         'book',
-        mockLogManager
+        ['author', 'tags'] // Simulate that 'author' and 'tags' were just added by syncFields
       );
 
       expect(result.author).toBe('Existing Author'); // Should not be overridden
@@ -155,7 +165,7 @@ describe('PropertyManagementService', () => {
         frontmatter,
         mockFile,
         'book',
-        mockLogManager
+        ['author', 'tags'] // Simulate that 'author' and 'tags' were just added by syncFields
       );
 
       expect(result.author).toBeUndefined(); // Should not be added
@@ -169,27 +179,28 @@ describe('PropertyManagementService', () => {
           propertyName: 'second',
           script: 'return "second";',
           enabled: true,
-          order: 2
+          order: 2,
+          new: false
         },
         {
           propertyName: 'first',
           script: 'return "first";',
           enabled: true,
-          order: 1
+          order: 1,
+          new: false
         }
       ];
 
-      mockMetadataMenuAdapter.getFileClassAndAncestorsFields.mockReturnValue([
+      (mockMetadataMenuAdapter.getFileClassAndAncestorsFields as jest.Mock).mockReturnValue([
         {name: 'first', type: 'text'},
         {name: 'second', type: 'text'}
       ]);
-
       const frontmatter = {};
       const result = propertyManagementService.addDefaultValuesToProperties(
         frontmatter,
         mockFile,
         'book',
-        mockLogManager
+        ['first', 'second'] // Simulate that 'first' and 'second' were just added by syncFields
       );
 
       // Both should be present, processed in order
@@ -202,7 +213,8 @@ describe('PropertyManagementService', () => {
         propertyName: 'nonExistentField',
         script: 'return "value";',
         enabled: true,
-        order: 3
+        order: 3,
+        new: false
       });
 
       const frontmatter = {};
@@ -210,7 +222,7 @@ describe('PropertyManagementService', () => {
         frontmatter,
         mockFile,
         'book',
-        mockLogManager
+        [] // No fields were just added by syncFields
       );
 
       expect(result.nonExistentField).toBeUndefined();

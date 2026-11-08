@@ -3,7 +3,9 @@ import * as Ace from "ace-builds";
 declare const ace: AceModule;
 
 import {App} from 'obsidian';
-import {MetadataMenuAdapter} from '../externalApi/MetadataMenuAdapter';
+import {MetadataMenuAdapter} from '@metaflow/externalApi/MetadataMenuAdapter';
+import {Completion} from "ace-builds-internal/autocomplete";
+import {Point} from "ace-builds-internal/document";
 
 export interface ScriptEditorConfig {
   enableDateFunctions?: boolean; // Enable now(), tomorrow(), yesterday() functions
@@ -101,8 +103,8 @@ export class ScriptEditor {
 
       this.editor.completers = [
         {
-          getCompletions: (Editor: any, session: any, pos: any, prefix: any, callback: any) => {
-            const linePrefix = session.getLine(pos.row).substring(0, pos.column);
+          getCompletions: (editor: Ace.Editor, session: Ace.EditSession, position: Point, prefix: string, callback: (error: unknown, completions: Completion[]) => void) => {
+            const linePrefix = session.getLine(position.row).substring(0, position.column);
             if (/metadata\./.exec(linePrefix)) {
               callback(null, this.metadataCompletions);
               return;

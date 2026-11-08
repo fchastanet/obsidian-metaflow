@@ -1,28 +1,7 @@
+import type {SettingDefinitionControl} from "obsidian";
+import type {BooleanSettingKey} from "./types";
+
 export class SettingsUtils {
-  static createSection(containerEl: HTMLElement, title: string): HTMLElement {
-    // General Settings - Collapsible
-    const section = containerEl.createEl('details', {cls: 'setting-details'});
-    section.open = false; // Collapsed by default
-    const summary = section.createEl('summary', {cls: 'setting-summary'});
-    summary.classList.add('metaflow-settings-summary');
-
-    summary.createEl('p', {text: title, cls: 'metaflow-settings-section-header'});
-
-    const generalToggleDiv = summary.createEl('div', {cls: 'setting-item-control'});
-    const generalToggleButton = generalToggleDiv.createEl('button', {cls: 'mod-cta metaflow-settings-toggle-button'});
-
-    // Prevent button click from triggering summary toggle
-    generalToggleButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      section.open = !section.open;
-    });
-
-    const sectionContent = section.createDiv({cls: 'section-content'});
-
-    return sectionContent;
-  }
-
   static createCheckboxWithLabel(container: HTMLElement, options: {
     label?: string,
     labelClass: string,
@@ -57,8 +36,40 @@ export class SettingsUtils {
     return [radio, enabledLabel];
   }
 
-  static emptyAndCreate(container: HTMLElement, cls: string): HTMLElement {
-    container.empty();
-    return container.createDiv({cls});
+  /**
+   * Declarative toggle definition bound to a boolean setting
+   */
+  static toggleDefinition(
+    key: BooleanSettingKey, name: string, desc: string, disabled?: () => boolean
+  ): SettingDefinitionControl {
+    return {name, desc, control: {type: 'toggle', key, disabled}};
+  }
+
+  /**
+   * Read a value from an object using a dot-notation path (e.g. `excludeFolders.0`).
+   */
+  static getValueByPath(source: object, path: string): unknown {
+    return path.split('.').reduce<unknown>(
+      (current, segment) => (current !== null && typeof current === 'object')
+        ? (current as Record<string, unknown>)[segment]
+        : undefined,
+      source
+    );
+  }
+
+  /**
+   * Write a value into an object using a dot-notation path (e.g. `excludeFolders.0`).
+   * Intermediate containers must already exist.
+   */
+  static setValueByPath(target: object, path: string, value: unknown): void {
+    const segments = path.split('.');
+    const lastSegment = segments.pop();
+    if (lastSegment === undefined) return;
+    const parent = SettingsUtils.getValueByPath(target, segments.join('.'));
+    const container = segments.length === 0 ? target : parent;
+    if (container === null || typeof container !== 'object') {
+      throw new Error(`Invalid settings path: ${path}`);
+    }
+    (container as Record<string, unknown>)[lastSegment] = value;
   }
 }

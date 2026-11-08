@@ -1,6 +1,7 @@
-# Obsidian MetaFlow
+# MetaFlow
 
-An advanced metadata workflow automation plugin for Obsidian that streamlines frontmatter management through intelligent sorting, automatic field insertion, and customizable default value scripts.
+An advanced metadata workflow automation plugin for Obsidian that streamlines frontmatter management through intelligent
+sorting, automatic field insertion, and customizable default value scripts.
 
 ## ✨ Features
 
@@ -90,6 +91,22 @@ src/
     └── field-utils.ts         # Field validation utilities
 ```
 
+## 🧭 Obsidian compatibility
+
+- Minimum supported Obsidian version: `1.14.4` (see `manifest.json`). No backward compatibility with older Obsidian
+  versions is maintained.
+- Developed and tested against Obsidian `1.14.4` (API typings pinned to `obsidian@1.14.4`, see `testedWithObsidian` in
+  `package.json`).
+- Settings use the declarative settings API (`getSettingDefinitions`, Obsidian >= 1.13). Complex sections (folder
+  mappings, property scripts, simulation) are rendered as settings sub-pages.
+- Files opened from outside the vault (`TExternalFile`, Obsidian >= 1.14.4) are never processed by MetaFlow.
+- Obsidian 1.15.x changelog reviewed: no API change impacts MetaFlow (timers already use
+  `window.setTimeout`/`setInterval`, no usage of Mermaid, `PIXI`, syntax tree node names or
+  `Array#contains`/`String#contains`). No `obsidian@1.15` typings package was published yet.
+- Plugin id is `metaflow-fchastanet`: the `metaflow` id was taken by an unrelated community plugin, and Obsidian's
+  updater replaced this plugin with it. See
+  [Migrate a vault from the legacy plugin id](#migrate-a-vault-from-the-legacy-plugin-id).
+
 ## 🛠️ Development
 
 ```bash
@@ -111,6 +128,38 @@ npm test
 # Run tests with coverage
 npm run test:coverage
 ```
+
+### Deploy to a vault
+
+Built files (`main.js`, `styles.css`, `manifest.json`) are copied into a vault plugin folder by `scripts/sync.mjs`,
+configured by JSON files (git ignored, see `sync.config.example.json`):
+
+- `sync.config.json`: development vault, synced automatically by `npm run build`, `npm run debug` and `npm run dev`
+- `sync.config.prod.json`: production vault, synced by `npm run deploy:prod`
+
+```bash
+# Build, then deploy to the production vault configured in sync.config.prod.json
+# (syncPath: /mnt/c/Programs/Perso/ObsidianFrancoisChastanet/.obsidian/plugins/metaflow-fchastanet/)
+npm run deploy:prod
+
+# Sync already built files using any config file
+npm run sync -- sync.config.prod.json
+```
+
+Then reload Obsidian (or disable/enable the plugin) to load the new version. Plugin settings (`data.json`) are never
+overwritten by the deployment.
+
+### Migrate a vault from the legacy plugin id
+
+Vaults that used the plugin under the legacy `metaflow` id must be migrated once, **with Obsidian closed**:
+
+```bash
+npm run migrate:plugin-id -- /mnt/c/Programs/Perso/ObsidianFrancoisChastanet
+```
+
+It copies `data.json` and `fileClassStateCache.json` to `.obsidian/plugins/metaflow-fchastanet`, renames the plugin in
+`.obsidian/community-plugins.json`, and moves the legacy `plugins/metaflow` folder to a timestamped
+`.obsidian/metaflow-legacy-backup-*` folder (delete it once everything works). Then run `npm run deploy:prod`.
 
 ## 📋 Algorithm
 
@@ -155,8 +204,9 @@ return detectLanguage(file.content);
 
 ### Ace editor
 
-You can use the [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor) to enhance your editing experience with advanced code editing features.
-This plugin settings are using this `ace` editor if available, otherwise it falls back to simple textarea.
+You can use the [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor) to enhance your editing
+experience with advanced code editing features. This plugin settings are using this `ace` editor if available, otherwise
+it falls back to simple textarea.
 
 ## 🧪 Testing
 
@@ -181,6 +231,38 @@ npm run test:watch
 npm run test:coverage
 ```
 
+### Deploy to a vault
+
+Built files (`main.js`, `styles.css`, `manifest.json`) are copied into a vault plugin folder by `scripts/sync.mjs`,
+configured by JSON files (git ignored, see `sync.config.example.json`):
+
+- `sync.config.json`: development vault, synced automatically by `npm run build`, `npm run debug` and `npm run dev`
+- `sync.config.prod.json`: production vault, synced by `npm run deploy:prod`
+
+```bash
+# Build, then deploy to the production vault configured in sync.config.prod.json
+# (syncPath: /mnt/c/Programs/Perso/ObsidianFrancoisChastanet/.obsidian/plugins/metaflow-fchastanet/)
+npm run deploy:prod
+
+# Sync already built files using any config file
+npm run sync -- sync.config.prod.json
+```
+
+Then reload Obsidian (or disable/enable the plugin) to load the new version. Plugin settings (`data.json`) are never
+overwritten by the deployment.
+
+### Migrate a vault from the legacy plugin id
+
+Vaults that used the plugin under the legacy `metaflow` id must be migrated once, **with Obsidian closed**:
+
+```bash
+npm run migrate:plugin-id -- /mnt/c/Programs/Perso/ObsidianFrancoisChastanet
+```
+
+It copies `data.json` and `fileClassStateCache.json` to `.obsidian/plugins/metaflow-fchastanet`, renames the plugin in
+`.obsidian/community-plugins.json`, and moves the legacy `plugins/metaflow` folder to a timestamped
+`.obsidian/metaflow-legacy-backup-*` folder (delete it once everything works). Then run `npm run deploy:prod`.
+
 ### Debugging Tests
 
 <https://jestjs.io/docs/troubleshooting#debugging-in-vs-code>
@@ -201,10 +283,10 @@ Contributions are welcome! Please read the contributing guidelines and submit pu
 
 ## Acknowledgments
 
-This plugin would never exist without [Obsidian](https://obsidian.md/)
-and those great Obsidian plugins:
+This plugin would never exist without [Obsidian](https://obsidian.md/) and those great Obsidian plugins:
 
 - [Obsidian Metadata Menu plugin](https://mdelobelle.github.io/metadatamenu)
 - [Obsidian Templater plugin](https://github.com/SilentVoid13/Templater)
 - [Ace Editor plugin](https://github.com/RavenHogWarts/obsidian-ace-code-editor)
-- [Update frontmatter modified date plugin](https://github.com/alangrainger/obsidian-frontmatter-modified-date) for the inspiration on how to handle manual file modification
+- [Update frontmatter modified date plugin](https://github.com/alangrainger/obsidian-frontmatter-modified-date) for the
+  inspiration on how to handle manual file modification

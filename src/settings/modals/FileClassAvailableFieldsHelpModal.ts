@@ -1,6 +1,7 @@
 import {App, Modal} from 'obsidian';
-import {MetadataMenuAdapter} from '../../externalApi/MetadataMenuAdapter';
-import {LogNoticeManager} from 'src/managers/LogNoticeManager';
+import {MetadataMenuAdapter} from '@metaflow/externalApi/MetadataMenuAdapter';
+import {LogNoticeManager} from '@metaflow/managers/LogNoticeManager';
+import {MetadataMenuField} from '@metaflow/externalApi/types.MetadataMenu';
 
 export class FileClassAvailableFieldsHelpModal extends Modal {
 
@@ -8,7 +9,7 @@ export class FileClassAvailableFieldsHelpModal extends Modal {
     app: App,
     private fileClass: string,
     private metadataMenuAdapter: MetadataMenuAdapter,
-    private logManager: LogNoticeManager,
+    private logNoticeManager: LogNoticeManager,
   ) {
     super(app);
   }
@@ -27,11 +28,11 @@ export class FileClassAvailableFieldsHelpModal extends Modal {
 
     try {
       if (this.metadataMenuAdapter.isMetadataMenuAvailable()) {
-        const fields = this.metadataMenuAdapter.getFileClassAndAncestorsFields(this.fileClass, this.logManager);
+        const fields = this.metadataMenuAdapter.getFileClassAndAncestorsFields(this.fileClass);
 
         if (fields.length > 0) {
           const fieldsList = contentEl.createEl('ul');
-          fields.forEach((field: any) => {
+          fields.forEach((field: MetadataMenuField) => {
             const fieldItem = fieldsList.createEl('li');
             fieldItem.createEl('strong', {text: field.name});
             if (field.type) {
@@ -48,7 +49,7 @@ export class FileClassAvailableFieldsHelpModal extends Modal {
         contentEl.createEl('p', {text: 'MetadataMenu plugin is not available. Cannot show field information.'});
       }
     } catch (error) {
-      contentEl.createEl('p', {text: `Error retrieving fields: ${error.message}`});
+      contentEl.createEl('p', {text: `Error retrieving fields: ${(error as Error).message}`});
     }
 
     // Add template syntax help

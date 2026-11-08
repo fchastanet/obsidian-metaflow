@@ -1,6 +1,6 @@
 import {SortMetadataCommand} from './SortMetadataCommand';
-import {MetaFlowException} from '../MetaFlowException';
-import {LogManagerInterface} from '../managers/types';
+import {MetaFlowException} from '@metaflow/MetaFlowException';
+import {LogNoticeManagerInterface} from '@metaflow/managers/types';
 
 // Mock console.error to avoid cluttering test output
 const originalConsoleError = console.error;
@@ -17,13 +17,6 @@ const mockMetaFlowService = {
   processSortContent: mockProcessSortContent,
 };
 
-// Create command directly with mock service for testing
-class TestSortMetadataCommand extends SortMetadataCommand {
-  constructor() {
-    super(mockMetaFlowService as any);
-  }
-}
-
 const mockEditor = {
   getValue: jest.fn(),
   setValue: jest.fn(),
@@ -36,7 +29,7 @@ const mockView = {
   },
 } as any;
 
-const mockLogManager: LogManagerInterface = {
+const mockLogNoticeManager: LogNoticeManagerInterface = {
   addDebug: jest.fn(),
   addInfo: jest.fn(),
   addWarning: jest.fn(),
@@ -49,7 +42,7 @@ describe('SortMetadataCommand', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    command = new TestSortMetadataCommand();
+    command = new SortMetadataCommand(mockMetaFlowService as any, mockLogNoticeManager);
   });
 
   it('should sort metadata successfully', async () => {
@@ -58,7 +51,7 @@ describe('SortMetadataCommand', () => {
     mockEditor.getValue.mockReturnValue(content);
     mockProcessSortContent.mockResolvedValue(undefined);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
     expect(mockProcessSortContent).toHaveBeenCalledWith(content, mockView.file);
   });
@@ -66,9 +59,9 @@ describe('SortMetadataCommand', () => {
   it('should handle missing file', async () => {
     const viewWithoutFile = {file: null} as any;
 
-    await command.execute(mockEditor, viewWithoutFile, mockLogManager);
+    await command.execute(mockEditor, viewWithoutFile);
 
-    expect(mockLogManager.addWarning).toHaveBeenCalledWith('No active file');
+    expect(mockLogNoticeManager.addWarning).toHaveBeenCalledWith('No active file');
     expect(mockProcessSortContent).not.toHaveBeenCalled();
   });
 
@@ -77,9 +70,9 @@ describe('SortMetadataCommand', () => {
     mockEditor.getValue.mockReturnValue('content');
     mockProcessSortContent.mockRejectedValue(error);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addMessage).toHaveBeenCalledWith('Error: Sort error', 'error');
+    expect(mockLogNoticeManager.addMessage).toHaveBeenCalledWith('Error: Sort error', 'error');
   });
 
   it('should handle generic error', async () => {
@@ -87,8 +80,8 @@ describe('SortMetadataCommand', () => {
     mockEditor.getValue.mockReturnValue('content');
     mockProcessSortContent.mockRejectedValue(error);
 
-    await command.execute(mockEditor, mockView, mockLogManager);
+    await command.execute(mockEditor, mockView);
 
-    expect(mockLogManager.addError).toHaveBeenCalledWith('Error sorting metadata properties');
+    expect(mockLogNoticeManager.addError).toHaveBeenCalledWith('Error sorting metadata properties');
   });
 });

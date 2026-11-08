@@ -1,6 +1,6 @@
 import {FileClassDeductionService} from "./FileClassDeductionService";
-import {MetaFlowSettings} from "../settings/types";
-import {DEFAULT_SETTINGS} from "../settings/defaultSettings";
+import {MetaFlowSettings} from "@metaflow/settings/types";
+import {DEFAULT_SETTINGS} from "@metaflow/settings/defaultSettings";
 
 describe('FileClassDeductionService', () => {
   let fileClassDeductionService: FileClassDeductionService;
@@ -98,10 +98,9 @@ describe('FileClassDeductionService', () => {
     });
 
     it('should return null for invalid metadata', () => {
-      expect(fileClassDeductionService.getFileClassFromMetadata(null)).toBeNull();
       expect(fileClassDeductionService.getFileClassFromMetadata(undefined)).toBeNull();
-      expect(fileClassDeductionService.getFileClassFromMetadata('string')).toBeNull();
-      expect(fileClassDeductionService.getFileClassFromMetadata([])).toBeNull();
+      expect(fileClassDeductionService.getFileClassFromMetadata()).toBeNull();
+      expect(fileClassDeductionService.getFileClassFromMetadata({} as any)).toBeNull();
     });
 
     it('should return null when fileClass property is missing', () => {

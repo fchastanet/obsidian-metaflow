@@ -33,9 +33,9 @@ jobs:
       - name: Extract version from manifest.json
         id: get_version
         run: |
-          version=$(jq -r '.version' manifest.json)
-          echo "Version found: $version"
-          echo "manifest_version=$version" >> $GITHUB_ENV
+          version="$(jq -r '.version' manifest.json)"
+          echo "Version found: ${version}"
+          echo "manifest_version=${version}" >> "${GITHUB_ENV}"
 
       - name: Check if version exists
         id: check_version

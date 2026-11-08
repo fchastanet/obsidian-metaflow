@@ -1,38 +1,32 @@
 import {injectable, inject} from 'inversify';
-import {TFile} from "obsidian";
-import type {MetaFlowSettings, PropertyDefaultValueScript} from "../settings/types";
-import {MetaFlowException} from "../MetaFlowException";
-import type {MetadataMenuAdapter} from "../externalApi/MetadataMenuAdapter";
+import {FrontMatterCache, TFile} from "obsidian";
+import type {MetaFlowSettings, PropertyDefaultValueScript} from "@metaflow/settings/types";
+import {MetaFlowException} from "@metaflow/MetaFlowException";
+import type {MetadataMenuAdapter} from "@metaflow/externalApi/MetadataMenuAdapter";
 import type {ScriptContextService} from "./ScriptContextService";
-import type {LogManagerInterface} from "../managers/types";
-import {MetadataMenuField} from "../externalApi/types.MetadataMenu";
-import {TYPES} from '../di/types';
+import type {LogNoticeManagerInterface} from "@metaflow/managers/types";
+import {MetadataMenuField} from "@metaflow/externalApi/types.MetadataMenu";
+import {TYPES} from '@metaflow/di/types';
 
 @injectable()
 export class PropertyManagementService {
-  private metaFlowSettings: MetaFlowSettings;
-  private metadataMenuAdapter: MetadataMenuAdapter;
-  private scriptContextService: ScriptContextService;
-
   constructor(
-    @inject(TYPES.MetaFlowSettings) metaFlowSettings: MetaFlowSettings,
-    @inject(TYPES.MetadataMenuAdapter) metadataMenuAdapter: MetadataMenuAdapter,
-    @inject(TYPES.ScriptContextService) scriptContextService: ScriptContextService
+    @inject(TYPES.MetaFlowSettings) private settings: MetaFlowSettings,
+    @inject(TYPES.MetadataMenuAdapter) private metadataMenuAdapter: MetadataMenuAdapter,
+    @inject(TYPES.ScriptContextService) private scriptContextService: ScriptContextService,
+    @inject(TYPES.LogNoticeManagerInterface) private logNoticeManager: LogNoticeManagerInterface
   ) {
-    this.metaFlowSettings = metaFlowSettings;
-    this.metadataMenuAdapter = metadataMenuAdapter;
-    this.scriptContextService = scriptContextService;
   }
 
   /**
    * Add default values to properties using the configured scripts
    */
   addDefaultValuesToProperties(
-    frontmatter: {[key: string]: any},
+    frontmatter: FrontMatterCache,
     file: TFile,
     fileClass: string,
-    logManager: LogManagerInterface
-  ): {[key: string]: any} {
+    addedFields: string[]
+  ): FrontMatterCache {
     const enrichedFrontmatter = {...frontmatter};
 
     // Ensure fileClass is set
@@ -40,7 +34,7 @@ export class PropertyManagementService {
     enrichedFrontmatter[fileClassAlias] = fileClass;
 
     // Sort scripts by order (if specified) before processing
-    const orderedScripts = [...this.metaFlowSettings.propertyDefaultValueScripts].sort((a, b) => {
+    const orderedScripts = [...this.settings.propertyDefaultValueScripts].sort((a, b) => {
       const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
       const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
       return orderA - orderB;
@@ -49,31 +43,27 @@ export class PropertyManagementService {
     // Get only the fields associated to fileClass and ancestors
     //convert array to map
     const allFieldsMap = new Map<string, MetadataMenuField>();
-    this.metadataMenuAdapter.getFileClassAndAncestorsFields(fileClass, logManager).forEach(field => {
+    this.metadataMenuAdapter.getFileClassAndAncestorsFields(fileClass).forEach(field => {
       allFieldsMap.set(field.name, field);
     });
 
     // Process each property default value script in order
     for (const script of orderedScripts) {
-      // Skip if property already has a value (not null, undefined, or empty string)
-      if (
-        !allFieldsMap.has(script.propertyName) || (
-          enrichedFrontmatter[script.propertyName] !== undefined &&
-          enrichedFrontmatter[script.propertyName] !== null &&
-          enrichedFrontmatter[script.propertyName] !== ''
-        )
-      ) {
+      if (!script.enabled) {
+        if (this.settings.debugMode) console.debug(`PropertyManagementService: Skipping disabled script for property "${script.propertyName}"`);
         continue;
       }
-      if (!script.enabled) continue;
+      // Skip if property already has a value (not null, undefined, or empty string)
+      if (!this.isNewField(enrichedFrontmatter, allFieldsMap, script, addedFields)) {
+        continue;
+      }
 
       try {
         const defaultValue = this.executePropertyScript(
           script,
           file,
           fileClass,
-          enrichedFrontmatter,
-          logManager
+          enrichedFrontmatter
         );
 
         if (defaultValue !== undefined && defaultValue !== null && defaultValue !== '') {
@@ -87,10 +77,36 @@ export class PropertyManagementService {
     return enrichedFrontmatter;
   }
 
+  private isNewField(
+    enrichedFrontmatter: FrontMatterCache,
+    allFieldsMap: Map<string, MetadataMenuField>,
+    script: PropertyDefaultValueScript,
+    addedFields: string[]
+  ): boolean {
+    if (!allFieldsMap.has(script.propertyName)) {
+      if (this.settings.debugMode) console.debug(`PropertyManagementService: Skipping script for unknown property "${script.propertyName}"`);
+      return false;
+    }
+    if (
+      enrichedFrontmatter[script.propertyName] !== undefined &&
+      enrichedFrontmatter[script.propertyName] !== null &&
+      enrichedFrontmatter[script.propertyName] !== ''
+    ) {
+      return false;
+    }
+    if (!addedFields.includes(script.propertyName)) {
+      if (this.settings.debugMode) console.debug(`PropertyManagementService: Skipping script for property "${script.propertyName}" not recently added`);
+      return false;
+    }
+
+
+    return true;
+  }
+
   /**
    * Sort properties based on the order defined in propertyDefaultValueScripts
    */
-  sortProperties(frontmatter: {[key: string]: any}, sortUnknownPropertiesLast: boolean): {[key: string]: any} {
+  sortProperties(frontmatter: FrontMatterCache, sortUnknownPropertiesLast: boolean): FrontMatterCache {
     if (!frontmatter || typeof frontmatter !== 'object' || Array.isArray(frontmatter)) {
       return frontmatter;
     }
@@ -99,7 +115,7 @@ export class PropertyManagementService {
     const propertyOrderMap = new Map<string, number>();
 
     // Sort scripts by order (if specified) to get the correct sequence
-    const orderedScripts = [...this.metaFlowSettings.propertyDefaultValueScripts].sort((a, b) => {
+    const orderedScripts = [...this.settings.propertyDefaultValueScripts].sort((a, b) => {
       const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
       const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
       return orderA - orderB;
@@ -135,7 +151,7 @@ export class PropertyManagementService {
     });
 
     // Build the sorted frontmatter object
-    return sortedKeys.reduce(function (result: any, key) {
+    return sortedKeys.reduce(function (result: Record<string, unknown>, key) {
       result[key] = frontmatter[key];
       return result;
     }, {});
@@ -148,15 +164,13 @@ export class PropertyManagementService {
     script: PropertyDefaultValueScript,
     file: TFile,
     fileClass: string,
-    metadata: {[key: string]: any},
-    logManager: LogManagerInterface
-  ): any {
+    metadata: FrontMatterCache
+  ): unknown {
     // Get utilities from ScriptContextService
     const context = this.scriptContextService.getScriptContext(
       file,
       fileClass,
-      metadata,
-      logManager
+      metadata
     );
 
     // Create a safe execution environment

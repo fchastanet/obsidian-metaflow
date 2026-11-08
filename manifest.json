@@ -1,8 +1,8 @@
 {
-  "id": "metaflow",
+  "id": "metaflow-fchastanet",
   "name": "MetaFlow",
   "version": "1.0.0",
-  "minAppVersion": "1.8.0",
+  "minAppVersion": "1.14.4",
   "description": "Automated metadata workflow management - sort properties, insert missing fields, and execute custom default value scripts with MetadataMenu and Templater integration",
   "author": "François Chastanet",
   "authorUrl": "https://github.com/fchastanet",

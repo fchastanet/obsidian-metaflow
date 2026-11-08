@@ -3,6 +3,7 @@ import 'obsidian';
 declare module 'obsidian' {
   interface App {
     plugins?: {
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
       plugins?: Record<string, any>;
       enabledPlugins?: Set<string>;
     };
@@ -17,5 +18,6 @@ declare module 'obsidian' {
 
   interface TAbstractFile {
     saving: boolean;
+    deleted: boolean;
   }
 }

@@ -5,11 +5,15 @@ export interface MetadataMenuField {
   id: string;
   path: string;
   options?: {
-    [key: string]: string | any;
+    [key: string]: string | unknown;
   };
   isRequired?: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   tooltip?: string;
+}
+
+export interface MetadataMenuApi {
+  getFileClassByName(name: string): MetadataMenuField[];
 }
 
 export interface MetaMenuSettings {
@@ -22,12 +26,9 @@ export interface MetadataMenuPluginInterface {
   settings: MetaMenuSettings;
   api: {
     getFileClassByName(name: string): MetadataMenuField[];
-    getFieldsForFile(file: any): Promise<MetadataMenuField[]>;
-    insertMissingFields(fileOrFilePath: string | any, lineNumber: number, asList: boolean, asBlockquote: boolean, fileClassName?: string, indexedPath?: string): Promise<void>;
   };
   fieldIndex?: {
     fileClassesFields?: Map<string, MetadataMenuField[]>;
     fileClassesAncestors?: Map<string, string[]> | {[key: string]: string[]};
   };
 }
-

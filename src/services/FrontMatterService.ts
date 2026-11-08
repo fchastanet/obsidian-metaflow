@@ -1,9 +1,10 @@
 import {injectable} from 'inversify';
-import * as yaml from 'js-yaml';
+import {FrontMatterCache, stringifyYaml} from 'obsidian';
+import {getFrontMatterInfo, parseYaml} from 'obsidian';
 
 
 export interface FrontmatterParseResult {
-  metadata: any;
+  metadata: FrontMatterCache;
   content: string;
   restOfContent: string;
 }
@@ -18,40 +19,21 @@ export class FrontMatterService {
    * Parse YAML frontmatter from content
    */
   parseFrontmatter(content: string): FrontmatterParseResult {
-    let frontmatterText = "";
-    let restOfContent = content;
+    const frontMatterInfo = getFrontMatterInfo(content);
+    if (frontMatterInfo) {
+      const {contentStart, exists, frontmatter, from, to} = frontMatterInfo;
 
-    // parse frontmatter
-    const delimiterRegexp: RegExp = /^---$/gm;
-    let match: RegExpExecArray | null = delimiterRegexp.exec(content);
-    // Check if content starts with frontmatter
-    if (match && match.index === 0) {
-      // Find the end of frontmatter
-      let match2: RegExpExecArray | null = delimiterRegexp.exec(content);
-      if (match2 && match2.index > match.index) {
-        frontmatterText = content.slice(4, match2.index);
-        restOfContent = content.slice(match2.index + 4);
+      let metadata = {};
+      if (exists && frontmatter) {
+        metadata = this.parseRawFrontmatter(frontmatter) ?? {};
       }
-    }
 
-    if (frontmatterText.match(/^\s*$/)) {
       return {
-        metadata: {},
-        content: "",
-        restOfContent
+        metadata,
+        content: content.substring(from, to),
+        restOfContent: content.substring(contentStart),
       };
-    } else {
-      const metadata = this.parseRawFrontmatter(frontmatterText);
-      if (metadata) {
-        return {
-          metadata,
-          content: frontmatterText,
-          restOfContent
-        };
-      }
     }
-
-    // invalid or empty frontmatter
     return {
       metadata: {},
       content: "",
@@ -61,13 +43,9 @@ export class FrontMatterService {
 
   parseRawFrontmatter(rawFrontMatter: string): object | null {
     try {
-      // Parse YAML with custom options to preserve strings
-      const metadata = yaml.load(rawFrontMatter, {
-        schema: yaml.JSON_SCHEMA // Use JSON schema to avoid date parsing
-      });
-
-      if (metadata && typeof metadata === 'object') {
-        return metadata;
+      const frontmatter = parseYaml(rawFrontMatter);
+      if (frontmatter && typeof frontmatter === 'object') {
+        return frontmatter;
       }
     } catch (error) {
       console.error('Error parsing YAML frontmatter:', error);
@@ -88,6 +66,7 @@ export class FrontMatterService {
     return this.getFileClassFromMetadata(parseResult.metadata, fileClassAlias);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getFileClassFromMetadata(metadata: any, fileClassAlias: string): string | null {
     return metadata?.[fileClassAlias] || null;
   }
@@ -95,21 +74,11 @@ export class FrontMatterService {
   /**
    * Serialize metadata back to YAML frontmatter format
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serializeFrontmatter(metadata: any, restOfContent: string): string {
     try {
       // Convert back to YAML
-      const sortedYaml = yaml.dump(metadata, {
-        lineWidth: -1,
-        noRefs: true,
-        quotingType: '"',
-        forceQuotes: false,
-        flowLevel: -1,
-        sortKeys: false, // Don't sort keys, we handle sorting manually
-        schema: yaml.JSON_SCHEMA, // Use JSON schema to avoid date formatting
-        styles: {
-          '!!null': 'empty' // Represent null as empty
-        }
-      });
+      const sortedYaml = stringifyYaml(metadata);
 
       return `---\n${sortedYaml}---\n${restOfContent}`;
     } catch (error) {
